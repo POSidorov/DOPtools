@@ -16,6 +16,10 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
+import pandas as pd
+import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+
 class ComplexFragmentor(BaseEstimator, TransformerMixin):
     """
     ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features 
