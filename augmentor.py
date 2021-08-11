@@ -40,7 +40,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
 
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False):
         self.feature_names = []
-        self.lower = lower
+        self.lower = lower 
         self.upper = upper
         self.only_dynamic = only_dynamic
     
