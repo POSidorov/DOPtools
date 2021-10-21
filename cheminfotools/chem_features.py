@@ -126,10 +126,10 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
     ComplexFragmentor assumes that one of the types of features will be structural, thus, 
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
-    def __init__(self, associator, structure_column="molecules"):
+    def __init__(self, associator, structure_columns=[]):
         self.associator = associator
-        self.structure_column = structure_column
-        self.fragmentor = self.associator[self.structure_column]
+        self.structure_columns = structure_columns
+        #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
         
     def get_feature_names(self):
@@ -195,3 +195,59 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
             else:
                 concat.append(v.transform(x[k]))
         return pd.concat(concat, axis=1, sort=False)
+
+class PassThrough(BaseEstimator, TransformerMixin):
+    """
+    PassThrough is a sklearn-compatible transformer that passes a column from a Dataframe into the 
+    feature Dataframe without any changes. It is functionally identical to sklearn.compose 
+    ColumnTransformer's passthrough function. Needed to be compatible with ComplexFragmentor.
+    
+    """
+    def __init__(self, column_name:str):
+        self.column_name = column_name
+        self.feature_names = [self.column_name]
+        
+    def get_feature_names(self):
+        """Returns the list of all features as strings.
+
+        Returns
+        -------
+        List[str]
+        """
+        return self.feature_names
+    
+    def fit(self, x, y=None):
+        """Fits the ComplexFragmentor - fits all feature generators separately, then concatenates them.
+
+        Parameters
+        ----------
+        X : array-like, DataFrame
+            must contain the column taken as self.column_name
+
+        y : None
+            required by default by scikit-learn standards, but doesn't change the function at all.
+
+        Returns
+        -------
+        None
+        """
+        return self
+    
+    def transform(self, x):
+        """Transforms the given data frame to a data frame of features with their values.
+        Applies each feature generator separately, then concatenates them.
+
+        Parameters
+        ----------
+        X : DataFrame
+            the data frame to transform to feature table using trained feature list. Must contain 
+            columns indicated in the associator.
+
+        y : None
+            required by default by scikit-learn standards, but doesn't change the function at all.
+
+        Returns
+        -------
+        None
+        """
+        return pd.Series(x, name=self.column_name)

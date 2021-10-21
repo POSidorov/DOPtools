@@ -16,52 +16,175 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from CGRtools import RDFRead, ReactionContainer, SDFRead, SMILESRead, smiles
+from CGRtools import ReactionContainer, MoleculeContainer, CGRContainer, smiles
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
+from CGRtools.algorithms import depict as DEPICT
+from matplotlib.cm import RdYlGn
 
 class ColorAtom:
-    def __init__(self, fragmentor=None, model=None):
+    """
+    ColorAtom class implements the approach of calculating atomic contributions to the prediction
+    by a model built using fragment descriptors. The approach is based on the approximation that the
+    weight of a fragment can be calculated as a partial derivative of the model's prediction, and the 
+    atoms in the fragment contribute equally to this weight. The approach is developed and reported in 
+
+    G. Marcou, D. Horvath, V. Solov’ev, A. Arrault, P. Vayer and A. Varnek
+    Interpretability of SAR/QSAR models of any complexity by atomic contributions
+    Mol. Inf., 2012, 31(9), 639-642, 2012
+
+    Current implementation is designed for regression tasks, for models built with Scikit-learn library and
+    using ISIDA or CircuS fragments implemented in CGRTools or chem_features module of this library.
+    """
+    def __init__(self, fragmentor=None, model=None, is_complex:bool=False, isida_like:bool=False):
+        DEPICT.Depict.depict_settings(monochrome=True, aam=False)
         self.model = model
         self.pipeline = None
         self.fragmentor = fragmentor
         self.descriptors = []
-        self.isida_like = False
+        self.isida_like = isida_like
+        self.complex = is_complex
     
-    def set_pipeline(self, pipeline, fragmentor_pos_in_pipeline=0):
+    def set_pipeline(self, pipeline:Pipeline, fragmentor_pos_in_pipeline:int=0):
+        """Sets the fragmentor and model of the ColorAtom class via sklearn Pipeline. The fragmentor of
+        the ColorAtom object is set as the nth position in the pipeline, the model as the rest.
+
+        Parameters
+        ----------
+        pipeline : sklearn Pipeline class
+            the pipeline containing fragmentor, preprocessing and the model
+
+        fragmentor_pos_in_pipeline : int
+            the position of the fragmentor in the pipeline, 0 by default
+
+        Returns
+        -------
+        None
+        """
         self.pipeline = pipeline
         if self.fragmentor is None:
             self.fragmentor = self.pipeline[fragmentor_pos_in_pipeline]
             self.descriptors = np.array(self.fragmentor.get_feature_names())
-        if self.descriptors[0].split(",")[-1].startswith("x"):
-            self.isida_like = True
+            self.model = Pipeline([p for i, p in enumerate(pipeline.steps) if i != fragmentor_pos_in_pipeline])
         
     def calculate_atom_contributions(self, mol):
-        atom_weights = {i[0]:0 for i in mol.atoms()}
-        mol_descriptors = self.pipeline["fragmentor"].transform([mol])
-        true_prediction = self.pipeline.predict([mol])[0]
-        for i, d in enumerate(self.initial_descriptors):
-            new_line = np.array(mol_descriptors)[0].copy()
-            if new_line[i]>0:
-                new_line[i] -= 1 
-            new_prediction = self.pipeline[1:].predict([new_line])[0]
-            w = true_prediction - new_prediction
+        """Calculates the atom contribution with the partial derivative approach for the given molecule.
+        If the fragmentor is an object of ComplexFragmentor class, a dataframe with the columns required 
+        by the ComplexFragmentor is accepted. In the latter case, atom contributions will be calculated 
+        for each structural column in the ComplexFragmentor.
 
-            if w != 0:
-                if self.isida_like:
-                    participating_atoms = self._full_mapping_from_descriptor(mol, d)
-                else:
-                    import itertools
-                    participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol, optimize=False)]
-                    participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
-                for a in participating_atoms:
-                    atom_weights[a] -= w
+        Parameters
+        ----------
+        mol : [MoleculeContainer,CGRContainer,DataFrame]
+            the molecule for which the atom contributions will be calculated
+
+        Returns
+        -------
+        atom_weights: Dict[MoleculeContainer: Dict[int:float]]
+            dictionary in form {Molecule: {atom1:weight1, atom2:weight2, ...}}
+        """
+        if self.complex:
+            atom_weights = {}
+            total_descs = 0
+            descriptor_vector = []
+            for a, b in self.fragmentor.associator.items():
+                descriptor_vector.append(b.transform([mol[a]]))
+            descriptor_vector = pd.concat(descriptor_vector, axis=1)
+            true_prediction = self.model.predict(descriptor_vector)[0]
+            for col, fragmentor in self.fragmentor.associator.items():
+                if col in self.fragmentor.structure_columns:
+                    m = mol[col]
+                    atom_weights[m] = {i[0]:0 for i in m.atoms()}
+                    
+                    for i, d in enumerate(fragmentor.get_feature_names()):
+                        new_line = descriptor_vector.copy()
+                        if new_line.iloc[0,total_descs+i]>0:
+                            new_line.at[0,d] -= 1 
+                        new_prediction = self.model.predict(new_line)[0]
+                        w = true_prediction - new_prediction
+
+                        if w != 0:
+                            if self.isida_like:
+                                participating_atoms = self._full_mapping_from_descriptor(m, d)
+                            else:
+                                if "*" in d:
+                                    d = self._aromatize(d)
+                                if type(m) == CGRContainer:
+                                    participating_atoms = [list(i.values()) for i in CGRContainer().compose(smiles(d)).get_mapping(m, optimize=False)]
+                                else:
+                                    participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m, optimize=False)]
+                                participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                            for a in participating_atoms:
+                                atom_weights[m][a] += w
+                total_descs += len(fragmentor.get_feature_names())
+                    
+        else:
+            atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
+            descriptor_vector = self.fragmentor.transform([mol])
+            true_prediction = self.model.predict(descriptor_vector)[0]
+            for i, d in enumerate(self.descriptors):
+                new_line = descriptor_vector.copy()
+                if new_line.iloc[0,i]>0:
+                    new_line.at[0,d] -= 1 
+                new_prediction = self.model.predict(new_line)[0]
+                w = true_prediction - new_prediction
+
+                if w != 0:
+                    if self.isida_like:
+                        participating_atoms = self._full_mapping_from_descriptor(mol, d)
+                    else:
+                        if "*" in d:
+                            d = self._aromatize(d)
+                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol, optimize=False)]
+                        participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                    for a in participating_atoms:
+                        atom_weights[mol][a] += w
         return atom_weights
+    
+    def output_svg(self, mol, contributions=None):
+        """For the given molecule (DataFrame if complex), generates the SVG image where the contributions
+        of atoms are depicted with colors (purple for negative contributions, green for positive, by default).
+        The depicition is based on the CGRTools Depict class and method.
+        The method returns an HTML object which contains as many pictures, as there are molecules to depict.
+
+        Parameters
+        ----------
+        mol : [MoleculeContainer,CGRContainer,DataFrame]
+            the molecule for which the image of atom contributions will be generated
+
+        contributions: Dict [optional]
+            if given, the contribution of the molecule will not be recalculated
+
+        Returns
+        -------
+        html: HTML object
+            an HTML object containing SVG image for each structure with contributions colored
+        """
+        if contributions is None:
+            contributions = self.calculate_atom_contributions(mol)
+        if self.complex:
+            max_value = np.max(np.abs(np.concatenate([list(i.values()) for i in list(contributions.values())])))
+        else:
+            max_value = np.max(np.abs(list(contributions.values())))
+            
+        svgs = []
+        for m in contributions.keys():
+            ext_svg = m.depict()[:-6]
+            for k, c in contributions[m].items():
+                x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
+                if len(m.atom(k).atomic_symbol) >1:
+                    x -= 0.1
+                color = rgb2hex(PiYG((c+max_value)/2./max_value))
+                ext_svg += '<circle cx="{}" cy="{}" r="0.33" stroke="{}" stroke-width="0.1" fill="none" />'.format(x, y, color)
+            ext_svg += "</svg>"
+            svgs.append(ext_svg)
+        no_wrap_div = '<div style="white-space: nowrap">'+'{}'*len(svgs)+'</div>'
+        return HTML(no_wrap_div.format(*svgs))
         
     def _full_mapping_from_descriptor(self, mol, isida_fragment):
         subfragments = isida_fragment.split(",")
-        central_atom = subfragments[-1][-1]
+        central_atom = subfragments[-1][1:]
         subfragments = [i[1:-1] for i in subfragments[:-1]]
 
         full_mapping = []
@@ -90,7 +213,6 @@ class ColorAtom:
         for i, symbol in enumerate(res):
             if symbol=="*":
                 res[i-1]=res[i-1].lower()
-
                 res[i+1]=res[i+1].lower()
 
         for i, symbol in enumerate(res):
