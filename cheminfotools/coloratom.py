@@ -22,6 +22,7 @@ import numpy as np
 from sklearn.pipeline import Pipeline
 from CGRtools.algorithms import depict as DEPICT
 from matplotlib.cm import RdYlGn
+import itertools
 
 class ColorAtom:
     """
