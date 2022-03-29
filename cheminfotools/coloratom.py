@@ -143,7 +143,7 @@ class ColorAtom:
                         atom_weights[mol][a] += w
         return atom_weights
     
-    def output_svg(self, mol, contributions=None):
+    def output_html(self, mol, contributions=None):
         """For the given molecule (DataFrame if complex), generates the SVG image where the contributions
         of atoms are depicted with colors (purple for negative contributions, green for positive, by default).
         The depicition is based on the CGRTools Depict class and method.
