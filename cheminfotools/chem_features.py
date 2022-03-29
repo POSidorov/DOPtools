@@ -37,13 +37,15 @@ class Augmentor(BaseEstimator, TransformerMixin):
     both are set to 0, which means only the count of atoms.
     Additionally, only_dynamic flag indicates of only fragments that contain a dynamic bond or atom 
     will be considered (only works in case of CGRs).
+    fmt parameter defines the format in which the molecules are given to the 
     """
 
-    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False):
+    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt="mol"): 
         self.feature_names = []
         self.lower = lower 
         self.upper = upper
         self.only_dynamic = only_dynamic
+        self.fmt = fmt
     
     def fit(self, X, y=None):
         """Fits the augmentor - finds all possible substructures in the given array of molecules/CGRs.
@@ -61,6 +63,8 @@ class Augmentor(BaseEstimator, TransformerMixin):
         None
         """
         for i, mol in enumerate(X):
+            if self.fmt == "smiles":
+                mol = smiles(mol)
             for length in range(self.lower, self.upper):
                 for atom in mol.atoms():
                     # deep is the radius of the neighborhood sphere in bonds
@@ -71,7 +75,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
                             continue
                         self.feature_names.append(sub)
         return self
-        
+
     def transform(self, X, y=None):
         """Transforms the given array of molecules/CGRs to a data frame with features and their values.
 
@@ -89,6 +93,8 @@ class Augmentor(BaseEstimator, TransformerMixin):
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
+            if self.fmt == "smiles":
+                mol = smiles(mol)
             table.loc[len(table)] = 0
             for sub in self.feature_names:
                 # if CGRs are used, the transformation of the substructure to the CGRcontainer is needed
