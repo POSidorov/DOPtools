@@ -21,7 +21,9 @@ import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
 from CGRtools.algorithms import depict as DEPICT
-from matplotlib.cm import RdYlGn
+from IPython.display import HTML
+from matplotlib.cm import RdYlGn, PiYG
+from matplotlib.colors import rgb2hex
 import itertools
 
 class ColorAtom:
@@ -112,6 +114,7 @@ class ColorAtom:
                                 if "*" in d:
                                     d = self._aromatize(d)
                                 if type(m) == CGRContainer:
+                                    d = self._isida2cgrtools(d)
                                     participating_atoms = [list(i.values()) for i in CGRContainer().compose(smiles(d)).get_mapping(m, optimize=False)]
                                 else:
                                     participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m, optimize=False)]
@@ -137,6 +140,7 @@ class ColorAtom:
                     else:
                         if "*" in d:
                             d = self._aromatize(d)
+                        d = self._isida2cgrtools(d)
                         participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol, optimize=False)]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                     for a in participating_atoms:
@@ -228,3 +232,10 @@ class ColorAtom:
             if symbol=="*" or symbol=="=" or symbol=="-" or symbol=="#":
                 res[i]=""
         return "".join(res)
+
+    def _isida2cgrtools(self, text):
+        text = text.replace("2>1", "[=>-]").replace("2>3", "[=>#]").replace("2>0", "[=>.]")
+        text = text.replace("1>2", "[->=]").replace("1>3", "[->#]").replace("1>0", "[->.]")
+        text = text.replace("3>2", "[#>=]").replace("3>1", "[#>-]").replace("3>0", "[#>.]")
+        text = text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
+        return text
