@@ -238,4 +238,5 @@ class ColorAtom:
         text = text.replace("1>2", "[->=]").replace("1>3", "[->#]").replace("1>0", "[->.]")
         text = text.replace("3>2", "[#>=]").replace("3>1", "[#>-]").replace("3>0", "[#>.]")
         text = text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
+        text = text.replace("]H", "][H]").replace("H[", "[H][")
         return text
