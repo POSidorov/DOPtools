@@ -57,5 +57,5 @@ The application of the ColorAtom requires a trained pipeline containing a fragme
 
 The coloring is done with matplotlib library. The atom contributions are normalized between 0 and 1 according to the maximum absolute value of the contribution. Therefore, if several structures are present, they will all have their colors normalized by the maximum value amond all contributions. The default colormap is PiYG. The "lower" (more negative) contributions are shown by red color, the "upper" (more positive) - by green. An example can be seen below:
 
-![Demonstration of ColorAtom](/docs/img/colroatom-demo1.png)
+![Demonstration of ColorAtom](/docs/img/coloratom-demo1.png)
 
