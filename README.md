@@ -40,3 +40,22 @@ associator = {"molecules": Augmentor(lower=a, upper=b),
 ```
 
 ComplexFragmentor assumes that at least one of the types of features will be structural, thus, *structure_columns* parameter defines the columns of the data frame where structures are found.
+
+## ColorAtom
+
+ColorAtom class implements the approach of calculating atomic contributions to the prediction by a model built using fragment descriptors. In this approach, the weights of all fragments are calculated as partial derivatives of the model’s prediction. To get the weight for one fragment, a new descriptor vector is constructed, where the value of this fragment is different (usually by value of 1 for easier calculation), the property is predicted, and the difference in predictions is taken as the weight. Each atom involved in this fragment accumulates this weight as the score, and the sum of all scores on the atom indicates its importance. This can then be visualized, by assigning colors to positive and negative colors, thus allowing to visually inspect the atomic contributions and draw conclusions which modifications to the structure may be beneficial for further improvement of the studies property.
+
+ The approach is developed and reported in 
+
+> G. Marcou, D. Horvath, V. Solov’ev, A. Arrault, P. Vayer and A. Varnek
+> Interpretability of SAR/QSAR models of any complexity by atomic contributions
+> Mol. Inf., 2012, 31(9), 639-642, 2012
+
+Current implementation is designed for regression tasks, for models built with Scikit-learn library and using ISIDA fragments implemented in CIMtools or CircuS fragments implemented in chem_features module of this library. 
+
+The application of the ColorAtom requires a trained pipeline containing a fragmentor (both ISIDA and CircuS are supported), features preprocessing and a model. *calculate_atom_contributions* calculates the contributions of each atom for a given molecule and returns them numerically as a dictionary. Otherwise, they can visualized directly in Jupyter Notebook via *output_html* function that returns an HTML table containing an SVG for each structure in the molecule. Since complexFragmentor is also supported, several structures in one data point can be processed simultaneously. 
+
+The coloring is done with matplotlib library. The atom contributions are normalized between 0 and 1 according to the maximum absolute value of the contribution. Therefore, if several structures are present, they will all have their colors normalized by the maximum value amond all contributions. The default colormap is PiYG. The "lower" (more negative) contributions are shown by red color, the "upper" (more positive) - by green. An example can be seen below:
+
+![Demonstration of ColorAtom](/docs/img/colroatom-demo1.png)
+

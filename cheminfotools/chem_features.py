@@ -17,10 +17,12 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import pandas as pd
+from pandas import DataFrame
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import SelectorMixin 
 from CGRtools import smiles, CGRContainer, MoleculeContainer
+from typing import Optional, List, Dict, Tuple
 
 class Augmentor(BaseEstimator, TransformerMixin):
     """
@@ -40,14 +42,14 @@ class Augmentor(BaseEstimator, TransformerMixin):
     fmt parameter defines the format in which the molecules are given to the 
     """
 
-    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt="mol"): 
+    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
         self.feature_names = []
         self.lower = lower 
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
     
-    def fit(self, X, y=None):
+    def fit(self, X:DataFrame, y:Optional=None):
         """Fits the augmentor - finds all possible substructures in the given array of molecules/CGRs.
 
         Parameters
@@ -76,7 +78,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
                         self.feature_names.append(sub)
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, X:DataFrame, y:Optional=None) -> DataFrame:
         """Transforms the given array of molecules/CGRs to a data frame with features and their values.
 
         Parameters
@@ -89,7 +91,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        None
+        DataFrame containing the fragments and their counts.
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
@@ -106,7 +108,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
                 table.loc[i,sub] = len(mapping)
         return table
     
-    def get_feature_names(self):
+    def get_feature_names(self) -> List[str]:
         """Returns the list of features as strings.
 
         Returns
@@ -133,13 +135,13 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
     ComplexFragmentor assumes that one of the types of features will be structural, thus, 
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
-    def __init__(self, associator, structure_columns=[]):
+    def __init__(self, associator:Dict[str,object], structure_columns:List[str]=[]):
         self.associator = associator
         self.structure_columns = structure_columns
         #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
         
-    def get_feature_names(self):
+    def get_feature_names(self) -> List[str]:
         """Returns the list of all features as strings.
 
         Returns
@@ -148,7 +150,7 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
         """
         return self.feature_names
     
-    def get_structural_feature_names(self):
+    def get_structural_feature_names(self) -> List[str]:
         """Returns the list of only structural features associated to the structure_column as strings.
 
         Returns
@@ -157,7 +159,7 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
         """
         return self.fragmentor.get_feature_names()
     
-    def fit(self, x, y=None):
+    def fit(self, x:DataFrame, y:Optional=None):
         """Fits the ComplexFragmentor - fits all feature generators separately, then concatenates them.
 
         Parameters
@@ -178,7 +180,7 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
             self.feature_names += v.get_feature_names()
         return self
     
-    def transform(self, x):
+    def transform(self, x:DataFrame) -> DataFrame:
         """Transforms the given data frame to a data frame of features with their values.
         Applies each feature generator separately, then concatenates them.
 
@@ -193,7 +195,7 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        None
+        DataFrame containing the fragments and their counts and other descriptors.
         """
         concat = []
         for k, v in self.associator.items():
@@ -223,7 +225,7 @@ class PassThrough(BaseEstimator, TransformerMixin):
         """
         return self.feature_names
     
-    def fit(self, x, y=None):
+    def fit(self, x:DataFrame, y=None):
         """Fits the ComplexFragmentor - fits all feature generators separately, then concatenates them.
 
         Parameters
@@ -240,7 +242,7 @@ class PassThrough(BaseEstimator, TransformerMixin):
         """
         return self
     
-    def transform(self, x):
+    def transform(self, x:DataFrame):
         """Transforms the given data frame to a data frame of features with their values.
         Applies each feature generator separately, then concatenates them.
 
@@ -255,7 +257,7 @@ class PassThrough(BaseEstimator, TransformerMixin):
 
         Returns
         -------
-        None
+        DataFrame contaning the column.
         """
         return pd.Series(x, name=self.column_name)
 
@@ -265,7 +267,7 @@ class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):
     optimization of SVM models described elsewhere. I does not do pruning/scaling by itself!!!
     Requires a .pri file generated by the above-mentioned GA implemetation.
     """
-    def __init__(self, prifile, scaling=True):
+    def __init__(self, prifile:str, scaling:bool=True):
         self.prifile = prifile
         self.scaling = scaling
         
@@ -273,17 +275,17 @@ class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):
         self.max_len = np.max(self.indices)
         self.scale =  np.loadtxt(prifile)[:,[2,3]]
         
-    def fit(self, X, y=None):
+    def fit(self, X:DataFrame, y:Optional=None):
         self.max_len = X.shape[1]
         return self
     
-    def transform(self, X):
+    def transform(self, X:DataFrame) -> DataFrame:
         X = np.array(X)[:, self.indices-1]
         if self.scaling:
             X = (X - self.scale[:,0])/(self.scale[:,1]-self.scale[:,0])
         return X
     
-    def _get_support_mask(self):
+    def _get_support_mask(self) -> array:
         mask = np.zeros(self.max_len)
         mask[self.indices] += 1
         return mask.astype(bool)
