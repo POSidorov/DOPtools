@@ -19,6 +19,7 @@
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
+from numpy import array
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import SelectorMixin 
 from CGRtools import smiles, CGRContainer, MoleculeContainer
@@ -39,7 +40,8 @@ class Augmentor(BaseEstimator, TransformerMixin):
     both are set to 0, which means only the count of atoms.
     Additionally, only_dynamic flag indicates of only fragments that contain a dynamic bond or atom 
     will be considered (only works in case of CGRs).
-    fmt parameter defines the format in which the molecules are given to the 
+    fmt parameter defines the format in which the molecules are given to the Augmentor. "mol" if they 
+    are in CGRtools MoleculeContainer or CGRContainer, "smiles" if they are in SMILES.
     """
 
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
