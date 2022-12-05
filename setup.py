@@ -34,7 +34,7 @@ setup(
     python_requires='>=3.7.0',
     install_requires=['pandas>=0.25', 'numpy>=1.20', 'scipy>=1.7', 'matplotlib>=3.4', 'cgrtools>=4.1',
                       'scikit-learn>=0.24', 'ipython>=7.22'],
-    long_description=(Path(__file__).parent / 'README.md').open().read(),
+    long_description=(Path(__file__).parent / 'README.md').open(encoding='utf-8').read(),
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',
