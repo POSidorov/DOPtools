@@ -51,7 +51,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
         self.only_dynamic = only_dynamic
         self.fmt = fmt
     
-    def fit(self, X:DataFrame, y:Optional=None):
+    def fit(self, X:DataFrame, y:Optional[List]=None):
         """Fits the augmentor - finds all possible substructures in the given array of molecules/CGRs.
 
         Parameters
@@ -80,7 +80,7 @@ class Augmentor(BaseEstimator, TransformerMixin):
                         self.feature_names.append(sub)
         return self
 
-    def transform(self, X:DataFrame, y:Optional=None) -> DataFrame:
+    def transform(self, X:DataFrame, y:Optional[List]=None) -> DataFrame:
         """Transforms the given array of molecules/CGRs to a data frame with features and their values.
 
         Parameters
@@ -161,7 +161,7 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
         """
         return self.fragmentor.get_feature_names()
     
-    def fit(self, x:DataFrame, y:Optional=None):
+    def fit(self, x:DataFrame, y:Optional[List]=None):
         """Fits the ComplexFragmentor - fits all feature generators separately, then concatenates them.
 
         Parameters
@@ -277,15 +277,16 @@ class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):
         self.max_len = np.max(self.indices)
         self.scale =  np.loadtxt(prifile)[:,[2,3]]
         
-    def fit(self, X:DataFrame, y:Optional=None):
+    def fit(self, X:DataFrame, y:Optional[List]=None):
         self.max_len = X.shape[1]
         return self
     
     def transform(self, X:DataFrame) -> DataFrame:
+        features = np.array(X.columns)[self.indices-1]
         X = np.array(X)[:, self.indices-1]
         if self.scaling:
             X = (X - self.scale[:,0])/(self.scale[:,1]-self.scale[:,0])
-        return X
+        return pd.DataFrame(X, columns=features)
     
     def _get_support_mask(self) -> array:
         mask = np.zeros(self.max_len)
