@@ -71,7 +71,7 @@ class ColorAtom:
             self.descriptors = np.array(self.fragmentor.get_feature_names())
             self.model = Pipeline([p for i, p in enumerate(pipeline.steps) if i != fragmentor_pos_in_pipeline])
         
-    def calculate_atom_contributions(self, mol):
+    def calculate_atom_contributions(self, mol, algo="derivative"):
         """Calculates the atom contribution with the partial derivative approach for the given molecule.
         If the fragmentor is an object of ComplexFragmentor class, a dataframe with the columns required 
         by the ComplexFragmentor is accepted. In the latter case, atom contributions will be calculated 
@@ -94,34 +94,36 @@ class ColorAtom:
             for a, b in self.fragmentor.associator.items():
                 descriptor_vector.append(b.transform([mol[a]]))
             descriptor_vector = pd.concat(descriptor_vector, axis=1)
-            true_prediction = self.model.predict(descriptor_vector)[0]
-            for col, fragmentor in self.fragmentor.associator.items():
-                if col in self.fragmentor.structure_columns:
-                    m = mol[col]
-                    atom_weights[m] = {i[0]:0 for i in m.atoms()}
-                    
-                    for i, d in enumerate(fragmentor.get_feature_names()):
-                        new_line = descriptor_vector.copy()
-                        if new_line.iloc[0,total_descs+i]>0:
-                            new_line.at[0,d] -= 1 
-                        new_prediction = self.model.predict(new_line)[0]
-                        w = true_prediction - new_prediction
+            if algo=="derivative":
+                true_prediction = self.model.predict(descriptor_vector)[0]
+                for col, fragmentor in self.fragmentor.associator.items():
+                    if col in self.fragmentor.structure_columns:
+                        m = mol[col]
+                        atom_weights[m] = {i[0]:0 for i in m.atoms()}
 
-                        if w != 0:
-                            if self.isida_like:
-                                participating_atoms = self._full_mapping_from_descriptor(m, d)
-                            else:
-                                if "*" in d:
-                                    d = self._aromatize(d)
-                                if type(m) == CGRContainer:
-                                    d = self._isida2cgrtools(d)
-                                    participating_atoms = [list(i.values()) for i in CGRContainer().compose(smiles(d)).get_mapping(m, optimize=False)]
+                        for i, d in enumerate(fragmentor.get_feature_names()):
+                            new_line = descriptor_vector.copy()
+                            if new_line.iloc[0,total_descs+i]>0:
+                                new_line.at[0,d] -= 1 
+                            new_prediction = self.model.predict(new_line)[0]
+                            w = true_prediction - new_prediction
+
+                            if w != 0:
+                                if self.isida_like:
+                                    participating_atoms = self._full_mapping_from_descriptor(m, d)
                                 else:
-                                    participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m, optimize=False)]
-                                participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
-                            for a in participating_atoms:
-                                atom_weights[m][a] += w
-                total_descs += len(fragmentor.get_feature_names())
+                                    if "*" in d:
+                                        d = self._aromatize(d)
+                                    if type(m) == CGRContainer:
+                                        d = self._isida2cgrtools(d)
+                                        participating_atoms = [list(i.values()) for i in CGRContainer().compose(smiles(d)).get_mapping(m, optimize=False)]
+                                    else:
+                                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m, optimize=False)]
+                                    participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                                for a in participating_atoms:
+                                    atom_weights[m][a] += w
+                    total_descs += len(fragmentor.get_feature_names())
+            #elif algoshap
                     
         else:
             atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
@@ -171,11 +173,12 @@ class ColorAtom:
         if self.complex:
             max_value = np.max(np.abs(np.concatenate([list(i.values()) for i in list(contributions.values())])))
         else:
-            max_value = np.max(np.abs(list(contributions.values())))
+            max_value = np.max(np.abs(list(contributions[mol].values())))
             
         svgs = []
         for m in contributions.keys():
             ext_svg = m.depict()[:-6]
+            ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
             for k, c in contributions[m].items():
                 x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
                 if len(m.atom(k).atomic_symbol) >1:
@@ -234,9 +237,13 @@ class ColorAtom:
         return "".join(res)
 
     def _isida2cgrtools(self, text):
+        res = list(text)
+        for i, symbol in enumerate(res):
+            if symbol=="+" :
+                res[i]="#"
+        text = "".join(res)
         text = text.replace("2>1", "[=>-]").replace("2>3", "[=>#]").replace("2>0", "[=>.]")
         text = text.replace("1>2", "[->=]").replace("1>3", "[->#]").replace("1>0", "[->.]")
         text = text.replace("3>2", "[#>=]").replace("3>1", "[#>-]").replace("3>0", "[#>.]")
         text = text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
-        text = text.replace("]H", "][H]").replace("H[", "[H][")
         return text
