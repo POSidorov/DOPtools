@@ -16,11 +16,11 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from CGRtools import ReactionContainer, MoleculeContainer, CGRContainer, smiles
+from chython import ReactionContainer, MoleculeContainer, CGRContainer, smiles
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
-from CGRtools.algorithms import depict as DEPICT
+from chython.algorithms import depict as DEPICT
 from IPython.display import HTML
 from matplotlib.cm import RdYlGn, PiYG
 from matplotlib.colors import rgb2hex
@@ -41,7 +41,7 @@ class ColorAtom:
     using ISIDA or CircuS fragments implemented in CGRTools or chem_features module of this library.
     """
     def __init__(self, fragmentor=None, model=None, is_complex:bool=False, isida_like:bool=False):
-        DEPICT.Depict.depict_settings(monochrome=True, aam=False)
+        DEPICT.depict_settings(monochrome=True, aam=False)
         self.model = model
         self.pipeline = None
         self.fragmentor = fragmentor
@@ -118,12 +118,13 @@ class ColorAtom:
                                         d = self._isida2cgrtools(d)
                                         participating_atoms = [list(i.values()) for i in CGRContainer().compose(smiles(d)).get_mapping(m, optimize=False)]
                                     else:
-                                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m, optimize=False)]
+                                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m,)]
                                     participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                                 for a in participating_atoms:
                                     atom_weights[m][a] += w
                     total_descs += len(fragmentor.get_feature_names())
-            #elif algoshap
+            #elif algo=="shap":
+                
                     
         else:
             atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
@@ -143,7 +144,7 @@ class ColorAtom:
                         if "*" in d:
                             d = self._aromatize(d)
                         d = self._isida2cgrtools(d)
-                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol, optimize=False)]
+                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                     for a in participating_atoms:
                         atom_weights[mol][a] += w
@@ -202,7 +203,7 @@ class ColorAtom:
                 struct = mol.augmented_substructure([atom[0]], deep=len(self._only_atoms(subfragments[0]))-1)
                 for frag in set(subfragments):
                     needed_count = subfragments.count(frag)
-                    real_frags = list(smiles(self._aromatize(frag)).get_mapping(struct, optimize=False))
+                    real_frags = list(smiles(self._aromatize(frag)).get_mapping(struct))
                     real_frags = [i for i in real_frags if i[1] == atom[0]]
                     real_count = len(real_frags)
                     if needed_count < real_count:
