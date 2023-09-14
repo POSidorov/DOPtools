@@ -300,13 +300,13 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
                             self.feature_names[k].append(Chem.MolToSmiles(submol,canonical=True))
                         else:
                             self.feature_names[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
-                        self.feature_names_chython[k].append(str(x.augmented_substructure([i[0]+1], deep=i[1])))
+                        #self.feature_names_chython[k].append(str(x.augmented_substructure([i[0]+1], deep=i[1])))
             for k, v in self.feature_names.items():
                 vt = [item for item in v if item != '']
                 self.feature_names[k] = set(vt)
-            for k, v in self.feature_names_chython.items():
-                vt = [item for item in v if item != '']
-                self.feature_names_chython[k] = set(vt)
+            #for k, v in self.feature_names_chython.items():
+            #    vt = [item for item in v if item != '']
+            #    self.feature_names_chython[k] = set(vt)
         elif self.fp_type == 'avalon':
             pass
         elif self.fp_type == 'layered':
@@ -329,7 +329,7 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
             for k, v in self.feature_names.items():
                 vt = [item for item in v if item != '']
                 self.feature_names[k] = set(vt)
-            self.feature_names_chython = self.feature_names
+            #self.feature_names_chython = self.feature_names
         
         return self
         

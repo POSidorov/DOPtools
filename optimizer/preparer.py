@@ -5,6 +5,7 @@ from rdkit.Chem import rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
 from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule, to_rdkit_molecule
 from CGRtools import smiles as cgrtools_smiles
+from mordred import Calculator, descriptors
 
 from cheminfotools.chem_features import ChythonCircus, ChythonIsida, Fingerprinter, ComplexFragmentor
 
@@ -21,6 +22,7 @@ parser.add_argument('--structure_col', required=True, action='extend', type=str,
 parser.add_argument('--property_col', required=True, action='extend', type=str, nargs='+', default=[])
 parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[])
 parser.add_argument('-o', '--output', required=True)
+parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'])
 
 parser.add_argument('--morgan', action='store_true', 
                     help='put the option to calculate Morgan fingerprints')
@@ -94,6 +96,8 @@ parser.add_argument('--circus_min', nargs='+', action='extend', type=int, defaul
 parser.add_argument('--circus_max', nargs='+', action='extend', type=int, default=[2],
                     help='maximum length of ISIDA linear fragments. Allows several numbers, which will be stored separately')
 
+parser.add_argument('--mordred2d', action='store_true', 
+                    help='put the option to calculate Mordred 2D descriptors')
 
 def create_output_dir(outdir):
     if os.path.exists(outdir):
@@ -101,6 +105,32 @@ def create_output_dir(outdir):
     else:
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
+
+def output_file(desc, prop, desctype, outdir, prop_ind_name, fmt='svm', descparams=None, indices=None):
+    if fmt not in ['svm', 'csv']:
+        raise ValueError('The output file should be of CSV or SVM format')
+    outname = outdir + '/'
+    try:
+        outname += args.property_names[prop_ind_name[0]] +'.'
+    except:
+        outname += prop_ind_name[1] +'.'
+    outname += desctype
+    if descparams is not None:
+        if desctype == 'isida':
+            outname += '-' + str(descparams[0])+'-'+str(descparams[1])+'-'+str(descparams[2])
+        elif desctype == 'circus':
+            outname += '-' + str(descparams[0])+'-'+str(descparams[1])
+        else:
+            outname += str(descparams)
+    outname += '.'+fmt
+
+    if fmt == 'csv':
+        desc = pd.concat([prop.iloc[indices], pd.DataFrame(desc).iloc[indices]], axis=1, sort=False)
+        desc.to_csv(outname, index=False)
+    else:
+        dump_svmlight_file(np.array(desc)[indices], prop.iloc[indices], 
+                outname,zero_based=False)
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -119,7 +149,7 @@ if __name__ == '__main__':
     structure_dict = {}
     for s in args.structure_col:
         structure_dict[s] = [smiles(m) for m in data_table[s]]
-        [m.canonicalize() for m in structure_dict[s]]
+        [m.canonicalize(fix_tautomers=False) for m in structure_dict[s]]
 
     if args.morgan:
         print('Creating a folder for Morgan fingerprints')
@@ -135,12 +165,13 @@ if __name__ == '__main__':
                                                                 nBits=args.morgan_nBits, size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
             for i, p in enumerate(args.property_col):
-                try:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+args.property_names[i]+".morgan"+str(r)+".svm",zero_based=False)
-                except:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+p+".morgan"+str(r)+".svm",zero_based=False)
+                indices = data_table[p][pd.notnull(data_table[p])].index
+                if len(indices) < len(data_table[p]):
+                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                    print(f"Molecules that don't have the property will be discarded from the set.")
+                
+                output_file(desc, data_table[p], 'morgan', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                
 
     if args.morganfeatures:
         print('Creating a folder for Morgan feature fingerprints')
@@ -158,12 +189,13 @@ if __name__ == '__main__':
                                                                 params={'useFeatures':True})]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
             for i, p in enumerate(args.property_col):
-                try:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+args.property_names[i]+".morganfeatures"+str(r)+".svm",zero_based=False)
-                except:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+p+".morganfeatures"+str(r)+".svm",zero_based=False)
+                indices = data_table[p][pd.notnull(data_table[p])].index
+                if len(indices) < len(data_table[p]):
+                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                    print(f"Molecules that don't have the property will be discarded from the set.")
+                
+                output_file(desc, data_table[p], 'morganfeatures', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                
 
     if args.rdkfp:
         print('Creating a folder for RDkit fingerprints')
@@ -179,12 +211,13 @@ if __name__ == '__main__':
                                                                 size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
             for i, p in enumerate(args.property_col):
-                try:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+args.property_names[i]+".rdkfp"+str(r)+".svm",zero_based=False)
-                except:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+p+".rdkfp"+str(r)+".svm",zero_based=False)
+                indices = data_table[p][pd.notnull(data_table[p])].index
+                if len(indices) < len(data_table[p]):
+                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                    print(f"Molecules that don't have the property will be discarded from the set.")
+                
+                output_file(desc, data_table[p], 'rdkfp', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                
 
     if args.rdkfplinear:
         print('Creating a folder for RDkit linear fingerprints')
@@ -200,12 +233,13 @@ if __name__ == '__main__':
                                                                 size=r, params={'branchedPaths':False})]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
             for i, p in enumerate(args.property_col):
-                try:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+args.property_names[i]+".rdkfplinear"+str(r)+".svm",zero_based=False)
-                except:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+p+".rdkfplinear"+str(r)+".svm",zero_based=False)   
+                indices = data_table[p][pd.notnull(data_table[p])].index
+                if len(indices) < len(data_table[p]):
+                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                    print(f"Molecules that don't have the property will be discarded from the set.")
+                
+                output_file(desc, data_table[p], 'rdkfplinear', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                
 
     if args.layered:
         print('Creating a folder for RDkit property-layered fingerprints')
@@ -221,12 +255,13 @@ if __name__ == '__main__':
                                                                 size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
             for i, p in enumerate(args.property_col):
-                try:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+args.property_names[i]+".layered"+str(r)+".svm",zero_based=False)
-                except:
-                    dump_svmlight_file(desc, data_table[p], 
-                        outdir+'/'+p+".layered"+str(r)+".svm",zero_based=False)  
+                indices = data_table[p][pd.notnull(data_table[p])].index
+                if len(indices) < len(data_table[p]):
+                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                    print(f"Molecules that don't have the property will be discarded from the set.")
+                
+                output_file(desc, data_table[p], 'layered', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                 
 
     if args.avalon:
         print('Creating a folder for Avalon fingerprints')
@@ -241,12 +276,13 @@ if __name__ == '__main__':
                                                                 nBits=args.avalon_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
         for i, p in enumerate(args.property_col):
-            try:
-                dump_svmlight_file(desc, data_table[p], 
-                    outdir+'/'+args.property_names[i]+".avalon.svm",zero_based=False)
-            except:
-                dump_svmlight_file(desc, data_table[p], 
-                    outdir+'/'+p+".avalon.svm",zero_based=False)    
+            indices = data_table[p][pd.notnull(data_table[p])].index
+            if len(indices) < len(data_table[p]):
+                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                print(f"Molecules that don't have the property will be discarded from the set.")
+                
+            output_file(desc, data_table[p], 'avalone', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+                  
 
     if args.atompairs:
         print('Creating a folder for atom pair fingerprints')
@@ -261,12 +297,13 @@ if __name__ == '__main__':
                                                                 nBits=args.atompairs_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
         for i, p in enumerate(args.property_col):
-            try:
-                dump_svmlight_file(desc, data_table[p], 
-                    outdir+'/'+args.property_names[i]+".atompairs.svm",zero_based=False)
-            except:
-                dump_svmlight_file(desc, data_table[p], 
-                    outdir+'/'+p+".atompairs.svm",zero_based=False)  
+            indices = data_table[p][pd.notnull(data_table[p])].index
+            if len(indices) < len(data_table[p]):
+                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                print(f"Molecules that don't have the property will be discarded from the set.")
+                
+            output_file(desc, data_table[p], 'atompairs', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+                
 
     if args.torsion:
         print('Creating a folder for topological torsion fingerprints')
@@ -281,12 +318,13 @@ if __name__ == '__main__':
                                                                 nBits=args.torsion_nBits)]*len(structure_dict.keys()))))
         desc = frag.fit_transform(pd.DataFrame(structure_dict))
         for i, p in enumerate(args.property_col):
-            try:
-                dump_svmlight_file(desc, data_table[p], 
-                    outdir+'/'+args.property_names[i]+".torsion.svm",zero_based=False)
-            except:
-                dump_svmlight_file(desc, data_table[p], 
-                    outdir+'/'+p+".torsion.svm",zero_based=False)     
+            indices = data_table[p][pd.notnull(data_table[p])].index
+            if len(indices) < len(data_table[p]):
+                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                print(f"Molecules that don't have the property will be discarded from the set.")
+                
+            output_file(desc, data_table[p], 'torsion', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+                 
 
     if args.isida:
         print('Creating a folder for ISIDA fragments')
@@ -303,12 +341,14 @@ if __name__ == '__main__':
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
                 for i, p in enumerate(args.property_col):
-                    try:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+args.property_names[i]+".isida-3-"+str(l)+"-"+str(u)+".svm",zero_based=False)
-                    except:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+p+".isida-3-"+str(l)+"-"+str(u)+".svm",zero_based=False)   
+                    indices = data_table[p][pd.notnull(data_table[p])].index
+                    if len(indices) < len(data_table[p]):
+                        print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                        print(f"Molecules that don't have the property will be discarded from the set.")
+                        
+                    output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
+                        descparams=(3, l, u), indices=indices)
+                       
         for l in set(args.isida_circular_min):
             for u in set(args.isida_circular_max):
                 if len(structure_dict)==1:
@@ -320,12 +360,14 @@ if __name__ == '__main__':
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
                 for i, p in enumerate(args.property_col):
-                    try:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+args.property_names[i]+".isida-9-"+str(l)+"-"+str(u)+".svm",zero_based=False)
-                    except:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+p+".isida-9-"+str(l)+"-"+str(u)+".svm",zero_based=False)
+                    indices = data_table[p][pd.notnull(data_table[p])].index
+                    if len(indices) < len(data_table[p]):
+                        print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                        print(f"Molecules that don't have the property will be discarded from the set.")
+                        
+                    output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
+                        descparams=(9, l, u), indices=indices)
+
         for l in set(args.isida_flex_min):
             for u in set(args.isida_flex_max):
                 if len(structure_dict)==1:
@@ -337,12 +379,13 @@ if __name__ == '__main__':
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
                 for i, p in enumerate(args.property_col):
-                    try:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+args.property_names[i]+".isida-6-"+str(l)+"-"+str(u)+".svm",zero_based=False)
-                    except:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+p+".isida-6-"+str(l)+"-"+str(u)+".svm",zero_based=False)
+                    indices = data_table[p][pd.notnull(data_table[p])].index
+                    if len(indices) < len(data_table[p]):
+                        print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                        print(f"Molecules that don't have the property will be discarded from the set.")
+                        
+                    output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
+                        descparams=(6, l, u), indices=indices)
 
     if args.circus:
         print('Creating a folder for CircuS fragments')
@@ -359,9 +402,34 @@ if __name__ == '__main__':
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
                 for i, p in enumerate(args.property_col):
-                    try:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+args.property_names[i]+".circus-"+str(l)+"-"+str(u)+".svm",zero_based=False)
-                    except:
-                        dump_svmlight_file(desc, data_table[p], 
-                            outdir+'/'+p+".circus-"+str(l)+"-"+str(u)+".svm",zero_based=False)
+                    indices = data_table[p][pd.notnull(data_table[p])].index
+                    if len(indices) < len(data_table[p]):
+                        print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                        print(f"Molecules that don't have the property will be discarded from the set.")
+                        
+                    output_file(desc, data_table[p], 'circus', outdir, (i, p), fmt=args.format, 
+                        descparams=(l, u), indices=indices)
+
+    if args.mordred2d:
+        print('Creating a folder for Mordred 2D fragments')
+        outdir = args.output+'/mordred2D'
+        create_output_dir(outdir)
+        if len(structure_dict)==1:
+            calc = Calculator(descriptors, ignore_3D=True)
+            mols = [Chem.MolFromSmiles(str(m)) for m in structure_dict[args.structure_col[0]]]
+            desc = calc.pandas(mols).select_dtypes(include='number')
+        else:
+            descs = []
+            for k, v in structure_dict.items():
+                calc = Calculator(descriptors, ignore_3D=True)
+                mols = [Chem.MolFromSmiles(str(m)) for m in v]
+                descs.append(calc.pandas(mols).select_dtypes(include='number'))
+            desc = pd.concat(descs, axis=1, sort=False)
+        for i, p in enumerate(args.property_col):
+            indices = data_table[p][pd.notnull(data_table[p])].index
+            if len(indices) < len(data_table[p]):
+                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
+                print(f"Molecules that don't have the property will be discarded from the set.")
+                        
+            output_file(desc, data_table[p], 'mordred2d', outdir, (i, p), fmt=args.format, 
+                descparams=None, indices=indices)
