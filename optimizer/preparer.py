@@ -149,7 +149,14 @@ if __name__ == '__main__':
     structure_dict = {}
     for s in args.structure_col:
         structure_dict[s] = [smiles(m) for m in data_table[s]]
-        [m.canonicalize(fix_tautomers=False) for m in structure_dict[s]]
+
+        # this is magic, gives an error if done otherwise...
+        for m in structure_dict[s]:
+            try:
+                m.canonicalize(fix_tautomers=False) 
+            except:
+                m.canonicalize(fix_tautomers=False)
+        
 
     if args.morgan:
         print('Creating a folder for Morgan fingerprints')
@@ -281,7 +288,7 @@ if __name__ == '__main__':
                 print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                 print(f"Molecules that don't have the property will be discarded from the set.")
                 
-            output_file(desc, data_table[p], 'avalone', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+            output_file(desc, data_table[p], 'avalon', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
                   
 
     if args.atompairs:
