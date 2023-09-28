@@ -99,6 +99,9 @@ parser.add_argument('--circus_max', nargs='+', action='extend', type=int, defaul
 parser.add_argument('--mordred2d', action='store_true', 
                     help='put the option to calculate Mordred 2D descriptors')
 
+parser.add_argument('--output_structures', action='store_true',
+                    help='output the csv file contatining structures along with descriptors')
+
 def create_output_dir(outdir):
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
@@ -106,7 +109,7 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-def output_file(desc, prop, desctype, outdir, prop_ind_name, fmt='svm', descparams=None, indices=None):
+def output_file(desc, prop, desctype, outdir, prop_ind_name, fmt='svm', structures=None, descparams=None, indices=None):
     if fmt not in ['svm', 'csv']:
         raise ValueError('The output file should be of CSV or SVM format')
     outname = outdir + '/'
@@ -125,7 +128,12 @@ def output_file(desc, prop, desctype, outdir, prop_ind_name, fmt='svm', descpara
     outname += '.'+fmt
 
     if fmt == 'csv':
-        desc = pd.concat([prop.iloc[indices], pd.DataFrame(desc).iloc[indices]], axis=1, sort=False)
+        if structures is not None:
+            struc_col = pd.Series([str(s) for s in structures[indices]], name='SMILES')
+            desc = pd.concat([struc_col, prop.iloc[indices], 
+                                pd.DataFrame(desc).iloc[indices]], axis=1, sort=False)
+        else:
+            desc = pd.concat([prop.iloc[indices], pd.DataFrame(desc).iloc[indices]], axis=1, sort=False)
         desc.to_csv(outname, index=False)
     else:
         dump_svmlight_file(np.array(desc)[indices], prop.iloc[indices], 
@@ -176,8 +184,11 @@ if __name__ == '__main__':
                 if len(indices) < len(data_table[p]):
                     print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                     print(f"Molecules that don't have the property will be discarded from the set.")
-                
-                output_file(desc, data_table[p], 'morgan', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                structures = None
+                if args.output_structures:
+                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
+                output_file(desc, data_table[p], 'morgan', outdir, (i, p), fmt=args.format,
+                            structures=structures, descparams=r, indices=indices)
                 
 
     if args.morganfeatures:
@@ -200,8 +211,11 @@ if __name__ == '__main__':
                 if len(indices) < len(data_table[p]):
                     print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                     print(f"Molecules that don't have the property will be discarded from the set.")
-                
-                output_file(desc, data_table[p], 'morganfeatures', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                structures = None
+                if args.output_structures:
+                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
+                output_file(desc, data_table[p], 'morganfeatures', outdir, (i, p), fmt=args.format,
+                            structures=structures, descparams=r, indices=indices)
                 
 
     if args.rdkfp:
@@ -222,8 +236,11 @@ if __name__ == '__main__':
                 if len(indices) < len(data_table[p]):
                     print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                     print(f"Molecules that don't have the property will be discarded from the set.")
-                
-                output_file(desc, data_table[p], 'rdkfp', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                structures = None
+                if args.output_structures:
+                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
+                output_file(desc, data_table[p], 'rdkfp', outdir, (i, p), fmt=args.format, 
+                            structures=structures, descparams=r, indices=indices)
                 
 
     if args.rdkfplinear:
@@ -244,8 +261,11 @@ if __name__ == '__main__':
                 if len(indices) < len(data_table[p]):
                     print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                     print(f"Molecules that don't have the property will be discarded from the set.")
-                
-                output_file(desc, data_table[p], 'rdkfplinear', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                structures = None
+                if args.output_structures:
+                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
+                output_file(desc, data_table[p], 'rdkfplinear', outdir, (i, p), fmt=args.format,
+                            structures=structures, descparams=r, indices=indices)
                 
 
     if args.layered:
@@ -266,8 +286,11 @@ if __name__ == '__main__':
                 if len(indices) < len(data_table[p]):
                     print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                     print(f"Molecules that don't have the property will be discarded from the set.")
-                
-                output_file(desc, data_table[p], 'layered', outdir, (i, p), fmt=args.format, descparams=r, indices=indices)
+                structures = None
+                if args.output_structures:
+                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
+                output_file(desc, data_table[p], 'layered', outdir, (i, p), fmt=args.format,
+                            structures=structures, descparams=r, indices=indices)
                  
 
     if args.avalon:
@@ -287,8 +310,11 @@ if __name__ == '__main__':
             if len(indices) < len(data_table[p]):
                 print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                 print(f"Molecules that don't have the property will be discarded from the set.")
-                
-            output_file(desc, data_table[p], 'avalon', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+            structures = None
+            if args.output_structures:
+                    structures = np.array(structure_dict[args.structure_col[0]])[indices]    
+            output_file(desc, data_table[p], 'avalon', outdir, (i, p), fmt=args.format,
+                        structures=structures, descparams=None, indices=indices)
                   
 
     if args.atompairs:
@@ -308,8 +334,11 @@ if __name__ == '__main__':
             if len(indices) < len(data_table[p]):
                 print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                 print(f"Molecules that don't have the property will be discarded from the set.")
-                
-            output_file(desc, data_table[p], 'atompairs', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+                structures = None
+            if args.output_structures:
+                structures = np.array(structure_dict[args.structure_col[0]])[indices]
+            output_file(desc, data_table[p], 'atompairs', outdir, (i, p), fmt=args.format,
+                        structures=structures, descparams=None, indices=indices)
                 
 
     if args.torsion:
@@ -329,8 +358,11 @@ if __name__ == '__main__':
             if len(indices) < len(data_table[p]):
                 print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                 print(f"Molecules that don't have the property will be discarded from the set.")
-                
-            output_file(desc, data_table[p], 'torsion', outdir, (i, p), fmt=args.format, descparams=None, indices=indices)
+            structures = None
+            if args.output_structures:
+                structures = np.array(structure_dict[args.structure_col[0]])[indices]    
+            output_file(desc, data_table[p], 'torsion', outdir, (i, p), fmt=args.format,
+                        structures=structures, descparams=None, indices=indices)
                  
 
     if args.isida:
@@ -352,9 +384,11 @@ if __name__ == '__main__':
                     if len(indices) < len(data_table[p]):
                         print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                         print(f"Molecules that don't have the property will be discarded from the set.")
-                        
+                    structures = None
+                    if args.output_structures:
+                        structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
-                        descparams=(3, l, u), indices=indices)
+                        structures=structures, descparams=(3, l, u), indices=indices)
                        
         for l in set(args.isida_circular_min):
             for u in set(args.isida_circular_max):
@@ -371,9 +405,11 @@ if __name__ == '__main__':
                     if len(indices) < len(data_table[p]):
                         print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                         print(f"Molecules that don't have the property will be discarded from the set.")
-                        
+                    structures = None
+                    if args.output_structures:
+                        structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
-                        descparams=(9, l, u), indices=indices)
+                        structures=structures, descparams=(9, l, u), indices=indices)
 
         for l in set(args.isida_flex_min):
             for u in set(args.isida_flex_max):
@@ -390,9 +426,11 @@ if __name__ == '__main__':
                     if len(indices) < len(data_table[p]):
                         print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                         print(f"Molecules that don't have the property will be discarded from the set.")
-                        
+                    structures = None
+                    if args.output_structures:
+                        structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
-                        descparams=(6, l, u), indices=indices)
+                        structures=structures, descparams=(6, l, u), indices=indices)
 
     if args.circus:
         print('Creating a folder for CircuS fragments')
@@ -413,9 +451,11 @@ if __name__ == '__main__':
                     if len(indices) < len(data_table[p]):
                         print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                         print(f"Molecules that don't have the property will be discarded from the set.")
-                        
+                    structures = None
+                    if args.output_structures:
+                        structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'circus', outdir, (i, p), fmt=args.format, 
-                        descparams=(l, u), indices=indices)
+                        structures=strcutures, descparams=(l, u), indices=indices)
 
     if args.mordred2d:
         print('Creating a folder for Mordred 2D fragments')
@@ -437,6 +477,8 @@ if __name__ == '__main__':
             if len(indices) < len(data_table[p]):
                 print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                 print(f"Molecules that don't have the property will be discarded from the set.")
-                        
+            structures = None
+            if args.output_structures:
+                structures = np.array(structure_dict[args.structure_col[0]])[indices]            
             output_file(desc, data_table[p], 'mordred2d', outdir, (i, p), fmt=args.format, 
-                descparams=None, indices=indices)
+                structures=structures, descparams=None, indices=indices)
