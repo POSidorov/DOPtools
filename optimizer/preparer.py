@@ -352,7 +352,7 @@ if __name__ == '__main__':
             frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
                                                             [Fingerprinter(fp_type='torsion', 
                                                                 nBits=args.torsion_nBits)]*len(structure_dict.keys()))))
-        desc = frag.fit_transform(pd.DataFrame(structure_dict))
+            desc = frag.fit_transform(pd.DataFrame(structure_dict))
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -455,7 +455,7 @@ if __name__ == '__main__':
                     if args.output_structures:
                         structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'circus', outdir, (i, p), fmt=args.format, 
-                        structures=strcutures, descparams=(l, u), indices=indices)
+                        structures=structures, descparams=(l, u), indices=indices)
 
     if args.mordred2d:
         print('Creating a folder for Mordred 2D fragments')
