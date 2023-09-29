@@ -313,6 +313,8 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
             pass
         elif self.fp_type == 'ap':
             pass
+        elif self.fp_type == 'torsion':
+            pass
         elif self.fp_type=='rdkfp':
             for x in X:
                 temp = {}
@@ -369,6 +371,8 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
             pass
         elif self.fp_type == 'ap':
             pass
+        elif self.fp_type == 'torsion':
+            pass
         return features
                                        
     def transform(self, X, y=None):
@@ -390,6 +394,9 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
                                 maxPath=self.size, **self.params))
             if self.fp_type=='ap':
                 res.append(rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(m, nBits=self.nBits, 
+                                **self.params))
+            if self.fp_type=='torsion':
+                res.append(rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(m, nBits=self.nBits, 
                                 **self.params))
             
         return np.array(res)
