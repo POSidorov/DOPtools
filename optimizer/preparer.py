@@ -334,7 +334,7 @@ if __name__ == '__main__':
             if len(indices) < len(data_table[p]):
                 print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
                 print(f"Molecules that don't have the property will be discarded from the set.")
-                structures = None
+            structures = None
             if args.output_structures:
                 structures = np.array(structure_dict[args.structure_col[0]])[indices]
             output_file(desc, data_table[p], 'atompairs', outdir, (i, p), fmt=args.format,
@@ -343,7 +343,7 @@ if __name__ == '__main__':
 
     if args.torsion:
         print('Creating a folder for topological torsion fingerprints')
-        outdir = args.output+'/avalon_'+str(args.torsion_nBits)
+        outdir = args.output+'/torsion_'+str(args.torsion_nBits)
         create_output_dir(outdir)
         if len(structure_dict)==1:
             frag = Fingerprinter(fp_type='torsion', nBits=args.torsion_nBits)
