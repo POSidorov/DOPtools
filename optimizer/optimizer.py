@@ -16,7 +16,6 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.svm import SVR
-import lightgbm as lgbm
 import xgboost as xgb
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 from sklearn.metrics import mean_absolute_error as mae
@@ -35,6 +34,7 @@ parser.add_argument('--timeout', type=int, default=60)
 parser.add_argument('-j', '--jobs', type=int, default=1)
 parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'LGBMR', 'XGBR'])
 parser.add_argument('--multi', action='store_true')
+parser.add_argument('-f', '--format', type=str, deafult='svm', choices=['svm', 'csv'])
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
