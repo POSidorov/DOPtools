@@ -34,7 +34,7 @@ parser.add_argument('--timeout', type=int, default=60)
 parser.add_argument('-j', '--jobs', type=int, default=1)
 parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'LGBMR', 'XGBR'])
 parser.add_argument('--multi', action='store_true')
-parser.add_argument('-f', '--format', type=str, deafult='svm', choices=['svm', 'csv'])
+parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
