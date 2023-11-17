@@ -94,7 +94,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             model = xgb.XGBRegressor(**params, verbosity=0, nthread=1)
             score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
         if method == 'RFR':
-            model = xgb.XGBRegressor(**params)
+            model = RandomForestRegressor(**params)
             score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
         if multi:
             model = MultiOutputRegressor(model)
