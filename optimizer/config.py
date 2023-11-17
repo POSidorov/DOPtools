@@ -38,5 +38,12 @@ def suggest_params(trial, method):
             'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
             
         }
+    if method == 'RFR':
+        params = {
+            'max_depth': trial.suggest_int("max_depth", 3, 10),
+            'max_features' : trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
+            'max_samples' : trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
+        }
 
     return params
