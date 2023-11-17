@@ -32,7 +32,7 @@ parser.add_argument('--cv_splits', type=int, default=5)
 parser.add_argument('--cv_repeats', type=int, default=1)
 parser.add_argument('--timeout', type=int, default=60)
 parser.add_argument('-j', '--jobs', type=int, default=1)
-parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'LGBMR', 'XGBR'])
+parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'XGBR'])
 parser.add_argument('--multi', action='store_true')
 parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
 
