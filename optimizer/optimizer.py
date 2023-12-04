@@ -12,13 +12,14 @@ from config import suggest_params
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.svm import SVR
+from sklearn.svm import SVR, SVC
 import xgboost as xgb
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
-from sklearn.metrics import mean_absolute_error as mae
+from sklearn.metrics import mean_absolute_error as mae 
+from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, f1_score
 from sklearn.multioutput import MultiOutputRegressor
 
 import argparse
@@ -89,13 +90,20 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         storage[n] = {'desc': desc, 'scaling': scaling, **params}
         if method == 'SVR':
             model = SVR(**params, gamma='auto')
-            score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
+        if method == 'SVC':
+            model = SVC(**params, gamma='auto')
         if method == 'XGBR':
             model = xgb.XGBRegressor(**params, verbosity=0, nthread=1)
-            score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
+        if method == 'XGBC':
+            model = xgb.XGBClassifier(**params, verbosity=0, nthread=1)
         if method == 'RFR':
             model = RandomForestRegressor(**params)
+        if method == 'RFC':
+            model = RandomForestClassifier(**params)
+        if method.endswith('R'):
             score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
+        elif method.endswith('C'):
+            score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
         if multi:
             model = MultiOutputRegressor(model)
             Y = y
@@ -113,19 +121,34 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         for c in y.columns:
             preds_partial = res_pd[[d for d in res_pd.columns if c+'.predicted' in d]]
             for p in preds_partial.columns:
-                added_row = {'stat':p, 'R2':r2(y[c], preds_partial[p]),
+                if method.endswith('R'):
+                    added_row = {'stat':p, 'R2':r2(y[c], preds_partial[p]),
                              'RMSE':rmse(y[c], preds_partial[p]), 
                              'MAE':mae(y[c], preds_partial[p])}
+                elif method.endswith('C'):
+                    added_row = {'stat':p, 'ROC_AUC':roc_auc_acore(y[c], preds_partial[p]),
+                             'ACC':accuracy_score(y[c], preds_partial[p]), 
+                             'BAC':balanced_accuracy_score(y[c], preds_partial[p]),
+                             'F1':f1_score(y[c], preds_partial[p])}
                 score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
-            added_row = {'stat':c+'.consensus', 'R2':r2(y[c], preds_partial.mean(axis=1)),
+            if method.endswith('R'):
+                added_row = {'stat':c+'.consensus', 'R2':r2(y[c], preds_partial.mean(axis=1)),
                              'RMSE':rmse(y[c], preds_partial.mean(axis=1)), 
                              'MAE':mae(y[c], preds_partial.mean(axis=1))}
+            elif method.endswith('C'):
+                added_row = {'stat':p, 'ROC_AUC':roc_auc_acore(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
+                             'ACC':accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)), 
+                             'BAC':balanced_accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
+                             'F1':f1_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int))}
             score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
 
         score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
         res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
 
-        score = np.mean(score_df[score_df['stat'].str.contains('consensus')].R2)
+        if method.endswith('R'):
+            score = np.mean(score_df[score_df['stat'].str.contains('consensus')].R2)
+        elif method.endswith('C'):
+            score = np.mean(score_df[score_df['stat'].str.contains('consensus')].BAC)
         return score
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
