@@ -1,13 +1,19 @@
 from sklearn.svm import SVR, SVC
 
 def suggest_params(trial, method):
-    if method == 'SVR' or method == 'SVC':
+    if method == 'SVR':
         params = { 
             'C': trial.suggest_float('C', 1e-9, 1e9, log=True),
             'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf', 'poly', 'sigmoid']),
             'coef0': trial.suggest_float('r0', -10, 10)
         }
-    if method == 'LGBMR':
+    elif method == 'SVC':
+        params = { 
+            'C': trial.suggest_float('C', 1e-9, 1e9, log=True),
+            'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf', 'poly', 'sigmoid']),
+            'coef0': trial.suggest_float('r0', -10, 10)
+        }   
+    elif method == 'LGBMR':
         params = {
             "n_estimators": trial.suggest_categorical("n_estimators", [100]),
             "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
@@ -26,7 +32,7 @@ def suggest_params(trial, method):
                 "feature_fraction", 0.2, 0.95, step=0.1
             ),
         }
-    if method == 'XGBR':
+    elif method == 'XGBR':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 18),
             'eta': trial.suggest_float('eta', 1e-9, 1, log=True),
@@ -38,7 +44,7 @@ def suggest_params(trial, method):
             'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
             
         }
-    if method == 'RFR':
+    elif method == 'RFR':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 10),
             'max_features' : trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
