@@ -11,8 +11,10 @@ import sys
 from cheminfotools.chem_features import ChythonCircus, Fingerprinter, ComplexFragmentor
 try:
     from cheminfotools.fragmentor import ChythonIsida
+    isida_able = True
 except:
     print('ISIDA Fragmentor could not be loaded. Check the installation')
+    isida_able = False
 from cheminfotools.solvents import SolventVectorizer
 
 import argparse, os
@@ -118,7 +120,8 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-def output_file(desc, prop, desctype, outdir, prop_ind_name, fmt='svm', structures=None, descparams=None, indices=None):
+def output_file(desc, prop, desctype, outdir, prop_ind_name, solvent=None, 
+                fmt='svm', structures=None, descparams=None, indices=None):
     if fmt not in ['svm', 'csv']:
         raise ValueError('The output file should be of CSV or SVM format')
     outname = outdir + '/'
@@ -135,6 +138,9 @@ def output_file(desc, prop, desctype, outdir, prop_ind_name, fmt='svm', structur
         else:
             outname += str(descparams)
     outname += '.'+fmt
+
+    if solvent is not None:
+        desc = pd.concat([desc, solvent], axis=1, sort=False)
 
     if fmt == 'csv':
         if structures is not None:
@@ -163,6 +169,7 @@ if __name__ == '__main__':
         if ' ' in p and len(args.property_names)<i+1:
             raise ValueError('Column names contain spaces or not all alternative names are present.\nPlease provide alternative names with --property_names option')
 
+    solv = None
     if args.solvent:
         sv = SolventVectorizer()
 
@@ -197,8 +204,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='morgan', 
                                                                 nBits=args.morgan_nBits, size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
-                if args.solvent:
-                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+                
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -208,7 +214,7 @@ if __name__ == '__main__':
                 if args.output_structures:
                     structures = np.array(structure_dict[args.structure_col[0]])[indices]
                 output_file(desc, data_table[p], 'morgan', outdir, (i, p), fmt=args.format,
-                            structures=structures, descparams=r, indices=indices)
+                            solvent=solv, structures=structures, descparams=r, indices=indices)
                 
 
     if args.morganfeatures:
@@ -226,8 +232,7 @@ if __name__ == '__main__':
                                                                 nBits=args.morganfeatures_nBits, size=r,
                                                                 params={'useFeatures':True})]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            if args.solvent:
-                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+            
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -237,7 +242,7 @@ if __name__ == '__main__':
                 if args.output_structures:
                     structures = np.array(structure_dict[args.structure_col[0]])[indices]
                 output_file(desc, data_table[p], 'morganfeatures', outdir, (i, p), fmt=args.format,
-                            structures=structures, descparams=r, indices=indices)
+                            solvent=solv, structures=structures, descparams=r, indices=indices)
                 
 
     if args.rdkfp:
@@ -253,8 +258,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='rdkfp', nBits=args.rdkfp_nBits, 
                                                                 size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            if args.solvent:
-                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+            
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -264,7 +268,7 @@ if __name__ == '__main__':
                 if args.output_structures:
                     structures = np.array(structure_dict[args.structure_col[0]])[indices]
                 output_file(desc, data_table[p], 'rdkfp', outdir, (i, p), fmt=args.format, 
-                            structures=structures, descparams=r, indices=indices)
+                            solvent=solv, structures=structures, descparams=r, indices=indices)
                 
 
     if args.rdkfplinear:
@@ -280,8 +284,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='rdkfp', nBits=args.rdkfplinear_nBits, 
                                                                 size=r, params={'branchedPaths':False})]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            if args.solvent:
-                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+            
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -291,7 +294,7 @@ if __name__ == '__main__':
                 if args.output_structures:
                     structures = np.array(structure_dict[args.structure_col[0]])[indices]
                 output_file(desc, data_table[p], 'rdkfplinear', outdir, (i, p), fmt=args.format,
-                            structures=structures, descparams=r, indices=indices)
+                            solvent=solv, structures=structures, descparams=r, indices=indices)
                 
 
     if args.layered:
@@ -307,8 +310,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='rdkfp', nBits=args.layered_nBits, 
                                                                 size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            if args.solvent:
-                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+            
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -318,7 +320,7 @@ if __name__ == '__main__':
                 if args.output_structures:
                     structures = np.array(structure_dict[args.structure_col[0]])[indices]
                 output_file(desc, data_table[p], 'layered', outdir, (i, p), fmt=args.format,
-                            structures=structures, descparams=r, indices=indices)
+                            solvent=solv, structures=structures, descparams=r, indices=indices)
                  
 
     if args.avalon:
@@ -333,8 +335,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='avalon', 
                                                                 nBits=args.avalon_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
-        if args.solvent:
-            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+        
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -344,7 +345,7 @@ if __name__ == '__main__':
             if args.output_structures:
                     structures = np.array(structure_dict[args.structure_col[0]])[indices]    
             output_file(desc, data_table[p], 'avalon', outdir, (i, p), fmt=args.format,
-                        structures=structures, descparams=None, indices=indices)
+                        solvent=solv, structures=structures, descparams=None, indices=indices)
                   
 
     if args.atompairs:
@@ -359,8 +360,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='ap', 
                                                                 nBits=args.atompairs_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
-        if args.solvent:
-            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+        
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -370,7 +370,7 @@ if __name__ == '__main__':
             if args.output_structures:
                 structures = np.array(structure_dict[args.structure_col[0]])[indices]
             output_file(desc, data_table[p], 'atompairs', outdir, (i, p), fmt=args.format,
-                        structures=structures, descparams=None, indices=indices)
+                        solvent=solv, structures=structures, descparams=None, indices=indices)
                 
 
     if args.torsion:
@@ -385,8 +385,7 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='torsion', 
                                                                 nBits=args.torsion_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
-        if args.solvent:
-            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+        
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -396,10 +395,9 @@ if __name__ == '__main__':
             if args.output_structures:
                 structures = np.array(structure_dict[args.structure_col[0]])[indices]    
             output_file(desc, data_table[p], 'torsion', outdir, (i, p), fmt=args.format,
-                        structures=structures, descparams=None, indices=indices)
+                        solvent=solv, structures=structures, descparams=None, indices=indices)
                  
-
-    if args.isida:
+    if args.isida and isida_able:
         print('Creating a folder for ISIDA fragments')
         outdir = args.output+'/isida'
         create_output_dir(outdir)
@@ -413,8 +411,7 @@ if __name__ == '__main__':
                                                                 [ChythonIsida(ftype=3, lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
-                if args.solvent:
-                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+                
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -424,7 +421,7 @@ if __name__ == '__main__':
                     if args.output_structures:
                         structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
-                        structures=structures, descparams=(3, l, u), indices=indices)
+                        solvent=solv, structures=structures, descparams=(3, l, u), indices=indices)
                        
         for l in set(args.isida_circular_min):
             for u in set(args.isida_circular_max):
@@ -436,8 +433,7 @@ if __name__ == '__main__':
                                                                 [ChythonIsida(ftype=9, lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
-                if args.solvent:
-                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+                
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -447,7 +443,7 @@ if __name__ == '__main__':
                     if args.output_structures:
                         structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
-                        structures=structures, descparams=(9, l, u), indices=indices)
+                        solvent=solv, structures=structures, descparams=(9, l, u), indices=indices)
 
         for l in set(args.isida_flex_min):
             for u in set(args.isida_flex_max):
@@ -459,8 +455,7 @@ if __name__ == '__main__':
                                                                 [ChythonIsida(ftype=6, lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
-                if args.solvent:
-                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+                
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -470,7 +465,7 @@ if __name__ == '__main__':
                     if args.output_structures:
                         structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'isida', outdir, (i, p), fmt=args.format, 
-                        structures=structures, descparams=(6, l, u), indices=indices)
+                        solvent=solv, structures=structures, descparams=(6, l, u), indices=indices)
 
     if args.circus:
         print('Creating a folder for CircuS fragments')
@@ -486,8 +481,7 @@ if __name__ == '__main__':
                                                                 [ChythonCircus(lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
-                if args.solvent:
-                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+                
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -497,7 +491,7 @@ if __name__ == '__main__':
                     if args.output_structures:
                         structures = np.array(structure_dict[args.structure_col[0]])[indices]    
                     output_file(desc, data_table[p], 'circus', outdir, (i, p), fmt=args.format, 
-                        structures=structures, descparams=(l, u), indices=indices)
+                        solvent=solv, structures=structures, descparams=(l, u), indices=indices)
 
     if args.mordred2d:
         print('Creating a folder for Mordred 2D fragments')
@@ -514,8 +508,7 @@ if __name__ == '__main__':
                 mols = [Chem.MolFromSmiles(str(m)) for m in v]
                 descs.append(calc.pandas(mols).select_dtypes(include='number'))
             desc = pd.concat(descs, axis=1, sort=False)
-        if args.solvent:
-            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
+        
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -525,4 +518,4 @@ if __name__ == '__main__':
             if args.output_structures:
                 structures = np.array(structure_dict[args.structure_col[0]])[indices]            
             output_file(desc, data_table[p], 'mordred2d', outdir, (i, p), fmt=args.format, 
-                structures=structures, descparams=None, indices=indices)
+                solvent=solv, structures=structures, descparams=None, indices=indices)
