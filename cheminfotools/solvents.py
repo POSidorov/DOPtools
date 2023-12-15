@@ -43,7 +43,7 @@ class SolventVectorizer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, x):
-        return DataFrame([compress(solvents[x], self.__index) for x in x], columns=self.__header)
+        return DataFrame([compress(solvents[x], self.__index) if type(x)==str else compress((0,0,0,0), self.__index) for x in x], columns=self.__header)
 
 
 
