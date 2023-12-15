@@ -400,7 +400,7 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
                 res.append(rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(m, nBits=self.nBits, 
                                 **self.params))
             
-        return np.array(res)
+        return pd.DataFrame(np.array(res), columns=list(range(self.nBits)))
     
 
 class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):
