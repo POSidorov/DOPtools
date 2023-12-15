@@ -6,8 +6,14 @@ from rdkit.Avalon import pyAvalonTools
 from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule, to_rdkit_molecule
 from CGRtools import smiles as cgrtools_smiles
 from mordred import Calculator, descriptors
+import sys
 
-from cheminfotools.chem_features import ChythonCircus, ChythonIsida, Fingerprinter, ComplexFragmentor
+from cheminfotools.chem_features import ChythonCircus, Fingerprinter, ComplexFragmentor
+try:
+    from cheminfotools.fragmentor import ChythonIsida
+except:
+    print('ISIDA Fragmentor could not be loaded. Check the installation')
+from cheminfotools.solvents import SolventVectorizer
 
 import argparse, os
 import pandas as pd
@@ -99,6 +105,9 @@ parser.add_argument('--circus_max', nargs='+', action='extend', type=int, defaul
 parser.add_argument('--mordred2d', action='store_true', 
                     help='put the option to calculate Mordred 2D descriptors')
 
+parser.add_argument('--solvent', type=str, action='store', default='',
+                    help='column that contains the solvents. Check the available solvents in the solvents.py script')
+
 parser.add_argument('--output_structures', action='store_true',
                     help='output the csv file contatining structures along with descriptors')
 
@@ -154,6 +163,15 @@ if __name__ == '__main__':
         if ' ' in p and len(args.property_names)<i+1:
             raise ValueError('Column names contain spaces or not all alternative names are present.\nPlease provide alternative names with --property_names option')
 
+    if args.solvent:
+        sv = SolventVectorizer()
+
+        try:
+            solv = sv.transform(data_table[args.solvent])
+        except:
+            print('Error with the solvent column occurred, solvent descriptors will not be calculated')
+            sys.exit()
+
     structure_dict = {}
     for s in args.structure_col:
         structure_dict[s] = [smiles(m) for m in data_table[s]]
@@ -179,6 +197,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='morgan', 
                                                                 nBits=args.morgan_nBits, size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
+                if args.solvent:
+                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -206,6 +226,8 @@ if __name__ == '__main__':
                                                                 nBits=args.morganfeatures_nBits, size=r,
                                                                 params={'useFeatures':True})]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
+            if args.solvent:
+                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -231,6 +253,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='rdkfp', nBits=args.rdkfp_nBits, 
                                                                 size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
+            if args.solvent:
+                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -256,6 +280,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='rdkfp', nBits=args.rdkfplinear_nBits, 
                                                                 size=r, params={'branchedPaths':False})]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
+            if args.solvent:
+                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -281,6 +307,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='rdkfp', nBits=args.layered_nBits, 
                                                                 size=r)]*len(structure_dict.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(structure_dict))
+            if args.solvent:
+                desc = pd.concat([desc, solv], axis=1, ignore_index=True)
             for i, p in enumerate(args.property_col):
                 indices = data_table[p][pd.notnull(data_table[p])].index
                 if len(indices) < len(data_table[p]):
@@ -305,6 +333,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='avalon', 
                                                                 nBits=args.avalon_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
+        if args.solvent:
+            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -329,6 +359,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='ap', 
                                                                 nBits=args.atompairs_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
+        if args.solvent:
+            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -353,6 +385,8 @@ if __name__ == '__main__':
                                                             [Fingerprinter(fp_type='torsion', 
                                                                 nBits=args.torsion_nBits)]*len(structure_dict.keys()))))
             desc = frag.fit_transform(pd.DataFrame(structure_dict))
+        if args.solvent:
+            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):
@@ -379,6 +413,8 @@ if __name__ == '__main__':
                                                                 [ChythonIsida(ftype=3, lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
+                if args.solvent:
+                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -400,6 +436,8 @@ if __name__ == '__main__':
                                                                 [ChythonIsida(ftype=9, lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
+                if args.solvent:
+                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -421,6 +459,8 @@ if __name__ == '__main__':
                                                                 [ChythonIsida(ftype=6, lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
+                if args.solvent:
+                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -446,6 +486,8 @@ if __name__ == '__main__':
                                                                 [ChythonCircus(lower=l, 
                                                                     upper=u)]*len(structure_dict.keys()))))
                     desc = frag.fit_transform(pd.DataFrame(structure_dict))
+                if args.solvent:
+                    desc = pd.concat([desc, solv], axis=1, ignore_index=True)
                 for i, p in enumerate(args.property_col):
                     indices = data_table[p][pd.notnull(data_table[p])].index
                     if len(indices) < len(data_table[p]):
@@ -472,6 +514,8 @@ if __name__ == '__main__':
                 mols = [Chem.MolFromSmiles(str(m)) for m in v]
                 descs.append(calc.pandas(mols).select_dtypes(include='number'))
             desc = pd.concat(descs, axis=1, sort=False)
+        if args.solvent:
+            desc = pd.concat([desc, solv], axis=1, ignore_index=True)
         for i, p in enumerate(args.property_col):
             indices = data_table[p][pd.notnull(data_table[p])].index
             if len(indices) < len(data_table[p]):

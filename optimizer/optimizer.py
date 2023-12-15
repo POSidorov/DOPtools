@@ -136,7 +136,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                              'RMSE':rmse(y[c], preds_partial.mean(axis=1)), 
                              'MAE':mae(y[c], preds_partial.mean(axis=1))}
             elif method.endswith('C'):
-                added_row = {'stat':p, 'ROC_AUC':roc_auc_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
+                added_row = {'stat':c+'.consensus', 'ROC_AUC':roc_auc_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
                              'ACC':accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)), 
                              'BAC':balanced_accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
                              'F1':f1_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int))}

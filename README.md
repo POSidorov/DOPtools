@@ -10,7 +10,7 @@ ChemInfoTools library contains tools for working with molecules and reaction in 
 
 ## Installation
 
-activate your virtual environment with python 3.7+ , clone project and cd into the ChemInfoTools folder, then run
+activate your virtual environment with python 3.10+ , clone project and cd into the ChemInfoTools folder, then run
     
     pip install -U -e .
 

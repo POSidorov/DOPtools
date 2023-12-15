@@ -29,8 +29,6 @@ from rdkit.Chem import MACCSkeys, AllChem
 from rdkit.DataStructs.cDataStructs import ExplicitBitVect
 from rdkit.Chem import rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
-from CGRtools import smiles as cgrtools_smiles
-from CIMtools.preprocessing.fragmentor import Fragmentor
 
 class ChythonCircus(BaseEstimator, TransformerMixin):
     """
@@ -374,6 +372,9 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
         elif self.fp_type == 'torsion':
             pass
         return features
+
+    def get_feature_names(self):
+        return([str(i) for i in range(self.nBits)])
                                        
     def transform(self, X, y=None):
         res = []
@@ -401,39 +402,6 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
             
         return np.array(res)
     
-
-class ChythonIsida(BaseEstimator, TransformerMixin):
-    def __init__(self, ftype=3, lower=2, upper=10, cgr_dynbonds=0, doallways=False,
-                 useformalcharge=False, header=None, workpath='.', version='2017',
-                 verbose=False, remove_rare_ratio=0, return_domain=False):
-        self.fragment_type = ftype
-        self.min_length = lower
-        self.max_length = upper
-        self.cgr_dynbonds = cgr_dynbonds
-        self.doallways = doallways
-        self.useformalcharge = useformalcharge
-        self.version = version
-        self.verbose = verbose
-        self.header = header
-        self.remove_rare_ratio = remove_rare_ratio
-        self.return_domain = return_domain
-        self.fragmentor = Fragmentor(fragment_type=self.fragment_type, min_length=self.min_length, 
-                                     max_length=self.max_length, cgr_dynbonds=self.cgr_dynbonds, 
-                                     doallways=self.doallways, useformalcharge=self.useformalcharge, 
-                                     version=self.version, verbose=self.verbose, header=self.header, 
-                                     remove_rare_ratio=self.remove_rare_ratio, return_domain=self.return_domain)
-        
-    def fit(self, X, y=None):
-        x = [cgrtools_smiles(str(s)) for s in X]
-        self.fragmentor.fit(x, y)
-        return self
-        
-    def transform(self, X):
-        x = [cgrtools_smiles(str(s)) for s in X]
-        return self.fragmentor.transform(x)
-        
-    def get_feature_names(self):
-        return self.fragmentor.get_feature_names()
 
 class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):
     """
