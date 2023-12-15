@@ -47,7 +47,8 @@ class SolventVectorizer(BaseEstimator, TransformerMixin):
 
 
 
-solvents = {None: (  0 ,  0 ,  0 ,  0),
+solvents = { float('nan'): (  0 ,  0 ,  0 ,  0),
+    None: (  0 ,  0 ,  0 ,  0),
     "gas phase": (  0 ,  0 ,  0 ,  0),
     "water": (  0.681 ,  0.997 ,  1.062 ,  0.025),
     "tetrachloromethane": ( 0.768 ,  0 ,  0 ,  0.044),
