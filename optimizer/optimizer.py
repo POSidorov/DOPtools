@@ -46,13 +46,19 @@ def rmse(a, b):
     return np.sqrt(np.sum((a-b)**2)/len(a))
 
 
-def collect_data(datadir, multi):
+def collect_data(datadir, multi, f='svm'):
     desc_dict = {}
     y = {}
-    for f in glob.glob(datadir+"/*.svm"):
+    for f in glob.glob(datadir+"/*."+f):
         name = f.split('/')[-1][:-4].split('.')[1]
         propname = f.split('/')[-1].split('.')[0]
-        desc_dict[name], y[propname] = load_svmlight_file(f)
+        if f == 'svm':
+            desc_dict[name], y[propname] = load_svmlight_file(f)
+        elif f == 'csv':
+            data = pd.read_table(f)
+            y[propname] = data[propname]
+            col_idx = list(data.columns).index()
+            desc_dict[name] = data.iloc[:,col_idx+1:]
     return desc_dict, pd.DataFrame(y)
 
 def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi):
