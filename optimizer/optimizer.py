@@ -46,15 +46,15 @@ def rmse(a, b):
     return np.sqrt(np.sum((a-b)**2)/len(a))
 
 
-def collect_data(datadir, multi, f='svm'):
+def collect_data(datadir, multi, fmt='svm'):
     desc_dict = {}
     y = {}
-    for f in glob.glob(datadir+"/*."+f):
+    for f in glob.glob(datadir+"/*."+fmt):
         name = f.split('/')[-1][:-4].split('.')[1]
         propname = f.split('/')[-1].split('.')[0]
-        if f == 'svm':
+        if fmt == 'svm':
             desc_dict[name], y[propname] = load_svmlight_file(f)
-        elif f == 'csv':
+        elif fmt == 'csv':
             data = pd.read_table(f)
             y[propname] = data[propname]
             col_idx = list(data.columns).index()
@@ -193,6 +193,7 @@ if __name__ == '__main__':
     jobs = args.jobs
     method = args.method
     multi = args.multi
+    fmt = args.format
 
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
@@ -200,7 +201,7 @@ if __name__ == '__main__':
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-    x_dict, y = collect_data(datadir, multi)
+    x_dict, y = collect_data(datadir, multi, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
         launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi)
