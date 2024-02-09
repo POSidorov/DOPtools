@@ -75,7 +75,7 @@ def calculate_scores(task, obs, pred):
         score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
 
     for c in obs.columns:
-        preds_partial = res_pd[[d for d in res_pd.columns if c+'.predicted' in d]]
+        preds_partial = pred[[d for d in pred.columns if c+'.predicted' in d]]
         for p in preds_partial.columns:
             added_row = create_row(task, p, obs[c], preds_partial[p])
             score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
