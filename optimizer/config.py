@@ -1,5 +1,10 @@
-from sklearn.svm import SVR, SVC
+methods = {'SVR': "SVR(**params, gamma='auto')", 'SVC':"SVC(**params, gamma='auto')",
+            'XGBR':"xgb.XGBRegressor(**params, verbosity=0, nthread=1)",
+            'XGBC':"xgb.XGBClassifier(**params, verbosity=0, nthread=1)",
+            'RFR':"RandomForestRegressor(**params)",
+            'RFC':"RandomForestClassifier(**params)"}
 
+            
 def suggest_params(trial, method):
     if method == 'SVR':
         params = { 

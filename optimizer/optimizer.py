@@ -8,7 +8,7 @@ from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
 from functools import partial
 
-from config import suggest_params
+from config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler
@@ -61,6 +61,31 @@ def collect_data(datadir, multi, fmt='svm'):
             desc_dict[name] = data.iloc[:,col_idx+1:]
     return desc_dict, pd.DataFrame(y)
 
+def calculate_scores(task, obs, pred):
+    def create_row(task, stat_name, x, y):
+        if task == 'R':
+            return {'stat':stat_name, 'R2':r2(x, y), 'RMSE':rmse(x, y), 'MAE':mae(x, y)}
+        elif task == 'C':
+            return {'stat':stat_name, 'ROC_AUC':roc_auc_score(x, y), 'ACC':accuracy_score(x, y), 
+                             'BAC':balanced_accuracy_score(x, y), 'F1':f1_score(x, y)}
+
+    preds_partial = pred[[d for d in pred.columns if c+'.predicted' in d]]
+
+    if task == 'R':
+        score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
+    elif task == 'C':
+        score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
+
+    for c in obs.columns:
+        preds_partial = res_pd[[d for d in res_pd.columns if c+'.predicted' in d]]
+        for p in preds_partial.columns:
+            added_row = create_row(task, p, obs[c], preds_partial[p])
+            score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
+        added_row = create_row(task, c+'.consensus', obs[c], preds_partial.mean(axis=1))
+        score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
+    return score_df
+
+
 def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi):
     manager = Manager()
     results_dict = manager.dict()
@@ -94,18 +119,26 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
         params = suggest_params(trial, method)
         storage[n] = {'desc': desc, 'scaling': scaling, **params}
-        if method == 'SVR':
-            model = SVR(**params, gamma='auto')
-        if method == 'SVC':
-            model = SVC(**params, gamma='auto')
-        if method == 'XGBR':
-            model = xgb.XGBRegressor(**params, verbosity=0, nthread=1)
-        if method == 'XGBC':
-            model = xgb.XGBClassifier(**params, verbosity=0, nthread=1)
-        if method == 'RFR':
-            model = RandomForestRegressor(**params)
-        if method == 'RFC':
-            model = RandomForestClassifier(**params)
+
+        #methods = {'SVR': "SVR(**params, gamma='auto')", 'SVC':"SVC(**params, gamma='auto')",
+        #           'XGBR':"xgb.XGBRegressor(**params, verbosity=0, nthread=1)",
+        #           'XGBC':"xgb.XGBClassifier(**params, verbosity=0, nthread=1)",
+        #           'RFR':"RandomForestRegressor(**params)",
+        #           'RFC':"RandomForestClassifier(**params)"}
+
+        model = eval(methods[method])
+        #if method == 'SVR':
+        #    model = SVR(**params, gamma='auto')
+        #if method == 'SVC':
+        #    model = SVC(**params, gamma='auto')
+        #if method == 'XGBR':
+        #    model = xgb.XGBRegressor(**params, verbosity=0, nthread=1)
+        #if method == 'XGBC':
+        #    model = xgb.XGBClassifier(**params, verbosity=0, nthread=1)
+        #if method == 'RFR':
+        #    model = RandomForestRegressor(**params)
+        #if method == 'RFC':
+        #    model = RandomForestClassifier(**params)
         if method.endswith('R'):
             score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
         elif method.endswith('C'):
@@ -124,29 +157,30 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 res_pd[c + '.observed'] = y[c]
                 res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:,i]
 
-        for c in y.columns:
-            preds_partial = res_pd[[d for d in res_pd.columns if c+'.predicted' in d]]
-            for p in preds_partial.columns:
-                if method.endswith('R'):
-                    added_row = {'stat':p, 'R2':r2(y[c], preds_partial[p]),
-                             'RMSE':rmse(y[c], preds_partial[p]), 
-                             'MAE':mae(y[c], preds_partial[p])}
-                elif method.endswith('C'):
-                    added_row = {'stat':p, 'ROC_AUC':roc_auc_score(y[c], preds_partial[p]),
-                             'ACC':accuracy_score(y[c], preds_partial[p]), 
-                             'BAC':balanced_accuracy_score(y[c], preds_partial[p]),
-                             'F1':f1_score(y[c], preds_partial[p])}
-                score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
-            if method.endswith('R'):
-                added_row = {'stat':c+'.consensus', 'R2':r2(y[c], preds_partial.mean(axis=1)),
-                             'RMSE':rmse(y[c], preds_partial.mean(axis=1)), 
-                             'MAE':mae(y[c], preds_partial.mean(axis=1))}
-            elif method.endswith('C'):
-                added_row = {'stat':c+'.consensus', 'ROC_AUC':roc_auc_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
-                             'ACC':accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)), 
-                             'BAC':balanced_accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
-                             'F1':f1_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int))}
-            score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
+        score_df = calculate_scores(method[-1], y, res_pd)
+        #for c in y.columns:
+        #    preds_partial = res_pd[[d for d in res_pd.columns if c+'.predicted' in d]]
+        #    for p in preds_partial.columns:
+        #        if method.endswith('R'):
+        #            added_row = {'stat':p, 'R2':r2(y[c], preds_partial[p]),
+        #                     'RMSE':rmse(y[c], preds_partial[p]), 
+        #                     'MAE':mae(y[c], preds_partial[p])}
+        #        elif method.endswith('C'):
+        #            added_row = {'stat':p, 'ROC_AUC':roc_auc_score(y[c], preds_partial[p]),
+        #                     'ACC':accuracy_score(y[c], preds_partial[p]), 
+        #                     'BAC':balanced_accuracy_score(y[c], preds_partial[p]),
+        #                     'F1':f1_score(y[c], preds_partial[p])}
+        #        score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
+        #    if method.endswith('R'):
+        #        added_row = {'stat':c+'.consensus', 'R2':r2(y[c], preds_partial.mean(axis=1)),
+        #                     'RMSE':rmse(y[c], preds_partial.mean(axis=1)), 
+        #                     'MAE':mae(y[c], preds_partial.mean(axis=1))}
+        #    elif method.endswith('C'):
+        #        added_row = {'stat':c+'.consensus', 'ROC_AUC':roc_auc_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
+        #                     'ACC':accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)), 
+        #                     'BAC':balanced_accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
+        #                     'F1':f1_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int))}
+        #    score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
 
         score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
         res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
