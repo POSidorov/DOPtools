@@ -69,8 +69,6 @@ def calculate_scores(task, obs, pred):
             return {'stat':stat_name, 'ROC_AUC':roc_auc_score(x, y), 'ACC':accuracy_score(x, y), 
                              'BAC':balanced_accuracy_score(x, y), 'F1':f1_score(x, y)}
 
-    preds_partial = pred[[d for d in pred.columns if c+'.predicted' in d]]
-
     if task == 'R':
         score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
     elif task == 'C':
@@ -139,10 +137,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         #    model = RandomForestRegressor(**params)
         #if method == 'RFC':
         #    model = RandomForestClassifier(**params)
-        if method.endswith('R'):
-            score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
-        elif method.endswith('C'):
-            score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
+        #if method.endswith('R'):
+        #    score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
+        #elif method.endswith('C'):
+        #    score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
         if multi:
             model = MultiOutputRegressor(model)
             Y = y
