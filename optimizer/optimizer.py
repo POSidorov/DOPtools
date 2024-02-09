@@ -99,48 +99,18 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         desc = trial.suggest_categorical('desc_type', list(x_dict.keys()))
         scaling = trial.suggest_categorical('scaling', ['scaled', 'original'])
         X = x_dict[desc].toarray()
-        
-        #if set(X.flatten()) == set([0,1]):
-        #    scaling = 'original'
-        #else:
-        #    scaling = 'scaled'
-        #    mms = MinMaxScaler()
-        #    X = mms.fit_transform(x_dict[desc].toarray())
 
         if scaling == 'scaled':
             mms = MinMaxScaler()
             X = mms.fit_transform(X)
-        #else:
-        #    X = x_dict[desc].toarray()
 
         X = VarianceThreshold().fit_transform(X)
 
         params = suggest_params(trial, method)
         storage[n] = {'desc': desc, 'scaling': scaling, **params}
 
-        #methods = {'SVR': "SVR(**params, gamma='auto')", 'SVC':"SVC(**params, gamma='auto')",
-        #           'XGBR':"xgb.XGBRegressor(**params, verbosity=0, nthread=1)",
-        #           'XGBC':"xgb.XGBClassifier(**params, verbosity=0, nthread=1)",
-        #           'RFR':"RandomForestRegressor(**params)",
-        #           'RFC':"RandomForestClassifier(**params)"}
-
         model = eval(methods[method])
-        #if method == 'SVR':
-        #    model = SVR(**params, gamma='auto')
-        #if method == 'SVC':
-        #    model = SVC(**params, gamma='auto')
-        #if method == 'XGBR':
-        #    model = xgb.XGBRegressor(**params, verbosity=0, nthread=1)
-        #if method == 'XGBC':
-        #    model = xgb.XGBClassifier(**params, verbosity=0, nthread=1)
-        #if method == 'RFR':
-        #    model = RandomForestRegressor(**params)
-        #if method == 'RFC':
-        #    model = RandomForestClassifier(**params)
-        #if method.endswith('R'):
-        #    score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
-        #elif method.endswith('C'):
-        #    score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
+
         if multi:
             model = MultiOutputRegressor(model)
             Y = y
@@ -156,30 +126,6 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:,i]
 
         score_df = calculate_scores(method[-1], y, res_pd)
-        #for c in y.columns:
-        #    preds_partial = res_pd[[d for d in res_pd.columns if c+'.predicted' in d]]
-        #    for p in preds_partial.columns:
-        #        if method.endswith('R'):
-        #            added_row = {'stat':p, 'R2':r2(y[c], preds_partial[p]),
-        #                     'RMSE':rmse(y[c], preds_partial[p]), 
-        #                     'MAE':mae(y[c], preds_partial[p])}
-        #        elif method.endswith('C'):
-        #            added_row = {'stat':p, 'ROC_AUC':roc_auc_score(y[c], preds_partial[p]),
-        #                     'ACC':accuracy_score(y[c], preds_partial[p]), 
-        #                     'BAC':balanced_accuracy_score(y[c], preds_partial[p]),
-        #                     'F1':f1_score(y[c], preds_partial[p])}
-        #        score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
-        #    if method.endswith('R'):
-        #        added_row = {'stat':c+'.consensus', 'R2':r2(y[c], preds_partial.mean(axis=1)),
-        #                     'RMSE':rmse(y[c], preds_partial.mean(axis=1)), 
-        #                     'MAE':mae(y[c], preds_partial.mean(axis=1))}
-        #    elif method.endswith('C'):
-        #        added_row = {'stat':c+'.consensus', 'ROC_AUC':roc_auc_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
-        #                     'ACC':accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)), 
-        #                     'BAC':balanced_accuracy_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int)),
-        #                     'F1':f1_score(y[c], np.round(preds_partial.mean(axis=1)).astype(int))}
-        #    score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
-
         score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
         res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
 
