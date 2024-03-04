@@ -126,6 +126,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:,i]
 
         score_df = calculate_scores(method[-1], y, res_pd)
+        
         score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
         res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
 

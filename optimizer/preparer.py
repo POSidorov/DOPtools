@@ -7,6 +7,8 @@ from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule
 from CGRtools import smiles as cgrtools_smiles
 from mordred import Calculator, descriptors
 import sys
+import multiprocessing
+from threading import Thread
 
 from cheminfotools.chem_features import ChythonCircus, Fingerprinter, ComplexFragmentor
 try:
@@ -31,6 +33,7 @@ parser.add_argument('--property_col', required=True, action='extend', type=str, 
 parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[])
 parser.add_argument('-o', '--output', required=True)
 parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'])
+parser.add_argument('-p', '--parallel', action='store', type=int, default=1)
 
 parser.add_argument('--morgan', action='store_true', 
                     help='put the option to calculate Morgan fingerprints')
@@ -148,15 +151,63 @@ def output_file(desc, prop, desctype, outdir, prop_ind_name, solvent=None,
             desc = pd.concat([struc_col, prop.iloc[indices], 
                                 pd.DataFrame(desc).iloc[indices]], axis=1, sort=False)
         else:
-            desc = pd.concat([prop.iloc[indices], pd.DataFrame(desc).iloc[indices]], axis=1, sort=False)
+            desc = pd.concat([prop.iloc[indices], pd.DataFrame(desc)], axis=1, sort=False)
         desc.to_csv(outname, index=False)
     else:
-        dump_svmlight_file(np.array(desc)[indices], prop.iloc[indices], 
+        dump_svmlight_file(np.array(desc), prop.iloc[indices], 
                 outname,zero_based=False)
 
+def calculate_descriptors(data, structures, properties, desc_type, other_params, output_dir, output_params):
+    def _create_calculator(dtype, prms):
+        if dtype == 'circus':
+            return ChythonCircus(lower=prms['lower'], upper=prms['upper'])
+        elif dtype == 'mordred2d':
+            return Calculator(descriptors, ignore_3D=True)
+        else:
+            return Fingerprinter(fp_type=dtype, **prms)
+
+    for i, p in enumerate(properties):
+        indices = data[pd.notnull(data[p])].index
+        if len(indices) < len(data[p]):
+            print(f"'{p}' column warning: only {len(indices)} out of {len(data[p])} instances have the property.")
+            print(f"Molecules that don't have the property will be discarded from the set.")
+        if len(structures.keys())==1:    
+            strs = np.array(structures[next(iter(structures))])[indices]
+            frag = _create_calculator(desc_type, other_params)
+            if desc_type == 'mordred2d':
+                mols = [Chem.MolFromSmiles(str(m)) for m in strs]
+                desc = frag.pandas(mols).select_dtypes(include='number')
+            else:
+                desc = frag.fit_transform(strs)
+        else:
+            # make a ComplexFragmentor
+            strs = dict(zip([(key, np.array(structures[key])[indices]) for key in structures.keys()]))
+            if desc_type == 'mordred2d':
+                descs = []
+                for k, v in structures.items():
+                    calc = Calculator(descriptors, ignore_3D=True)
+                    mols = [Chem.MolFromSmiles(str(m)) for m in v]
+                    descs.append(calc.pandas(mols).select_dtypes(include='number'))
+                desc = pd.concat(descs, axis=1, sort=False)
+            else:
+                frag = ComplexFragmentor(associator=dict(zip([list(structures.keys())],
+                                            [_create_calculator(desc_type, other_params)]*len(strs.keys()))))
+                desc = frag.fit_transform(pd.DataFrame(strs))
+
+        if desc_type == 'circus':
+            descparams = (other_params['lower'], other_params['upper'])
+        else:
+            try:
+                descparams = other_params['size']
+            except:
+                descparams = None
+        output_file(desc, data[p], desc_type, output_dir, (i, p), fmt=output_params['format'],
+                    solvent=solv, structures=strs, descparams=descparams, indices=indices)
 
 if __name__ == '__main__':
     args = parser.parse_args()
+
+    threads = []
     
     if args.input.endswith('csv'):
         data_table = pd.read_table(args.input, sep=',')
@@ -189,60 +240,32 @@ if __name__ == '__main__':
                 m.canonicalize(fix_tautomers=False) 
             except:
                 m.canonicalize(fix_tautomers=False)
-        
 
     if args.morgan:
         print('Creating a folder for Morgan fingerprints')
         outdir = args.output+'/morgan_'+str(args.morgan_nBits)
         create_output_dir(outdir)
         for r in set(args.morgan_radius):
-            if len(structure_dict)==1:
-                frag = Fingerprinter(fp_type='morgan', nBits=args.morgan_nBits, size=r)
-                desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-            else:
-                frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='morgan', 
-                                                                nBits=args.morgan_nBits, size=r)]*len(structure_dict.keys()))))
-                desc = frag.fit_transform(pd.DataFrame(structure_dict))
-                
-            for i, p in enumerate(args.property_col):
-                indices = data_table[p][pd.notnull(data_table[p])].index
-                if len(indices) < len(data_table[p]):
-                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                    print(f"Molecules that don't have the property will be discarded from the set.")
-                structures = None
-                if args.output_structures:
-                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
-                output_file(desc, data_table[p], 'morgan', outdir, (i, p), fmt=args.format,
-                            solvent=solv, structures=structures, descparams=r, indices=indices)
-                
-
+            t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'morgan', 
+                                                    {'nBits':args.morgan_nBits, 'size':r}, 
+                                                    outdir, {'format':args.format}))
+            threads.append(t)
+            
+    
     if args.morganfeatures:
         print('Creating a folder for Morgan feature fingerprints')
         outdir = args.output+'/morganfeatures_'+str(args.morgan_nBits)
         create_output_dir(outdir)
         for r in set(args.morganfeatures_radius):
-            if len(structure_dict)==1:
-                frag = Fingerprinter(fp_type='morgan', nBits=args.morganfeatures_nBits, size=r, 
-                                    params={'useFeatures':True})
-                desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-            else:
-                frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='morgan', 
-                                                                nBits=args.morganfeatures_nBits, size=r,
-                                                                params={'useFeatures':True})]*len(structure_dict.keys()))))
-                desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            
-            for i, p in enumerate(args.property_col):
-                indices = data_table[p][pd.notnull(data_table[p])].index
-                if len(indices) < len(data_table[p]):
-                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                    print(f"Molecules that don't have the property will be discarded from the set.")
-                structures = None
-                if args.output_structures:
-                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
-                output_file(desc, data_table[p], 'morganfeatures', outdir, (i, p), fmt=args.format,
-                            solvent=solv, structures=structures, descparams=r, indices=indices)
+            t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'morgan', 
+                                                    {'nBits':args.morganfeatures_nBits, 'size':r,
+                                                      'params':{'useFeatures':True}}, 
+                                                    outdir, {'format':args.format}))
+            threads.append(t)
                 
 
     if args.rdkfp:
@@ -250,25 +273,12 @@ if __name__ == '__main__':
         outdir = args.output+'/rdkfp_'+str(args.rdkfp_nBits)
         create_output_dir(outdir)
         for r in set(args.rdkfp_length):
-            if len(structure_dict)==1:
-                frag = Fingerprinter(fp_type='rdkfp', nBits=args.rdkfp_nBits, size=r)
-                desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-            else:
-                frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='rdkfp', nBits=args.rdkfp_nBits, 
-                                                                size=r)]*len(structure_dict.keys()))))
-                desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            
-            for i, p in enumerate(args.property_col):
-                indices = data_table[p][pd.notnull(data_table[p])].index
-                if len(indices) < len(data_table[p]):
-                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                    print(f"Molecules that don't have the property will be discarded from the set.")
-                structures = None
-                if args.output_structures:
-                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
-                output_file(desc, data_table[p], 'rdkfp', outdir, (i, p), fmt=args.format, 
-                            solvent=solv, structures=structures, descparams=r, indices=indices)
+            t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'rdkfp', 
+                                                    {'nBits':args.rdkfp_nBits, 'size':r}, 
+                                                    outdir, {'format':args.format}))
+            threads.append(t)
                 
 
     if args.rdkfplinear:
@@ -276,25 +286,13 @@ if __name__ == '__main__':
         outdir = args.output+'/rdkfplinear_'+str(args.rdkfplinear_nBits)
         create_output_dir(outdir)
         for r in set(args.rdkfplinear_length):
-            if len(structure_dict)==1:
-                frag = Fingerprinter(fp_type='rdkfp', nBits=args.rdkfplinear_nBits, size=r, params={'branchedPaths':False})
-                desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-            else:
-                frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='rdkfp', nBits=args.rdkfplinear_nBits, 
-                                                                size=r, params={'branchedPaths':False})]*len(structure_dict.keys()))))
-                desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            
-            for i, p in enumerate(args.property_col):
-                indices = data_table[p][pd.notnull(data_table[p])].index
-                if len(indices) < len(data_table[p]):
-                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                    print(f"Molecules that don't have the property will be discarded from the set.")
-                structures = None
-                if args.output_structures:
-                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
-                output_file(desc, data_table[p], 'rdkfplinear', outdir, (i, p), fmt=args.format,
-                            solvent=solv, structures=structures, descparams=r, indices=indices)
+            t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'rdkfp', 
+                                                    {'nBits':args.rdkfplinear_nBits, 'size':r,
+                                                     'params':{'branchedPaths':False}}, 
+                                                    outdir, {'format':args.format}))
+            threads.append(t)
                 
 
     if args.layered:
@@ -302,100 +300,49 @@ if __name__ == '__main__':
         outdir = args.output+'/layered_'+str(args.layered_nBits)
         create_output_dir(outdir)
         for r in set(args.layered_length):
-            if len(structure_dict)==1:
-                frag = Fingerprinter(fp_type='layered', nBits=args.layered_nBits, size=r)
-                desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-            else:
-                frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='rdkfp', nBits=args.layered_nBits, 
-                                                                size=r)]*len(structure_dict.keys()))))
-                desc = frag.fit_transform(pd.DataFrame(structure_dict))
-            
-            for i, p in enumerate(args.property_col):
-                indices = data_table[p][pd.notnull(data_table[p])].index
-                if len(indices) < len(data_table[p]):
-                    print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                    print(f"Molecules that don't have the property will be discarded from the set.")
-                structures = None
-                if args.output_structures:
-                    structures = np.array(structure_dict[args.structure_col[0]])[indices]
-                output_file(desc, data_table[p], 'layered', outdir, (i, p), fmt=args.format,
-                            solvent=solv, structures=structures, descparams=r, indices=indices)
+            t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'layered', 
+                                                    {'nBits':args.layered_nBits, 'size':r}, 
+                                                    outdir, {'format':args.format}))
+            threads.append(t)
                  
 
     if args.avalon:
         print('Creating a folder for Avalon fingerprints')
         outdir = args.output+'/avalon_'+str(args.avalon_nBits)
         create_output_dir(outdir)
-        if len(structure_dict)==1:
-            frag = Fingerprinter(fp_type='avalon', nBits=args.avalon_nBits)
-            desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-        else:
-            frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='avalon', 
-                                                                nBits=args.avalon_nBits)]*len(structure_dict.keys()))))
-            desc = frag.fit_transform(pd.DataFrame(structure_dict))
-        
-        for i, p in enumerate(args.property_col):
-            indices = data_table[p][pd.notnull(data_table[p])].index
-            if len(indices) < len(data_table[p]):
-                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                print(f"Molecules that don't have the property will be discarded from the set.")
-            structures = None
-            if args.output_structures:
-                    structures = np.array(structure_dict[args.structure_col[0]])[indices]    
-            output_file(desc, data_table[p], 'avalon', outdir, (i, p), fmt=args.format,
-                        solvent=solv, structures=structures, descparams=None, indices=indices)
+        t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'avalon', 
+                                                    {'nBits':args.avalon_nBits}, 
+                                                    outdir, {'format':args.format}))
+        threads.append(t)
                   
 
     if args.atompairs:
         print('Creating a folder for atom pair fingerprints')
         outdir = args.output+'/atompairs_'+str(args.atompairs_nBits)
         create_output_dir(outdir)
-        if len(structure_dict)==1:
-            frag = Fingerprinter(fp_type='ap', nBits=args.atompairs_nBits)
-            desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-        else:
-            frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='ap', 
-                                                                nBits=args.atompairs_nBits)]*len(structure_dict.keys()))))
-            desc = frag.fit_transform(pd.DataFrame(structure_dict))
-        
-        for i, p in enumerate(args.property_col):
-            indices = data_table[p][pd.notnull(data_table[p])].index
-            if len(indices) < len(data_table[p]):
-                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                print(f"Molecules that don't have the property will be discarded from the set.")
-            structures = None
-            if args.output_structures:
-                structures = np.array(structure_dict[args.structure_col[0]])[indices]
-            output_file(desc, data_table[p], 'atompairs', outdir, (i, p), fmt=args.format,
-                        solvent=solv, structures=structures, descparams=None, indices=indices)
+        t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'ap', 
+                                                    {'nBits':args.atompairs_nBits}, 
+                                                    outdir, {'format':args.format}))
+        threads.append(t)
                 
 
     if args.torsion:
         print('Creating a folder for topological torsion fingerprints')
         outdir = args.output+'/torsion_'+str(args.torsion_nBits)
         create_output_dir(outdir)
-        if len(structure_dict)==1:
-            frag = Fingerprinter(fp_type='torsion', nBits=args.torsion_nBits)
-            desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-        else:
-            frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                            [Fingerprinter(fp_type='torsion', 
-                                                                nBits=args.torsion_nBits)]*len(structure_dict.keys()))))
-            desc = frag.fit_transform(pd.DataFrame(structure_dict))
-        
-        for i, p in enumerate(args.property_col):
-            indices = data_table[p][pd.notnull(data_table[p])].index
-            if len(indices) < len(data_table[p]):
-                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                print(f"Molecules that don't have the property will be discarded from the set.")
-            structures = None
-            if args.output_structures:
-                structures = np.array(structure_dict[args.structure_col[0]])[indices]    
-            output_file(desc, data_table[p], 'torsion', outdir, (i, p), fmt=args.format,
-                        solvent=solv, structures=structures, descparams=None, indices=indices)
+        t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'torsion', 
+                                                    {'nBits':args.torsion_nBits}, 
+                                                    outdir, {'format':args.format}))
+        threads.append(t)
+                        
                  
     if args.isida and isida_able:
         print('Creating a folder for ISIDA fragments')
@@ -473,49 +420,30 @@ if __name__ == '__main__':
         create_output_dir(outdir)
         for l in set(args.circus_min):
             for u in set(args.circus_max):
-                if len(structure_dict)==1:
-                    frag = ChythonCircus(lower=l, upper=u)
-                    desc = frag.fit_transform(structure_dict[args.structure_col[0]])
-                else:
-                    frag = ComplexFragmentor(associator=dict(zip([list(structure_dict.keys())],
-                                                                [ChythonCircus(lower=l, 
-                                                                    upper=u)]*len(structure_dict.keys()))))
-                    desc = frag.fit_transform(pd.DataFrame(structure_dict))
+                t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'circus', 
+                                                    {'lower':l, 'upper':u}, 
+                                                    outdir, {'format':args.format}))
+                threads.append(t)
                 
-                for i, p in enumerate(args.property_col):
-                    indices = data_table[p][pd.notnull(data_table[p])].index
-                    if len(indices) < len(data_table[p]):
-                        print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                        print(f"Molecules that don't have the property will be discarded from the set.")
-                    structures = None
-                    if args.output_structures:
-                        structures = np.array(structure_dict[args.structure_col[0]])[indices]    
-                    output_file(desc, data_table[p], 'circus', outdir, (i, p), fmt=args.format, 
-                        solvent=solv, structures=structures, descparams=(l, u), indices=indices)
 
     if args.mordred2d:
         print('Creating a folder for Mordred 2D fragments')
-        outdir = args.output+'/mordred2D'
+        outdir = args.output+'/mordred2d'
         create_output_dir(outdir)
-        if len(structure_dict)==1:
-            calc = Calculator(descriptors, ignore_3D=True)
-            mols = [Chem.MolFromSmiles(str(m)) for m in structure_dict[args.structure_col[0]]]
-            desc = calc.pandas(mols).select_dtypes(include='number')
-        else:
-            descs = []
-            for k, v in structure_dict.items():
-                calc = Calculator(descriptors, ignore_3D=True)
-                mols = [Chem.MolFromSmiles(str(m)) for m in v]
-                descs.append(calc.pandas(mols).select_dtypes(include='number'))
-            desc = pd.concat(descs, axis=1, sort=False)
-        
-        for i, p in enumerate(args.property_col):
-            indices = data_table[p][pd.notnull(data_table[p])].index
-            if len(indices) < len(data_table[p]):
-                print(f"'{p}' column warning: only {len(indices)} out of {len(data_table[p])} instances have the property.")
-                print(f"Molecules that don't have the property will be discarded from the set.")
-            structures = None
-            if args.output_structures:
-                structures = np.array(structure_dict[args.structure_col[0]])[indices]            
-            output_file(desc, data_table[p], 'mordred2d', outdir, (i, p), fmt=args.format, 
-                solvent=solv, structures=structures, descparams=None, indices=indices)
+        t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'mordred2d', {}, 
+                                                    outdir, {'format':args.format}))
+        threads.append(t)
+    
+    if args.parallel>0:    
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    else:
+        for t in threads:
+            t.start()
+            t.join()

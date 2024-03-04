@@ -4,7 +4,7 @@ methods = {'SVR': "SVR(**params, gamma='auto')", 'SVC':"SVC(**params, gamma='aut
             'RFR':"RandomForestRegressor(**params)",
             'RFC':"RandomForestClassifier(**params)"}
 
-            
+
 def suggest_params(trial, method):
     if method == 'SVR':
         params = { 
@@ -49,7 +49,26 @@ def suggest_params(trial, method):
             'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
             
         }
+    elif method == 'XGBC':
+        params = {
+            'max_depth': trial.suggest_int("max_depth", 3, 18),
+            'eta': trial.suggest_float('eta', 1e-9, 1, log=True),
+            'gamma': trial.suggest_float ('gamma', 1,9),
+            'reg_alpha' : trial.suggest_int('reg_alpha', 10, 180),
+            'reg_lambda' : trial.suggest_float('reg_lambda', 0, 1),
+            'colsample_bytree' : trial.suggest_float('colsample_bytree', 0.5, 1),
+            'min_child_weight' : trial.suggest_int('min_child_weight', 0, 10),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
+            
+        }
     elif method == 'RFR':
+        params = {
+            'max_depth': trial.suggest_int("max_depth", 3, 10),
+            'max_features' : trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
+            'max_samples' : trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
+        }
+    elif method == 'RFC':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 10),
             'max_features' : trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
