@@ -32,7 +32,7 @@ from rdkit.Avalon import pyAvalonTools
 
 class ChythonCircus(BaseEstimator, TransformerMixin):
     """
-    Augmentor class is a scikit-learn compatible transformer that calculates the fragment features 
+    ChythonCircus class is a scikit-learn compatible transformer that calculates the fragment features 
     from molecules and Condensed Graphs of Reaction (CGR). The features are augmented substructures - 
     atom-centered fragments that take into account atom and its environment. Implementation-wise,
     this takes all atoms in the molecule/CGR, and builds topological neighborhood spheres around them.
@@ -42,14 +42,14 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
     occurrence of such substructure in the given molecule.
 
     The parameters of the augmentor are the lower and the upper limits of the radius. By default,
-    both are set to 0, which means only the count of atoms.
+    both are set to 1, which means only the count of atoms.
     Additionally, only_dynamic flag indicates of only fragments that contain a dynamic bond or atom 
     will be considered (only works in case of CGRs).
-    fmt parameter defines the format in which the molecules are given to the Augmentor. "mol" if they 
-    are in CGRtools MoleculeContainer or CGRContainer, "smiles" if they are in SMILES.
+    fmt parameter defines the format in which the molecules are given to the ChythonCircus. 
+    "mol" if they are in CGRtools MoleculeContainer or CGRContainer, "smiles" if they are in SMILES.
     """
 
-    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
+    def __init__(self, lower:int=1, upper:int=1, only_dynamic:bool=False, fmt:str="mol"): 
         self.feature_names = []
         self.lower = lower 
         self.upper = upper
@@ -71,19 +71,18 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
         -------
         None
         """
+        output = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
-            for length in range(self.lower, self.upper):
-                for atom in mol.atoms():
-                    # deep is the radius of the neighborhood sphere in bonds
-                    sub = str(mol.augmented_substructure([atom[0]], deep=length))
-                    if sub not in self.feature_names:
-                        # if dynamic_only is on, skip all non-dynamic fragments
-                        if self.only_dynamic and ">" not in sub:
-                            continue
-                        self.feature_names.append(sub)
+            output.append(mol.morgan_smiles_hash(self.lower, self.upper))
+        self.feature_names = pd.DataFrame(output).columns
         return self
+                        # if dynamic_only is on, skip all non-dynamic fragments
+                        #if self.only_dynamic and ">" not in sub:
+                        #    continue
+                        #self.feature_names.append(sub)
+        #return self
 
     def transform(self, X:DataFrame, y:Optional[List]=None) -> DataFrame:
         """Transforms the given array of molecules/CGRs to a data frame with features and their values.
@@ -100,20 +99,23 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
         -------
         DataFrame containing the fragments and their counts.
         """
-        table = pd.DataFrame(columns=self.feature_names)
-        for i, mol in enumerate(X):
-            if self.fmt == "smiles":
-                mol = smiles(mol)
-            table.loc[len(table)] = 0
-            for sub in self.feature_names:
-                # if CGRs are used, the transformation of the substructure to the CGRcontainer is needed
-                if type(mol) == CGRContainer:
-                    mapping = list(CGRContainer().compose(smiles(sub)).get_mapping(mol))
-                else:
-                    mapping = list(smiles(sub).get_mapping(mol))
-                # mapping is the list of all possible substructure mappings into the given molecule/CGR
-                table.loc[i,sub] = len(mapping)
-        return table
+        df = pd.DataFrame(columns=self.feature_names, dtype=int)
+
+        output = []
+        for m in X:
+            all_bits = sum([list(v.values()) for v in m._morgan_hash_dict(self.lower, self.upper)], [])
+            smiles_bits = m.morgan_smiles_hash(self.lower, self.upper)
+            tmp = {}
+            for k,v in m.morgan_smiles_hash(1,5).items():
+                tmp[k] = 0
+                for vv in v:
+                    tmp[k] += all_bits.count(vv)
+            output.append(tmp)
+        output = pd.DataFrame(output)
+        
+        output2 = output[output.columns.intersection(df.columns)]
+        df = pd.concat([df, output2])
+        return df
     
     def get_feature_names(self) -> List[str]:
         """Returns the list of features as strings.
@@ -122,7 +124,61 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
         -------
         List[str]
         """
-        return self.feature_names
+        return list(self.feature_names)
+
+class ChythonLinear(BaseEstimator, TransformerMixin):
+    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
+        self.feature_names = []
+        self.lower = lower 
+        self.upper = upper
+        self.only_dynamic = only_dynamic
+        self.fmt = fmt
+
+    def fit(self, X:DataFrame, y:Optional[List]=None):
+        """Fits the linear fragmentor - finds all possible substructures in the given array of molecules/CGRs.
+
+        Parameters
+        ----------
+        X : array-like, [MoleculeContainers, CGRContainers]
+            the  array/list/... of molecules/CGRs to train the augmentor. Collects all possible substructures.
+
+        y : None
+            required by default by scikit-learn standards, but doesn't change the function at all.
+
+        Returns
+        -------
+        None
+        """
+        output = []
+        for i, mol in enumerate(X):
+            if self.fmt == "smiles":
+                mol = smiles(mol)
+            output.append(mol.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
+        self.feature_names = pd.DataFrame(output).columns
+        return self
+
+    def transform(self, X, y=None):
+        df = pd.DataFrame(columns=self.feature_names, dtype=int)
+
+        output = []
+        for m in X:
+            output.append(m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
+        output = pd.DataFrame(output)
+        output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
+        output = output.fillna(0)
+        
+        output2 = output[output.columns.intersection(df.columns)]
+        df = pd.concat([df, output2])
+        return df
+
+    def get_feature_names(self) -> List[str]:
+        """Returns the list of features as strings.
+
+        Returns
+        -------
+        List[str]
+        """
+        return list(self.feature_names)
 
 class ComplexFragmentor(BaseEstimator, TransformerMixin):
     """

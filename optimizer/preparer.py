@@ -33,42 +33,42 @@ parser.add_argument('--property_col', required=True, action='extend', type=str, 
 parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[])
 parser.add_argument('-o', '--output', required=True)
 parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'])
-parser.add_argument('-p', '--parallel', action='store', type=int, default=1)
+parser.add_argument('-p', '--parallel', action='store', type=int, default=0)
 
 parser.add_argument('--morgan', action='store_true', 
                     help='put the option to calculate Morgan fingerprints')
 parser.add_argument('--morgan_nBits', type=int, action='store', default=1024, 
                     help='number of bits for Morgan fingerprints')
-parser.add_argument('--morgan_radius', nargs='+', action='extend', type=int, default=[2],
-                    help='maximum radius of Morgan FP. Allows several numbers, which will be stored separately')
+parser.add_argument('--morgan_radius', nargs='+', action='extend', type=int, default=[],
+                    help='maximum radius of Morgan FP. Allows several numbers, which will be stored separately. Default radius 2')
 
 parser.add_argument('--morganfeatures', action='store_true', 
                     help='put the option to calculate Morgan feature fingerprints')
 parser.add_argument('--morganfeatures_nBits', type=int, action='store', default=1024, 
                     help='number of bits for Morgan feature fingerprints')
-parser.add_argument('--morganfeatures_radius', nargs='+', action='extend', type=int, default=[2],
-                    help='maximum radius of Morgan feature FP. Allows several numbers, which will be stored separately')
+parser.add_argument('--morganfeatures_radius', nargs='+', action='extend', type=int, default=[],
+                    help='maximum radius of Morgan feature FP. Allows several numbers, which will be stored separately. Default radius 2')
 
 parser.add_argument('--rdkfp', action='store_true', 
                     help='put the option to calculate RDkit fingerprints')
 parser.add_argument('--rdkfp_nBits', type=int, action='store', default=1024, 
                     help='number of bits for RDkit fingerprints')
-parser.add_argument('--rdkfp_length', nargs='+', action='extend', type=int, default=[3],
-                    help='maximum length of RDkit FP. Allows several numbers, which will be stored separately')
+parser.add_argument('--rdkfp_length', nargs='+', action='extend', type=int, default=[],
+                    help='maximum length of RDkit FP. Allows several numbers, which will be stored separately. Default length 3')
 
 parser.add_argument('--rdkfplinear', action='store_true', 
                     help='put the option to calculate RDkit linear fingerprints')
 parser.add_argument('--rdkfplinear_nBits', type=int, action='store', default=1024, 
                     help='number of bits for RDkit linear fingerprints')
-parser.add_argument('--rdkfplinear_length', nargs='+', action='extend', type=int, default=[3],
-                    help='maximum length of RDkit linear FP. Allows several numbers, which will be stored separately')
+parser.add_argument('--rdkfplinear_length', nargs='+', action='extend', type=int, default=[],
+                    help='maximum length of RDkit linear FP. Allows several numbers, which will be stored separately. Default length 3')
 
 parser.add_argument('--layered', action='store_true', 
                     help='put the option to calculate RDkit layered fingerprints')
 parser.add_argument('--layered_nBits', type=int, action='store', default=1024, 
                     help='number of bits for RDkit layered fingerprints')
-parser.add_argument('--layered_length', nargs='+', action='extend', type=int, default=[3],
-                    help='maximum length of RDkit layered FP. Allows several numbers, which will be stored separately')
+parser.add_argument('--layered_length', nargs='+', action='extend', type=int, default=[],
+                    help='maximum length of RDkit layered FP. Allows several numbers, which will be stored separately. Default length 3')
 
 parser.add_argument('--avalon', action='store_true', 
                     help='put the option to calculate Avalon fingerprints')
@@ -84,6 +84,13 @@ parser.add_argument('--torsion', action='store_true',
                     help='put the option to calculate topological torsion fingerprints')
 parser.add_argument('--torsion_nBits', type=int, action='store', default=1024, 
                     help='number of bits for topological torsion fingerprints')
+
+parser.add_argument('--linear', action='store_true', 
+                    help='put the option to calculate linear fragments')
+parser.add_argument('--linear_min', nargs='+', action='extend', type=int, default=[],
+                    help='minimum length of linear fragments. Allows several numbers, which will be stored separately. Default value 2')
+parser.add_argument('--linear_max', nargs='+', action='extend', type=int, default=[],
+                    help='maximum length of linear fragments. Allows several numbers, which will be stored separately. Default value 5')
 
 parser.add_argument('--isida', action='store_true', 
                     help='put the option to calculate ISIDA fragments')
@@ -102,10 +109,10 @@ parser.add_argument('--isida_flex_max', nargs='+', action='extend', type=int, de
 
 parser.add_argument('--circus', action='store_true', 
                     help='put the option to calculate CircuS fragments')
-parser.add_argument('--circus_min', nargs='+', action='extend', type=int, default=[0],
-                    help='minimum length of ISIDA linear fragments. Allows several numbers, which will be stored separately')
-parser.add_argument('--circus_max', nargs='+', action='extend', type=int, default=[2],
-                    help='maximum length of ISIDA linear fragments. Allows several numbers, which will be stored separately')
+parser.add_argument('--circus_min', nargs='+', action='extend', type=int, default=[],
+                    help='minimum length of ISIDA linear fragments. Allows several numbers, which will be stored separately. Default value 1')
+parser.add_argument('--circus_max', nargs='+', action='extend', type=int, default=[],
+                    help='maximum length of ISIDA linear fragments. Allows several numbers, which will be stored separately. Default value 2')
 
 parser.add_argument('--mordred2d', action='store_true', 
                     help='put the option to calculate Mordred 2D descriptors')
@@ -138,6 +145,8 @@ def output_file(desc, prop, desctype, outdir, prop_ind_name, solvent=None,
             outname += '-' + str(descparams[0])+'-'+str(descparams[1])+'-'+str(descparams[2])
         elif desctype == 'circus':
             outname += '-' + str(descparams[0])+'-'+str(descparams[1])
+        elif desctype == 'linear':
+            outname += '-' + str(descparams[0])+'-'+str(descparams[1])
         else:
             outname += str(descparams)
     outname += '.'+fmt
@@ -161,6 +170,8 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
     def _create_calculator(dtype, prms):
         if dtype == 'circus':
             return ChythonCircus(lower=prms['lower'], upper=prms['upper'])
+        if dtype == 'linear':
+            return ChythonLinear(lower=prms['lower'], upper=prms['upper'])
         elif dtype == 'mordred2d':
             return Calculator(descriptors, ignore_3D=True)
         else:
@@ -194,7 +205,7 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                                             [_create_calculator(desc_type, other_params)]*len(strs.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(strs))
 
-        if desc_type == 'circus':
+        if desc_type == 'circus' or desc_type == 'linear':
             descparams = (other_params['lower'], other_params['upper'])
         else:
             try:
@@ -245,7 +256,11 @@ if __name__ == '__main__':
         print('Creating a folder for Morgan fingerprints')
         outdir = args.output+'/morgan_'+str(args.morgan_nBits)
         create_output_dir(outdir)
-        for r in set(args.morgan_radius):
+        if len(args.morgan_radius)>0:
+            radii = set(args.morgan_radius)
+        else:
+            radii = [2]
+        for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'morgan', 
@@ -258,7 +273,11 @@ if __name__ == '__main__':
         print('Creating a folder for Morgan feature fingerprints')
         outdir = args.output+'/morganfeatures_'+str(args.morgan_nBits)
         create_output_dir(outdir)
-        for r in set(args.morganfeatures_radius):
+        if len(args.morganfeatures_radius)>0:
+            radii = set(args.morganfeatures_radius)
+        else:
+            radii = [2]
+        for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'morgan', 
@@ -272,7 +291,11 @@ if __name__ == '__main__':
         print('Creating a folder for RDkit fingerprints')
         outdir = args.output+'/rdkfp_'+str(args.rdkfp_nBits)
         create_output_dir(outdir)
-        for r in set(args.rdkfp_length):
+        if len(args.rdkfp_length)>0:
+            radii = set(args.rdkfp_length)
+        else:
+            radii = [3]
+        for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'rdkfp', 
@@ -285,7 +308,11 @@ if __name__ == '__main__':
         print('Creating a folder for RDkit linear fingerprints')
         outdir = args.output+'/rdkfplinear_'+str(args.rdkfplinear_nBits)
         create_output_dir(outdir)
-        for r in set(args.rdkfplinear_length):
+        if len(args.rdkfplinear_length)>0:
+            radii = set(args.rdkfplinear_length)
+        else:
+            radii = [3]
+        for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'rdkfp', 
@@ -299,7 +326,11 @@ if __name__ == '__main__':
         print('Creating a folder for RDkit property-layered fingerprints')
         outdir = args.output+'/layered_'+str(args.layered_nBits)
         create_output_dir(outdir)
-        for r in set(args.layered_length):
+        if len(args.layered_length)>0:
+            radii = set(args.layered_length)
+        else:
+            radii = [3]
+        for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'layered', 
@@ -418,11 +449,40 @@ if __name__ == '__main__':
         print('Creating a folder for CircuS fragments')
         outdir = args.output+'/circus'
         create_output_dir(outdir)
-        for l in set(args.circus_min):
-            for u in set(args.circus_max):
+        if len(args.circus_min)>0:
+            lowers = set(args.circus_min)
+        else:
+            lowers = [1]
+        if len(args.circus_max)>0:
+            uppers = set(args.circus_max)
+        else:
+            uppers = [2]
+        for l in lowers:
+            for u in uppers:
                 t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'circus', 
+                                                    {'lower':l, 'upper':u}, 
+                                                    outdir, {'format':args.format}))
+                threads.append(t)
+
+    if args.linear:
+        print('Creating a folder for linear fragments')
+        outdir = args.output+'/linear'
+        create_output_dir(outdir)
+        if len(args.linear_min)>0:
+            lowers = set(args.linear_min)
+        else:
+            lowers = [2]
+        if len(args.linear_max)>0:
+            uppers = set(args.linear_max)
+        else:
+            uppers = [5]
+        for l in lowers:
+            for u in uppers:
+                t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
+                                                    data_table[args.property_col], 
+                                                    'linear', 
                                                     {'lower':l, 'upper':u}, 
                                                     outdir, {'format':args.format}))
                 threads.append(t)
