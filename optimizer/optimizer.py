@@ -33,7 +33,7 @@ parser.add_argument('--cv_splits', type=int, default=5)
 parser.add_argument('--cv_repeats', type=int, default=1)
 parser.add_argument('--timeout', type=int, default=60)
 parser.add_argument('-j', '--jobs', type=int, default=1)
-parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'XGBR'])
+parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'])
 parser.add_argument('--multi', action='store_true')
 parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
 
@@ -46,7 +46,7 @@ def rmse(a, b):
     return np.sqrt(np.sum((a-b)**2)/len(a))
 
 
-def collect_data(datadir, multi, fmt='svm'):
+def collect_data(datadir, multi, task, fmt='svm'):
     desc_dict = {}
     y = {}
     for f in glob.glob(datadir+"/*."+fmt):
@@ -59,16 +59,19 @@ def collect_data(datadir, multi, fmt='svm'):
             y[propname] = data[propname]
             col_idx = list(data.columns).index()
             desc_dict[name] = data.iloc[:,col_idx+1:]
-    return desc_dict, pd.DataFrame(y)
+    if task.endswith('C'):
+        return desc_dict, pd.DataFrame(y, dtype=int)
+    else:
+        return desc_dict, pd.DataFrame(y)
 
 def calculate_scores(task, obs, pred):
     def create_row(task, stat_name, x, y):
         if task == 'R':
             return {'stat':stat_name, 'R2':r2(x, y), 'RMSE':rmse(x, y), 'MAE':mae(x, y)}
-        elif task == 'C' and len(set(y))==2:
+        elif task == 'C' and len(set(x))==2:
             return {'stat':stat_name, 'ROC_AUC':roc_auc_score(x, y), 'ACC':accuracy_score(x, y), 
                              'BAC':balanced_accuracy_score(x, y), 'F1':f1_score(x, y)}
-        elif task == 'C' and len(set(y))>2:
+        elif task == 'C' and len(set(x))>2:
             return {'stat':stat_name, 'ROC_AUC':roc_auc_score(LabelBinarizer().fit_transform(x), 
                                                 LabelBinarizer().fit_transform(y), multi_class='ovr'), 
                     'ACC':accuracy_score(x, y), 
@@ -189,7 +192,7 @@ if __name__ == '__main__':
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-    x_dict, y = collect_data(datadir, multi, fmt)
+    x_dict, y = collect_data(datadir, multi, method, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
         launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi)
