@@ -85,7 +85,10 @@ def calculate_scores(task, obs, pred):
         for p in preds_partial.columns:
             added_row = create_row(task, p, obs[c], preds_partial[p])
             score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
-        added_row = create_row(task, c+'.consensus', obs[c], preds_partial.mean(axis=1))
+        if task == 'R':
+            added_row = create_row(task, c+'.consensus', obs[c], preds_partial.mean(axis=1))
+        elif task == 'C':
+            added_row = create_row(task, c+'.consensus', obs[c], np.round(preds_partial.mean(axis=1)))
         score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
     return score_df
 
