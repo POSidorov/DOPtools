@@ -112,6 +112,7 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
                     tmp[k] += all_bits.count(vv)
             output.append(tmp)
         output = pd.DataFrame(output)
+        output = output.fillna(0)
         
         output2 = output[output.columns.intersection(df.columns)]
         df = pd.concat([df, output2])

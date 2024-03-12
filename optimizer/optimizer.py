@@ -11,7 +11,7 @@ from functools import partial
 from config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, LabelBinarizer
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
@@ -65,9 +65,15 @@ def calculate_scores(task, obs, pred):
     def create_row(task, stat_name, x, y):
         if task == 'R':
             return {'stat':stat_name, 'R2':r2(x, y), 'RMSE':rmse(x, y), 'MAE':mae(x, y)}
-        elif task == 'C':
+        elif task == 'C' and len(set(y))==2:
             return {'stat':stat_name, 'ROC_AUC':roc_auc_score(x, y), 'ACC':accuracy_score(x, y), 
                              'BAC':balanced_accuracy_score(x, y), 'F1':f1_score(x, y)}
+        elif task == 'C' and len(set(y))>2:
+            return {'stat':stat_name, 'ROC_AUC':roc_auc_score(LabelBinarizer().fit_transform(x), 
+                                                LabelBinarizer().fit_transform(y), multi_class='ovr'), 
+                    'ACC':accuracy_score(x, y), 
+                    'BAC':balanced_accuracy_score(x, y), 
+                    'F1':f1_score(x, y, average='macro')}
 
     if task == 'R':
         score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
@@ -126,7 +132,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:,i]
 
         score_df = calculate_scores(method[-1], y, res_pd)
-        
+
         score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
         res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
 

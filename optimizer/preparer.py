@@ -9,6 +9,7 @@ from mordred import Calculator, descriptors
 import sys
 import multiprocessing
 from threading import Thread
+import pickle
 
 from cheminfotools.chem_features import ChythonCircus, Fingerprinter, ComplexFragmentor
 try:
@@ -34,6 +35,7 @@ parser.add_argument('--property_names', action='extend', type=str, nargs='+', de
 parser.add_argument('-o', '--output', required=True)
 parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'])
 parser.add_argument('-p', '--parallel', action='store', type=int, default=0)
+parser.add_argument('-s', '--save', action='store_true', help='save the fragmentors for each descriptor type')
 
 parser.add_argument('--morgan', action='store_true', 
                     help='put the option to calculate Morgan fingerprints')
@@ -166,7 +168,7 @@ def output_file(desc, prop, desctype, outdir, prop_ind_name, solvent=None,
         dump_svmlight_file(np.array(desc), prop.iloc[indices], 
                 outname,zero_based=False)
 
-def calculate_descriptors(data, structures, properties, desc_type, other_params, output_dir, output_params):
+def calculate_descriptors(data, structures, properties, desc_type, other_params, output_dir, output_params, save):
     def _create_calculator(dtype, prms):
         if dtype == 'circus':
             return ChythonCircus(lower=prms['lower'], upper=prms['upper'])
@@ -190,6 +192,8 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                 desc = frag.pandas(mols).select_dtypes(include='number')
             else:
                 desc = frag.fit_transform(strs)
+                with open(output_dir+'/fragmentor.pickle', 'wb') as f:
+                    pickle.dump(frag, f, pickle.HIGHEST_PROTOCOL)
         else:
             # make a ComplexFragmentor
             strs = dict(zip([(key, np.array(structures[key])[indices]) for key in structures.keys()]))
@@ -204,6 +208,8 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                 frag = ComplexFragmentor(associator=dict(zip([list(structures.keys())],
                                             [_create_calculator(desc_type, other_params)]*len(strs.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(strs))
+                with open(output_dir+'/fragmentor.pickle', 'wb') as f:
+                    pickle.dump(frag, f, pickle.HIGHEST_PROTOCOL)
 
         if desc_type == 'circus' or desc_type == 'linear':
             descparams = (other_params['lower'], other_params['upper'])
@@ -265,7 +271,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'morgan', 
                                                     {'nBits':args.morgan_nBits, 'size':r}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
             threads.append(t)
             
     
@@ -283,7 +290,8 @@ if __name__ == '__main__':
                                                     'morgan', 
                                                     {'nBits':args.morganfeatures_nBits, 'size':r,
                                                       'params':{'useFeatures':True}}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
             threads.append(t)
                 
 
@@ -300,7 +308,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'rdkfp', 
                                                     {'nBits':args.rdkfp_nBits, 'size':r}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
             threads.append(t)
                 
 
@@ -318,7 +327,8 @@ if __name__ == '__main__':
                                                     'rdkfp', 
                                                     {'nBits':args.rdkfplinear_nBits, 'size':r,
                                                      'params':{'branchedPaths':False}}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
             threads.append(t)
                 
 
@@ -335,7 +345,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'layered', 
                                                     {'nBits':args.layered_nBits, 'size':r}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
             threads.append(t)
                  
 
@@ -347,7 +358,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'avalon', 
                                                     {'nBits':args.avalon_nBits}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
         threads.append(t)
                   
 
@@ -359,7 +371,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'ap', 
                                                     {'nBits':args.atompairs_nBits}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
         threads.append(t)
                 
 
@@ -371,7 +384,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'torsion', 
                                                     {'nBits':args.torsion_nBits}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
         threads.append(t)
                         
                  
@@ -463,7 +477,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'circus', 
                                                     {'lower':l, 'upper':u}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
                 threads.append(t)
 
     if args.linear:
@@ -484,7 +499,8 @@ if __name__ == '__main__':
                                                     data_table[args.property_col], 
                                                     'linear', 
                                                     {'lower':l, 'upper':u}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
                 threads.append(t)
                 
 
@@ -495,7 +511,8 @@ if __name__ == '__main__':
         t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'mordred2d', {}, 
-                                                    outdir, {'format':args.format}))
+                                                    outdir, {'format':args.format},
+                                                    args.save))
         threads.append(t)
     
     if args.parallel>0:    
