@@ -192,7 +192,16 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                 desc = frag.pandas(mols).select_dtypes(include='number')
             else:
                 desc = frag.fit_transform(strs)
-                with open(output_dir+'/fragmentor.pickle', 'wb') as f:
+                fragmentor_name = output_dir+'/'+desc_type+'-'
+                if desc_type == 'circus':
+                    fragmentor_name += str(frag.lower) + '-' + str(frag.upper)
+                else:
+                    try:
+                        fragmentor_name += str(frag.size)
+                    except:
+                        pass
+                fragmentor_name += '.pkl'
+                with open(fragmentor_name, 'wb') as f:
                     pickle.dump(frag, f, pickle.HIGHEST_PROTOCOL)
         else:
             # make a ComplexFragmentor
@@ -208,7 +217,16 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                 frag = ComplexFragmentor(associator=dict(zip([list(structures.keys())],
                                             [_create_calculator(desc_type, other_params)]*len(strs.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(strs))
-                with open(output_dir+'/fragmentor.pickle', 'wb') as f:
+                fragmentor_name = output_dir+'/'+desc_type+'-'
+                if desc_type == 'circus':
+                    fragmentor_name += str(frag.lower) + '-' + str(frag.upper)
+                else:
+                    try:
+                        fragmentor_name += str(frag.size)
+                    except:
+                        pass
+                fragmentor_name += '.pkl'
+                with open(fragmentor_name, 'wb') as f:
                     pickle.dump(frag, f, pickle.HIGHEST_PROTOCOL)
 
         if desc_type == 'circus' or desc_type == 'linear':
