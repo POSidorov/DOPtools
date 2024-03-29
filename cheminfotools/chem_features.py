@@ -112,10 +112,11 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
                     tmp[k] += all_bits.count(vv)
             output.append(tmp)
         output = pd.DataFrame(output)
-        output = output.fillna(0)
         
         output2 = output[output.columns.intersection(df.columns)]
+
         df = pd.concat([df, output2])
+        df = df.fillna(0, axis=0)
         return df
     
     def get_feature_names(self) -> List[str]:

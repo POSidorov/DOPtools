@@ -110,12 +110,13 @@ class ColorAtom:
 
                             if w != 0:
                                 if self.isida_like:
+                                    if type(m) == CGRContainer:
+                                        d = self._isida2cgrtools(d)
                                     participating_atoms = self._full_mapping_from_descriptor(m, d)
                                 else:
                                     if "*" in d:
                                         d = self._aromatize(d)
                                     if type(m) == CGRContainer:
-                                        d = self._isida2cgrtools(d)
                                         participating_atoms = [list(i.values()) for i in CGRContainer().compose(smiles(d)).get_mapping(m, optimize=False)]
                                     else:
                                         participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(m,)]
@@ -139,11 +140,11 @@ class ColorAtom:
 
                 if w != 0:
                     if self.isida_like:
+                        d = self._isida2cgrtools(d)
                         participating_atoms = self._full_mapping_from_descriptor(mol, d)
                     else:
                         if "*" in d:
                             d = self._aromatize(d)
-                        d = self._isida2cgrtools(d)
                         participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                     for a in participating_atoms:
