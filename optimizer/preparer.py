@@ -112,9 +112,9 @@ parser.add_argument('--isida_flex_max', nargs='+', action='extend', type=int, de
 parser.add_argument('--circus', action='store_true', 
                     help='put the option to calculate CircuS fragments')
 parser.add_argument('--circus_min', nargs='+', action='extend', type=int, default=[],
-                    help='minimum length of ISIDA linear fragments. Allows several numbers, which will be stored separately. Default value 1')
+                    help='minimum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default value 1')
 parser.add_argument('--circus_max', nargs='+', action='extend', type=int, default=[],
-                    help='maximum length of ISIDA linear fragments. Allows several numbers, which will be stored separately. Default value 2')
+                    help='maximum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default value 2')
 
 parser.add_argument('--mordred2d', action='store_true', 
                     help='put the option to calculate Mordred 2D descriptors')
