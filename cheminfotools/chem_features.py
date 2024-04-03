@@ -128,6 +128,15 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
         """
         return list(self.feature_names)
 
+    def get_size(self) -> Tuple[int]:
+        """Returns the tuple with lower and upper sizes.
+
+        Returns
+        -------
+        Tuple[int]
+        """
+        return (self.lower, self.upper)
+
 class ChythonLinear(BaseEstimator, TransformerMixin):
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
         self.feature_names = []
@@ -181,6 +190,15 @@ class ChythonLinear(BaseEstimator, TransformerMixin):
         List[str]
         """
         return list(self.feature_names)
+
+    def get_size(self) -> Tuple[int]:
+        """Returns the tuple with lower and upper sizes.
+
+        Returns
+        -------
+        Tuple[int]
+        """
+        return (self.lower, self.upper)
 
 class ComplexFragmentor(BaseEstimator, TransformerMixin):
     """
@@ -431,7 +449,7 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
             pass
         return features
 
-    def get_feature_names(self):
+    def get_feature_names(self) -> List[str]:
         return([str(i) for i in range(self.nBits)])
                                        
     def transform(self, X, y=None):
@@ -459,6 +477,15 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
                                 **self.params))
             
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
+
+    def get_size(self) -> int:
+        """Returns the radius or length of fingerprints (not number of bits).
+
+        Returns
+        -------
+        int
+        """
+        return self.size
     
 
 class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):

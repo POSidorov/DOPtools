@@ -125,6 +125,30 @@ parser.add_argument('--solvent', type=str, action='store', default='',
 parser.add_argument('--output_structures', action='store_true',
                     help='output the csv file contatining structures along with descriptors')
 
+def _set_default(argument, default_values):
+    if len(argument)>0:
+        return set(argument)
+    else:
+        return default_values
+
+def _pickle_descriptors(output_dir, desc_type, fragmentor, prop_ind_name):
+    fragmentor_name = output_dir+'/'
+    try:
+        fragmentor_name += args.property_names[prop_ind_name[0]] +'.'
+    except:
+        fragmentor_name += prop_ind_name[1] +'.'
+    fragmentor_name += desc_type+'-'
+    if desc_type == 'circus' or desc_type == 'linear':
+        fragmentor_name += str(fragmentor.lower) + '-' + str(fragmentor.upper)
+    else:
+        try:
+            fragmentor_name += str(fragmentor.size)
+        except:
+            pass
+    fragmentor_name += '.pkl'
+    with open(fragmentor_name, 'wb') as f:
+        pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
+
 def create_output_dir(outdir):
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
@@ -132,7 +156,7 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-def output_file(desc, prop, desctype, outdir, prop_ind_name, solvent=None, 
+def output_file(desc, prop, desc_type, outdir, prop_ind_name, solvent=None, 
                 fmt='svm', structures=None, descparams=None, indices=None):
     if fmt not in ['svm', 'csv']:
         raise ValueError('The output file should be of CSV or SVM format')
@@ -141,16 +165,14 @@ def output_file(desc, prop, desctype, outdir, prop_ind_name, solvent=None,
         outname += args.property_names[prop_ind_name[0]] +'.'
     except:
         outname += prop_ind_name[1] +'.'
-    outname += desctype
+    outname += desc_type
     if descparams is not None:
-        if desctype == 'isida':
+        if desc_type == 'isida':
             outname += '-' + str(descparams[0])+'-'+str(descparams[1])+'-'+str(descparams[2])
-        elif desctype == 'circus':
-            outname += '-' + str(descparams[0])+'-'+str(descparams[1])
-        elif desctype == 'linear':
+        elif desc_type == 'circus' or desc_type == 'linear':
             outname += '-' + str(descparams[0])+'-'+str(descparams[1])
         else:
-            outname += str(descparams)
+            outname += '-'+str(descparams)
     outname += '.'+fmt
 
     if solvent is not None:
@@ -192,17 +214,8 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                 desc = frag.pandas(mols).select_dtypes(include='number')
             else:
                 desc = frag.fit_transform(strs)
-                fragmentor_name = output_dir+'/'+desc_type+'-'
-                if desc_type == 'circus':
-                    fragmentor_name += str(frag.lower) + '-' + str(frag.upper)
-                else:
-                    try:
-                        fragmentor_name += str(frag.size)
-                    except:
-                        pass
-                fragmentor_name += '.pkl'
-                with open(fragmentor_name, 'wb') as f:
-                    pickle.dump(frag, f, pickle.HIGHEST_PROTOCOL)
+                if save:
+                    _pickle_descriptors(output_dir, desc_type, frag, (i,p))
         else:
             # make a ComplexFragmentor
             strs = dict(zip([(key, np.array(structures[key])[indices]) for key in structures.keys()]))
@@ -217,27 +230,11 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                 frag = ComplexFragmentor(associator=dict(zip([list(structures.keys())],
                                             [_create_calculator(desc_type, other_params)]*len(strs.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(strs))
-                fragmentor_name = output_dir+'/'+desc_type+'-'
-                if desc_type == 'circus':
-                    fragmentor_name += str(frag.lower) + '-' + str(frag.upper)
-                else:
-                    try:
-                        fragmentor_name += str(frag.size)
-                    except:
-                        pass
-                fragmentor_name += '.pkl'
-                with open(fragmentor_name, 'wb') as f:
-                    pickle.dump(frag, f, pickle.HIGHEST_PROTOCOL)
+                if save:
+                    _pickle_descriptors(output_dir, desc_type, frag, (i,p))
 
-        if desc_type == 'circus' or desc_type == 'linear':
-            descparams = (other_params['lower'], other_params['upper'])
-        else:
-            try:
-                descparams = other_params['size']
-            except:
-                descparams = None
         output_file(desc, data[p], desc_type, output_dir, (i, p), fmt=output_params['format'],
-                    solvent=solv, structures=strs, descparams=descparams, indices=indices)
+                    solvent=solv, structures=strs, descparams=frag.get_size(), indices=indices)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -280,10 +277,7 @@ if __name__ == '__main__':
         print('Creating a folder for Morgan fingerprints')
         outdir = args.output+'/morgan_'+str(args.morgan_nBits)
         create_output_dir(outdir)
-        if len(args.morgan_radius)>0:
-            radii = set(args.morgan_radius)
-        else:
-            radii = [2]
+        radii = _set_default(args.morgan_radius, [2])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
@@ -298,10 +292,7 @@ if __name__ == '__main__':
         print('Creating a folder for Morgan feature fingerprints')
         outdir = args.output+'/morganfeatures_'+str(args.morgan_nBits)
         create_output_dir(outdir)
-        if len(args.morganfeatures_radius)>0:
-            radii = set(args.morganfeatures_radius)
-        else:
-            radii = [2]
+        radii = _set_default(args.morganfeatures_radius, [2])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
@@ -317,10 +308,7 @@ if __name__ == '__main__':
         print('Creating a folder for RDkit fingerprints')
         outdir = args.output+'/rdkfp_'+str(args.rdkfp_nBits)
         create_output_dir(outdir)
-        if len(args.rdkfp_length)>0:
-            radii = set(args.rdkfp_length)
-        else:
-            radii = [3]
+        radii = _set_default(args.rdfkp_length, [3])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
@@ -335,10 +323,7 @@ if __name__ == '__main__':
         print('Creating a folder for RDkit linear fingerprints')
         outdir = args.output+'/rdkfplinear_'+str(args.rdkfplinear_nBits)
         create_output_dir(outdir)
-        if len(args.rdkfplinear_length)>0:
-            radii = set(args.rdkfplinear_length)
-        else:
-            radii = [3]
+        radii = _set_default(args.rdkfplinear_length, [3])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
@@ -354,10 +339,7 @@ if __name__ == '__main__':
         print('Creating a folder for RDkit property-layered fingerprints')
         outdir = args.output+'/layered_'+str(args.layered_nBits)
         create_output_dir(outdir)
-        if len(args.layered_length)>0:
-            radii = set(args.layered_length)
-        else:
-            radii = [3]
+        radii = _set_default(args.layered_length, [3])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
@@ -481,14 +463,8 @@ if __name__ == '__main__':
         print('Creating a folder for CircuS fragments')
         outdir = args.output+'/circus'
         create_output_dir(outdir)
-        if len(args.circus_min)>0:
-            lowers = set(args.circus_min)
-        else:
-            lowers = [1]
-        if len(args.circus_max)>0:
-            uppers = set(args.circus_max)
-        else:
-            uppers = [2]
+        lowers = _set_default(args.circus_min, [1])
+        uppers = _set_default(args.circus_max, [2])
         for l in lowers:
             for u in uppers:
                 t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
@@ -503,14 +479,8 @@ if __name__ == '__main__':
         print('Creating a folder for linear fragments')
         outdir = args.output+'/linear'
         create_output_dir(outdir)
-        if len(args.linear_min)>0:
-            lowers = set(args.linear_min)
-        else:
-            lowers = [2]
-        if len(args.linear_max)>0:
-            uppers = set(args.linear_max)
-        else:
-            uppers = [5]
+        lowers = _set_default(args.linear_min, [2])
+        uppers = _set_default(args.linear_max, [5])
         for l in lowers:
             for u in uppers:
                 t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
