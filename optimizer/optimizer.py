@@ -1,4 +1,5 @@
 import optuna
+from optuna.study import StudyDirection
 import glob, contextlib, os
 import pandas as pd
 import numpy as np
@@ -176,7 +177,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
     study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,), 
-                   callbacks=[[TopNPatienceCallback(earlystop[0], earlystop[1])]])
+                   callbacks=[TopNPatienceCallback(earlystop[0], earlystop[1])])
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
