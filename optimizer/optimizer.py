@@ -31,6 +31,8 @@ parser.add_argument('-o', '--outdir', required=True)
 parser.add_argument('--ntrials', type=int, default=100)
 parser.add_argument('--cv_splits', type=int, default=5)
 parser.add_argument('--cv_repeats', type=int, default=1)
+parser.add_argument('--earlystop_patience', type=int, default=5)
+parser.add_argument('--earlystop_leaders', type=int, default=1)
 parser.add_argument('--timeout', type=int, default=60)
 parser.add_argument('-j', '--jobs', type=int, default=1)
 parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'])
@@ -45,6 +47,30 @@ def r2(a, b):
 def rmse(a, b):
     return np.sqrt(np.sum((a-b)**2)/len(a))
 
+class TopNPatienceCallback:
+    def __init__(self, patience: int, leaders:int = 1):
+        self.patience = patience
+        self.leaders = leaders
+        self._leaders_unchanged_steps = 0
+        self._previous_leaders = ()
+
+    def __call__(self, study: optuna.study.Study, trial: optuna.trial.FrozenTrial) -> None:
+        if len(study.trials_dataframe()) < self.leaders:
+            return
+
+        if study.direction == StudyDirection.MAXIMIZE:
+            new_leaders = tuple(study.trials_dataframe().sort_values(by='value', ascending=False).head(self.leaders).number)
+        else:
+            new_leaders = tuple(study.trials_dataframe().sort_values(by='value', ascending=True).head(self.leaders).number)
+
+        if new_leaders == self._previous_leaders:
+            self._leaders_unchanged_steps += 1
+        else:
+            self._leaders_unchanged_steps = 0
+            self._previous_leaders = new_leaders
+
+        if self._leaders_unchanged_steps >= self.patience:
+            study.stop()
 
 def collect_data(datadir, multi, task, fmt='svm'):
     desc_dict = {}
@@ -96,7 +122,7 @@ def calculate_scores(task, obs, pred):
     return score_df
 
 
-def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi):
+def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi, earlystop):
     manager = Manager()
     results_dict = manager.dict()
 
@@ -149,7 +175,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         return score
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
-    study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,))
+    study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,), 
+                   callbacks=[[TopNPatienceCallback(earlystop[0], earlystop[1])]])
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
@@ -185,6 +212,7 @@ if __name__ == '__main__':
     method = args.method
     multi = args.multi
     fmt = args.format
+    earlystop = (args.earlystop_patience, args.earlystop_leaders)
 
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
@@ -195,4 +223,4 @@ if __name__ == '__main__':
     x_dict, y = collect_data(datadir, multi, method, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
-        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi)
+        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi, earlystop)
