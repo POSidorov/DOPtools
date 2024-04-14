@@ -11,7 +11,7 @@ import multiprocessing
 from threading import Thread
 import pickle
 
-from cheminfotools.chem_features import ChythonCircus, Fingerprinter, ComplexFragmentor
+from cheminfotools.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, ComplexFragmentor
 try:
     from cheminfotools.fragmentor import ChythonIsida
     isida_able = True
@@ -37,6 +37,7 @@ parser.add_argument('-f', '--format', action='store', type=str, default='svm', c
 parser.add_argument('-p', '--parallel', action='store', type=int, default=0)
 parser.add_argument('-s', '--save', action='store_true', help='save the fragmentors for each descriptor type')
 
+parser.add_argument('--separate_folders', action='store_true', help='save each descriptor typr into separate folders')
 parser.add_argument('--morgan', action='store_true', 
                     help='put the option to calculate Morgan fingerprints')
 parser.add_argument('--morgan_nBits', type=int, action='store', default=1024, 
@@ -131,20 +132,14 @@ def _set_default(argument, default_values):
     else:
         return default_values
 
-def _pickle_descriptors(output_dir, desc_type, fragmentor, prop_ind_name):
+def _pickle_descriptors(output_dir, fragmentor, prop_ind_name, separate=False):
     fragmentor_name = output_dir+'/'
     try:
         fragmentor_name += args.property_names[prop_ind_name[0]] +'.'
     except:
         fragmentor_name += prop_ind_name[1] +'.'
-    fragmentor_name += desc_type+'-'
-    if desc_type == 'circus' or desc_type == 'linear':
-        fragmentor_name += str(fragmentor.lower) + '-' + str(fragmentor.upper)
-    else:
-        try:
-            fragmentor_name += str(fragmentor.size)
-        except:
-            pass
+    fragmentor_name += fragmentor.name
+    fragmentor_name += '-'.join(['']+[str(s) for s in fragmentor.get_size()])
     fragmentor_name += '.pkl'
     with open(fragmentor_name, 'wb') as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
@@ -156,23 +151,17 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-def output_file(desc, prop, desc_type, outdir, prop_ind_name, solvent=None, 
-                fmt='svm', structures=None, descparams=None, indices=None):
+def output_file(desc, prop, fragmentor, outdir, prop_ind_name, solvent=None, 
+                fmt='svm', structures=None, indices=None, separate=False):
     if fmt not in ['svm', 'csv']:
         raise ValueError('The output file should be of CSV or SVM format')
-    outname = outdir + '/'
+    outname = outdir+'/'
     try:
         outname += args.property_names[prop_ind_name[0]] +'.'
     except:
         outname += prop_ind_name[1] +'.'
-    outname += desc_type
-    if descparams is not None:
-        if desc_type == 'isida':
-            outname += '-' + str(descparams[0])+'-'+str(descparams[1])+'-'+str(descparams[2])
-        elif desc_type == 'circus' or desc_type == 'linear':
-            outname += '-' + str(descparams[0])+'-'+str(descparams[1])
-        else:
-            outname += '-'+str(descparams)
+    outname += fragmentor.name
+    outname += '-'.join(['']+[str(s) for s in fragmentor.get_size()])
     outname += '.'+fmt
 
     if solvent is not None:
@@ -190,7 +179,7 @@ def output_file(desc, prop, desc_type, outdir, prop_ind_name, solvent=None,
         dump_svmlight_file(np.array(desc), prop.iloc[indices], 
                 outname,zero_based=False)
 
-def calculate_descriptors(data, structures, properties, desc_type, other_params, output_dir, output_params, save):
+def calculate_descriptors(data, structures, properties, desc_type, other_params, output_dir, output_params, save, separate):
     def _create_calculator(dtype, prms):
         if dtype == 'circus':
             return ChythonCircus(lower=prms['lower'], upper=prms['upper'])
@@ -215,7 +204,7 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
             else:
                 desc = frag.fit_transform(strs)
                 if save:
-                    _pickle_descriptors(output_dir, desc_type, frag, (i,p))
+                    _pickle_descriptors(output_dir, frag, (i,p), separate)
         else:
             # make a ComplexFragmentor
             strs = dict(zip([(key, np.array(structures[key])[indices]) for key in structures.keys()]))
@@ -231,13 +220,16 @@ def calculate_descriptors(data, structures, properties, desc_type, other_params,
                                             [_create_calculator(desc_type, other_params)]*len(strs.keys()))))
                 desc = frag.fit_transform(pd.DataFrame(strs))
                 if save:
-                    _pickle_descriptors(output_dir, desc_type, frag, (i,p))
+                    _pickle_descriptors(output_dir, frag, (i,p), separate)
 
-        output_file(desc, data[p], desc_type, output_dir, (i, p), fmt=output_params['format'],
-                    solvent=solv, structures=strs, descparams=frag.get_size(), indices=indices)
+        output_file(desc, data[p], frag, output_dir, (i, p), fmt=output_params['format'],
+                    solvent=solv, structures=strs, indices=indices, separate=separate)
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    separate = args.separate_folders
+    outdir = args.output
+    create_output_dir(outdir)
 
     threads = []
     
@@ -275,8 +267,9 @@ if __name__ == '__main__':
 
     if args.morgan:
         print('Creating a folder for Morgan fingerprints')
-        outdir = args.output+'/morgan_'+str(args.morgan_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/morgan'
+            create_output_dir(outdir)
         radii = _set_default(args.morgan_radius, [2])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
@@ -284,14 +277,15 @@ if __name__ == '__main__':
                                                     'morgan', 
                                                     {'nBits':args.morgan_nBits, 'size':r}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
             threads.append(t)
             
-    
+
     if args.morganfeatures:
         print('Creating a folder for Morgan feature fingerprints')
-        outdir = args.output+'/morganfeatures_'+str(args.morgan_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/morganfeatures'
+            create_output_dir(outdir)
         radii = _set_default(args.morganfeatures_radius, [2])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
@@ -300,29 +294,31 @@ if __name__ == '__main__':
                                                     {'nBits':args.morganfeatures_nBits, 'size':r,
                                                       'params':{'useFeatures':True}}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
             threads.append(t)
                 
 
     if args.rdkfp:
         print('Creating a folder for RDkit fingerprints')
-        outdir = args.output+'/rdkfp_'+str(args.rdkfp_nBits)
-        create_output_dir(outdir)
-        radii = _set_default(args.rdfkp_length, [3])
+        if separate:
+            outdir = args.output+'/rdkfp'
+            create_output_dir(outdir)
+        radii = _set_default(args.rdkfp_length, [3])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'rdkfp', 
                                                     {'nBits':args.rdkfp_nBits, 'size':r}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
             threads.append(t)
                 
 
     if args.rdkfplinear:
         print('Creating a folder for RDkit linear fingerprints')
-        outdir = args.output+'/rdkfplinear_'+str(args.rdkfplinear_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/rdkfplinear'
+            create_output_dir(outdir)
         radii = _set_default(args.rdkfplinear_length, [3])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
@@ -331,14 +327,15 @@ if __name__ == '__main__':
                                                     {'nBits':args.rdkfplinear_nBits, 'size':r,
                                                      'params':{'branchedPaths':False}}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
             threads.append(t)
                 
 
     if args.layered:
         print('Creating a folder for RDkit property-layered fingerprints')
-        outdir = args.output+'/layered_'+str(args.layered_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/layered'
+            create_output_dir(outdir)
         radii = _set_default(args.layered_length, [3])
         for r in radii:
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
@@ -346,53 +343,57 @@ if __name__ == '__main__':
                                                     'layered', 
                                                     {'nBits':args.layered_nBits, 'size':r}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
             threads.append(t)
                  
 
     if args.avalon:
         print('Creating a folder for Avalon fingerprints')
-        outdir = args.output+'/avalon_'+str(args.avalon_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/avalon'
+            create_output_dir(outdir)
         t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'avalon', 
                                                     {'nBits':args.avalon_nBits}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
         threads.append(t)
                   
 
     if args.atompairs:
         print('Creating a folder for atom pair fingerprints')
-        outdir = args.output+'/atompairs_'+str(args.atompairs_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/atompairs'
+            create_output_dir(outdir)
         t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
-                                                    'ap', 
+                                                    'atompairs', 
                                                     {'nBits':args.atompairs_nBits}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
         threads.append(t)
                 
 
     if args.torsion:
         print('Creating a folder for topological torsion fingerprints')
-        outdir = args.output+'/torsion_'+str(args.torsion_nBits)
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/torsion'
+            create_output_dir(outdir)
         t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'torsion', 
                                                     {'nBits':args.torsion_nBits}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
         threads.append(t)
                         
                  
     if args.isida and isida_able:
         print('Creating a folder for ISIDA fragments')
-        outdir = args.output+'/isida'
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/isida'
+            create_output_dir(outdir)
         for l in set(args.isida_linear_min):
             for u in set(args.isida_linear_max):
                 if len(structure_dict)==1:
@@ -461,8 +462,9 @@ if __name__ == '__main__':
 
     if args.circus:
         print('Creating a folder for CircuS fragments')
-        outdir = args.output+'/circus'
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/circus'
+            create_output_dir(outdir)
         lowers = _set_default(args.circus_min, [1])
         uppers = _set_default(args.circus_max, [2])
         for l in lowers:
@@ -472,13 +474,14 @@ if __name__ == '__main__':
                                                     'circus', 
                                                     {'lower':l, 'upper':u}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
                 threads.append(t)
 
     if args.linear:
         print('Creating a folder for linear fragments')
-        outdir = args.output+'/linear'
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/linear'
+            create_output_dir(outdir)
         lowers = _set_default(args.linear_min, [2])
         uppers = _set_default(args.linear_max, [5])
         for l in lowers:
@@ -488,19 +491,20 @@ if __name__ == '__main__':
                                                     'linear', 
                                                     {'lower':l, 'upper':u}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
                 threads.append(t)
                 
 
     if args.mordred2d:
         print('Creating a folder for Mordred 2D fragments')
-        outdir = args.output+'/mordred2d'
-        create_output_dir(outdir)
+        if separate:
+            outdir = args.output+'/mordred2d'
+            create_output_dir(outdir)
         t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'mordred2d', {}, 
                                                     outdir, {'format':args.format},
-                                                    args.save))
+                                                    args.save, separate))
         threads.append(t)
     
     if args.parallel>0:    
