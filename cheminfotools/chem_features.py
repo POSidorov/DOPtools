@@ -217,7 +217,7 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
         self.fp_type = fp_type
         self.nBits = nBits
         if size is None:
-            self.size = (nBits)
+            self.size = (nBits,)
         else:
             self.size = (size, nBits)
         self.params = params
