@@ -25,10 +25,11 @@ from sklearn.feature_selection import SelectorMixin
 from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule, to_rdkit_molecule
 from typing import Optional, List, Dict, Tuple
 from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem
+from rdkit.Chem import MACCSkeys, AllChem, rdMolDescriptors
 from rdkit.DataStructs.cDataStructs import ExplicitBitVect
-from rdkit.Chem import rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
+from abc import ABC, abstractmethod
+
 
 
 class ChythonCircus(BaseEstimator, TransformerMixin):
@@ -188,9 +189,9 @@ class ChythonLinear(BaseEstimator, TransformerMixin):
             output.append(m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
         output = pd.DataFrame(output)
         output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
-        output = output.fillna(0)
         
         output2 = output[output.columns.intersection(df.columns)]
+        output2 = output2.fillna(0)
         df = pd.concat([df, output2])
         return df
 
