@@ -191,8 +191,8 @@ class ChythonLinear(BaseEstimator, TransformerMixin):
         output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
         
         output2 = output[output.columns.intersection(df.columns)]
-        output2 = output2.fillna(0)
         df = pd.concat([df, output2])
+        df = df.fillna(0)
         return df
 
     def get_feature_names(self) -> List[str]:
