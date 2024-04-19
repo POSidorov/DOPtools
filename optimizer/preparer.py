@@ -275,7 +275,7 @@ if __name__ == '__main__':
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'morgan', 
-                                                    {'nBits':args.morgan_nBits, 'size':r}, 
+                                                    {'nBits':args.morgan_nBits, 'radius':r}, 
                                                     outdir, {'format':args.format},
                                                     args.save, separate))
             threads.append(t)
@@ -291,7 +291,7 @@ if __name__ == '__main__':
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'morgan', 
-                                                    {'nBits':args.morganfeatures_nBits, 'size':r,
+                                                    {'nBits':args.morganfeatures_nBits, 'radius':r,
                                                       'params':{'useFeatures':True}}, 
                                                     outdir, {'format':args.format},
                                                     args.save, separate))
@@ -308,7 +308,7 @@ if __name__ == '__main__':
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'rdkfp', 
-                                                    {'nBits':args.rdkfp_nBits, 'size':r}, 
+                                                    {'nBits':args.rdkfp_nBits, 'radius':r}, 
                                                     outdir, {'format':args.format},
                                                     args.save, separate))
             threads.append(t)
@@ -324,7 +324,7 @@ if __name__ == '__main__':
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'rdkfp', 
-                                                    {'nBits':args.rdkfplinear_nBits, 'size':r,
+                                                    {'nBits':args.rdkfplinear_nBits, 'radius':r,
                                                      'params':{'branchedPaths':False}}, 
                                                     outdir, {'format':args.format},
                                                     args.save, separate))
@@ -341,7 +341,7 @@ if __name__ == '__main__':
             t = Thread(target=calculate_descriptors, args=(data_table, structure_dict, 
                                                     data_table[args.property_col], 
                                                     'layered', 
-                                                    {'nBits':args.layered_nBits, 'size':r}, 
+                                                    {'nBits':args.layered_nBits, 'radius':r}, 
                                                     outdir, {'format':args.format},
                                                     args.save, separate))
             threads.append(t)
