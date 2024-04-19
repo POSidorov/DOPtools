@@ -139,7 +139,7 @@ def _pickle_descriptors(output_dir, fragmentor, prop_ind_name, separate=False):
     except:
         fragmentor_name += prop_ind_name[1] +'.'
     fragmentor_name += fragmentor.name
-    fragmentor_name += '-'.join(['']+[str(s) for s in fragmentor.size()])
+    fragmentor_name += '-'.join(['']+[str(s) for s in fragmentor.size])
     fragmentor_name += '.pkl'
     with open(fragmentor_name, 'wb') as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
@@ -161,7 +161,7 @@ def output_file(desc, prop, fragmentor, outdir, prop_ind_name, solvent=None,
     except:
         outname += prop_ind_name[1] +'.'
     outname += fragmentor.name
-    outname += '-'.join(['']+[str(s) for s in fragmentor.size()])
+    outname += '-'.join(['']+[str(s) for s in fragmentor.size])
     outname += '.'+fmt
 
     if solvent is not None:
