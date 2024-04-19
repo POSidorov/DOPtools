@@ -30,9 +30,22 @@ from rdkit.DataStructs.cDataStructs import ExplicitBitVect
 from rdkit.Avalon import pyAvalonTools
 from abc import ABC, abstractmethod
 
+class DescriptorCalculator:
+    def __init__(self, name, size):
+        self._name = name
+        self._size = size
 
+    @property
+    def size(self):
+        return self._size
 
-class ChythonCircus(BaseEstimator, TransformerMixin):
+    @property
+    def name(self):
+        return self._name
+    
+    
+
+class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
     ChythonCircus class is a scikit-learn compatible transformer that calculates the fragment features 
     from molecules and Condensed Graphs of Reaction (CGR). The features are augmented substructures - 
@@ -58,11 +71,7 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
         self.only_dynamic = only_dynamic
         self.fmt = fmt
         self._name = "circus"
-
-    @property
-    def name(self):
-        return self._name
-    
+        self._size = (lower, upper)
     
     def fit(self, X:DataFrame, y:Optional[List]=None):
         """Fits the augmentor - finds all possible substructures in the given array of molecules/CGRs.
@@ -136,16 +145,7 @@ class ChythonCircus(BaseEstimator, TransformerMixin):
         """
         return list(self.feature_names)
 
-    def get_size(self) -> Tuple[int]:
-        """Returns the tuple with lower and upper sizes.
-
-        Returns
-        -------
-        Tuple[int]
-        """
-        return (self.lower, self.upper)
-
-class ChythonLinear(BaseEstimator, TransformerMixin):
+class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
         self.feature_names = []
         self.lower = lower 
@@ -153,10 +153,7 @@ class ChythonLinear(BaseEstimator, TransformerMixin):
         self.only_dynamic = only_dynamic
         self.fmt = fmt
         self._name = "linear"
-
-    @property
-    def name(self):
-        return self._name
+        self._size = (lower, upper)
 
     def fit(self, X:DataFrame, y:Optional[List]=None):
         """Fits the linear fragmentor - finds all possible substructures in the given array of molecules/CGRs.
@@ -204,23 +201,14 @@ class ChythonLinear(BaseEstimator, TransformerMixin):
         """
         return list(self.feature_names)
 
-    def get_size(self) -> Tuple[int]:
-        """Returns the tuple with lower and upper sizes.
-
-        Returns
-        -------
-        Tuple[int]
-        """
-        return (self.lower, self.upper)
-
-class Fingerprinter(BaseEstimator, TransformerMixin):
-    def __init__(self, fp_type, nBits=1024, size=None, params={}):
+class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
+    def __init__(self, fp_type, nBits=1024, radius=None, params={}):
         self.fp_type = fp_type
         self.nBits = nBits
-        if size is None:
-            self.size = (nBits,)
+        if radius is None:
+            self._size = (nBits,)
         else:
-            self.size = (size, nBits)
+            self._size = (radius, nBits)
         self.params = params
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
@@ -231,10 +219,6 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
             self._name = "rdkfplinear"
         else:
             self._name = fp_type
-
-    @property
-    def name(self):
-        return self._name
         
     def fit(self, X, y=None):
         if self.fp_type=='morgan':
@@ -359,15 +343,6 @@ class Fingerprinter(BaseEstimator, TransformerMixin):
                                 **self.params))
             
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
-
-    def get_size(self) -> Tuple[int]:
-        """Returns the radius or length of fingerprints (not number of bits).
-
-        Returns
-        -------
-        int
-        """
-        return self.size
     
 class ComplexFragmentor(BaseEstimator, TransformerMixin):
     """
