@@ -228,7 +228,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 m = Chem.MolFromSmiles(str(x))
                 AllChem.GetMorganFingerprintAsBitVect(m, 
                                                       nBits=self.nBits, 
-                                                      radius=self.size[0], 
+                                                      radius=self._size[0], 
                                                       bitInfo=temp, 
                                                       **self.params)
                 self.info.update(temp)
@@ -262,7 +262,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 temp = {}
                 m = Chem.MolFromSmiles(str(x))
                 Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                    maxPath=self.size[0], bitInfo=temp, **self.params)
+                                    maxPath=self._size[0], bitInfo=temp, **self.params)
                 self.info.update(temp)
                 for k, v in temp.items():
                     for i in v:
@@ -284,7 +284,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             temp = {} 
             AllChem.GetMorganFingerprintAsBitVect(m, 
                                                 nBits=self.nBits, 
-                                                radius=self.size[0], 
+                                                radius=self._size[0], 
                                                 bitInfo=temp, 
                                                 **self.params)
             for k, v in temp.items():
@@ -297,7 +297,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             temp = {}
             m = Chem.MolFromSmiles(str(x))
             Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                maxPath=self.size[0], bitInfo=temp, **self.params)
+                                maxPath=self._size[0], bitInfo=temp, **self.params)
             for k, v in temp.items():
                 for i in v:
                     features[k].append(Chem.MolFragmentToSmiles(m,
@@ -327,16 +327,16 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             if self.fp_type=='morgan':
                 res.append(AllChem.GetMorganFingerprintAsBitVect(m, 
                                                                  nBits=self.nBits, 
-                                                                 radius=self.size[0], 
+                                                                 radius=self._size[0], 
                                                                  **self.params))
             if self.fp_type=='avalon':
                 res.append(pyAvalonTools.GetAvalonFP(m, nBits=self.nBits))
             if self.fp_type=='rdkfp':
                 res.append(Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                maxPath=self.size[0], **self.params))
+                                maxPath=self._size[0], **self.params))
             if self.fp_type=='layered':
                 res.append(Chem.LayeredFingerprint(m, fpSize=self.nBits, 
-                                maxPath=self.size[0], **self.params))
+                                maxPath=self._size[0], **self.params))
             if self.fp_type=='atompairs':
                 res.append(rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(m, nBits=self.nBits, 
                                 **self.params))
