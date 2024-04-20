@@ -3,7 +3,6 @@ from optuna.study import StudyDirection
 import glob, contextlib, os
 import pandas as pd
 import numpy as np
-import time, os
 import timeout_decorator
 from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
@@ -156,7 +155,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         X = VarianceThreshold().fit_transform(X)
 
         params = suggest_params(trial, method)
-        storage[n] = {'desc': desc, 'scaling': scaling, **params}
+        storage[n] = {'desc': desc, 'scaling': scaling, 'method':method, **params}
 
         model = eval(methods[method])
 
