@@ -222,6 +222,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         
     def fit(self, X, y=None):
         if self.fp_type=='morgan':
+            self.feature_names = dict([(i, []) for i in range(self.nBits)])
             for x in X:
                 temp = {}
                 m = Chem.MolFromSmiles(str(x))
@@ -256,6 +257,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         elif self.fp_type == 'torsion':
             pass
         elif self.fp_type=='rdkfp':
+            self.feature_names = dict([(i, []) for i in range(self.nBits)])
             for x in X:
                 temp = {}
                 m = Chem.MolFromSmiles(str(x))
