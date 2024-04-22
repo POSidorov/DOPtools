@@ -42,15 +42,18 @@ if __name__ == '__main__':
         print('The output directory {} created'.format(outdir))
 
     trials = pd.read_table(os.path.join(modeldir, 'trials.all'), sep=' ')
-    rebuild_trial = trials.iloc[number]
+    rebuild_trial = trials[trials['trial'] == number]
+
+    trial_preds = pd.read_table(os.path.join(modeldir, 'trials.'+str(number), 'predictions'), sep=' ')
+    prop = list(trial_preds.columns)[1].strip('.consensus')
 
     pipeline_steps = []
 
     desc_name = rebuild_trial['desc']
     if os.path.isdir(os.path.join(descdir, desc_name.split('-')[0])):
-        desc_file = os.path.join(descdir, desc_name.split('-')[0], desc_name+'.pkl')
+        desc_file = os.path.join(descdir, desc_name.split('-')[0], prop+'.'+desc_name+'.pkl')
     else:
-        desc_file = os.path.join(descdir, desc_name+'.pkl')
+        desc_file = os.path.join(descdir, prop+'.'+desc_name+'.pkl')
     with open(desc_file, 'rb') as f:
         desc_calculator = pickle.load(f)
     pipeline_steps.append(('descriptor_calculator', desc_calculator))

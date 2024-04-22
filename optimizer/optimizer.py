@@ -90,12 +90,12 @@ def collect_data(datadir, multi, task, fmt='svm'):
         propname = f.split('/')[-1].split('.')[0]
         fullname = f.split('/')[-1]
         if fmt == 'svm':
-            desc_dict[fullname], y[propname] = load_svmlight_file(f)
+            desc_dict[name], y[propname] = load_svmlight_file(f)
         elif fmt == 'csv':
             data = pd.read_table(f)
             y[propname] = data[propname]
             col_idx = list(data.columns).index()
-            desc_dict[fullname] = data.iloc[:,col_idx+1:]
+            desc_dict[name] = data.iloc[:,col_idx+1:]
     if task.endswith('C'):
         return desc_dict, pd.DataFrame(y, dtype=int)
     else:
