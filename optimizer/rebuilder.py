@@ -44,7 +44,7 @@ if __name__ == '__main__':
     trials = pd.read_table(os.path.join(modeldir, 'trials.all'), sep=' ')
     rebuild_trial = trials[trials['trial'] == number]
 
-    trial_preds = pd.read_table(os.path.join(modeldir, 'trials.'+str(number), 'predictions'), sep=' ')
+    trial_preds = pd.read_table(os.path.join(modeldir, 'trial.'+str(number), 'predictions'), sep=' ')
     prop = list(trial_preds.columns)[1].strip('.consensus')
 
     pipeline_steps = []
