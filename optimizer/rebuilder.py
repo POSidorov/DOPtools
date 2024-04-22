@@ -61,6 +61,7 @@ if __name__ == '__main__':
     pipeline_steps.append(('variance', VarianceThreshold()))
 
     params = line[rebuild_trial.index[list(rebuild_trial.index).index('method')+1:]].to_dict()
+    method = rebuild_trial['method']
     model = eval(methods[method])
     pipeline_steps.append(('model', model()))
 
