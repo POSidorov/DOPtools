@@ -72,6 +72,6 @@ if __name__ == '__main__':
     pipeline = Pipeline(pipeline_steps)
 
     modelfile_name = '_'.join([rebuild_trial['method'], 'trial'+str(number), desc_name])
-    with open(os.path.join(outdir, modelfile_name+'.pkl')) as f:
+    with open(os.path.join(outdir, modelfile_name+'.pkl'), 'wb') as f:
         pickle.dump(pipeline, f)
 
