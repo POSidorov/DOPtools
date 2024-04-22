@@ -5,6 +5,7 @@ from multiprocessing import Manager
 from functools import partial
 
 from config import methods
+import pickle
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer
