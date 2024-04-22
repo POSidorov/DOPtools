@@ -123,7 +123,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
             all_bits = sum([list(v.values()) for v in m._morgan_hash_dict(self.lower, self.upper)], [])
             smiles_bits = m.morgan_smiles_hash(self.lower, self.upper)
             tmp = {}
-            for k,v in m.morgan_smiles_hash(1,5).items():
+            for k,v in m.morgan_smiles_hash(self.lower, self.upper).items():
                 tmp[k] = 0
                 for vv in v:
                     tmp[k] += all_bits.count(vv)
@@ -209,6 +209,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             self._size = (nBits,)
         else:
             self._size = (radius, nBits)
+        self.radius = radius
         self.params = params
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
