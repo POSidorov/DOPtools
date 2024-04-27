@@ -28,6 +28,7 @@ from rdkit import Chem
 from rdkit.Chem import MACCSkeys, AllChem, rdMolDescriptors
 from rdkit.DataStructs.cDataStructs import ExplicitBitVect
 from rdkit.Avalon import pyAvalonTools
+from mordred import Calculator, descriptors
 from abc import ABC, abstractmethod
 
 class DescriptorCalculator:
@@ -434,6 +435,34 @@ class ComplexFragmentor(BaseEstimator, TransformerMixin):
             else:
                 concat.append(v.transform(x[k]))
         return pd.concat(concat, axis=1, sort=False)
+
+class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin):
+    def __init__(self):
+        self._size = ()
+        self._name = "mordred2D"
+        self.calculator = None
+
+    def fit(self, X, y=None):
+        mols = [Chem.MolFromSmiles(str(x)) for x in X]
+        self.calculator = Calculator(descriptors, ignore_3D=True)
+        matrix = self.calculator.pandas(mols).select_dtypes(include='number')
+        self.feature_names = list(matrix.columns)
+        return self
+
+    def transform(self, X, y=None):
+        mols = [Chem.MolFromSmiles(str(x)) for x in X]
+        matrix = self.calculator.pandas(mols).select_dtypes(include='number')
+        return matrix[self.feature_names]
+
+    def get_feature_names(self) -> List[str]:
+        """Returns the list of all features as strings.
+
+        Returns
+        -------
+        List[str]
+        """
+        return self.feature_names
+
 
 class PassThrough(BaseEstimator, TransformerMixin):
     """

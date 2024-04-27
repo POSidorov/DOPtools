@@ -21,7 +21,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '0.1.0'
+version = '0.5.0'
 
 setup(
     name='ChemInfoTools',
@@ -33,7 +33,7 @@ setup(
     author_email=['pavel.o.sidorov@gmail.com'],
     python_requires='>=3.7.0',
     install_requires=['pandas>=0.25', 'numpy>=1.20', 'scipy>=1.7', 'matplotlib>=3.4', 'cgrtools>=4.1',
-                      'scikit-learn>=0.24', 'ipython>=7.22'],
+                      'scikit-learn>=0.24', 'ipython>=7.22', 'chython>=1.70'],
     long_description=(Path(__file__).parent / 'README.md').open(encoding='utf-8').read(),
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',

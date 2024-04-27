@@ -4,6 +4,20 @@ methods = {'SVR': "SVR(**params, gamma='auto')", 'SVC':"SVC(**params, gamma='aut
             'RFR':"RandomForestRegressor(**params)",
             'RFC':"RandomForestClassifier(**params)"}
 
+calculators = {
+    'circus':"ChythonCircus(**descriptor_params)",
+    'chyline':"ChythonLinear(**descriptor_params)",
+    'morgan':"Fingerprinter(fp_type='morgan', **descriptor_params)",
+    'morganfeatures':"Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",
+    'rdkfp':"Fingerprinter(fp_type='rdkfp', **descriptor_params)",
+    'rdkfplinear':"Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",
+    'layered':"Fingerprinter(fp_type='layered', **descriptor_params)",
+    'atompairs':"Fingerprinter(fp_type='atompairs', **descriptor_params)",
+    'avalon':"Fingerprinter(fp_type='avalon', **descriptor_params)",
+    'torsion':"Fingerprinter(fp_type='torsion', **descriptor_params)",
+    'mordred2d':"Mordred2DCalculator(**descriptor_params)",
+}
+
 
 def suggest_params(trial, method):
     if method == 'SVR':
