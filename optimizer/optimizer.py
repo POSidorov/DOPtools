@@ -133,7 +133,7 @@ def calculate_scores(task, obs, pred):
     return score_df
 
 
-def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi, earlystop):
+def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop):
     manager = Manager()
     results_dict = manager.dict()
 
@@ -173,7 +173,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits, shuffle=True))
             #if len(y.columns)<2:
             preds = LE.inverse_transform(preds)
-            
+
             preds = preds.reshape((-1, 1))
             for i, c in enumerate(y.columns):
                 res_pd[c + '.observed'] = y[c]
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     tmout = args.timeout
     jobs = args.jobs
     method = args.method
-    multi = args.multi
+    #multi = args.multi
     fmt = args.format
     earlystop = (args.earlystop_patience, args.earlystop_leaders)
 
@@ -242,4 +242,4 @@ if __name__ == '__main__':
     x_dict, y = collect_data(datadir, multi, method, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
-        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, multi, earlystop)
+        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, ßearlystop)
