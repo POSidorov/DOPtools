@@ -82,7 +82,7 @@ class TopNPatienceCallback:
         if self._leaders_unchanged_steps >= self.patience:
             study.stop()
 
-def collect_data(datadir, multi, task, fmt='svm'):
+def collect_data(datadir, task, fmt='svm'):
     desc_dict = {}
     y = {}
     for f in glob.glob(datadir+"/*."+fmt):
@@ -239,7 +239,7 @@ if __name__ == '__main__':
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-    x_dict, y = collect_data(datadir, multi, method, fmt)
+    x_dict, y = collect_data(datadir, method, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
         launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, ßearlystop)
