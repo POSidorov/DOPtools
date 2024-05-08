@@ -242,4 +242,4 @@ if __name__ == '__main__':
     x_dict, y = collect_data(datadir, method, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
-        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, ßearlystop)
+        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop)
