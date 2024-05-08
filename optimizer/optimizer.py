@@ -11,7 +11,7 @@ from functools import partial
 from config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, LabelBinarizer
+from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
@@ -46,7 +46,7 @@ parser.add_argument('-j', '--jobs', type=int, default=1,
     help='number of processes that will be launched in parallel during the optimization.')
 parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'], 
     help='ML algorithm to be used for optimization. Only one can be used at a time.')
-parser.add_argument('--multi', action='store_true')
+#parser.add_argument('--multi', action='store_true')
 parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
@@ -160,16 +160,21 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
         model = eval(methods[method])
 
-        if multi:
-            model = MultiOutputRegressor(model)
-            Y = y
-        else:
-            Y = np.array(y[y.columns[0]])
+        #if multi:
+        #    model = MultiOutputRegressor(model)
+        #    Y = y
+        #else:
+        Y = np.array(y[y.columns[0]])
+        if method.endswith('C'):
+            LE = LabelEncoder()
+            Y = LE.fit_transform(Y)
 
         for r in range(cv_repeats):
             preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits, shuffle=True))
-            if len(y.columns)<2:
-                preds = preds.reshape((-1, 1))
+            #if len(y.columns)<2:
+            preds = LE.inverse_transform(preds)
+            
+            preds = preds.reshape((-1, 1))
             for i, c in enumerate(y.columns):
                 res_pd[c + '.observed'] = y[c]
                 res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:,i]
