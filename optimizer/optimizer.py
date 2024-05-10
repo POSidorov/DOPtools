@@ -8,7 +8,7 @@ from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
 from functools import partial
 
-from config import suggest_params, methods
+from .config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
@@ -16,7 +16,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.svm import SVR, SVC
-import xgboost as xgb
+# import xgboost as xgb
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 from sklearn.metrics import mean_absolute_error as mae 
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, f1_score
