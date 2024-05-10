@@ -53,25 +53,30 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     atom-centered fragments that take into account atom and its environment. Implementation-wise,
     this takes all atoms in the molecule/CGR, and builds topological neighborhood spheres around them.
     All atoms and bonds that are in a sphere of certain radius (1 bond, 2 bonds, etc) are taken into 
-    the substructure. All such substructures are detected and stored as distinct features. The 
-    substructures will keep any rings found within them. The value of the feature is the number of
-    occurrence of such substructure in the given molecule.
+    the substructure. The features are stored as hashes of these substructures for faster search. 
+    When the transform is called, the similar procedure will occur for the test set molecules, and 
+    the hashes that were found within the features of the calcualtor, will be updated. No new features 
+    will be added in transform!
+
+    The implementation is similar to Morgan counts, although some differences (specifically, the 
+    representation of rings) are present due to different library requirements.
 
     The parameters of the augmentor are the lower and the upper limits of the radius. By default,
-    both are set to 1, which means only the count of atoms.
+    both are set to 0, which means only the count of atoms.
     Additionally, only_dynamic flag indicates of only fragments that contain a dynamic bond or atom 
     will be considered (only works in case of CGRs).
-    fmt parameter defines the format in which the molecules are given to the ChythonCircus. 
-    "mol" if they are in CGRtools MoleculeContainer or CGRContainer, "smiles" if they are in SMILES.
+    fmt parameter defines the format in which the molecules are given to the calculator. "mol" if they 
+    are in CGRtools MoleculeContainer or CGRContainer, "smiles" if they are in SMILES.
     """
 
-    def __init__(self, lower:int=1, upper:int=1, only_dynamic:bool=False, fmt:str="mol"): 
+    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
         self.feature_names = []
+        self.features = []
         self.lower = lower 
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
-        self._name = "circus"
+        self._name = "linear"
         self._size = (lower, upper)
     
     def fit(self, X:DataFrame, y:Optional[List]=None):
@@ -89,18 +94,20 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         -------
         None
         """
-        output = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
-            output.append(mol.morgan_smiles_hash(self.lower, self.upper))
-        self.feature_names = pd.DataFrame(output).columns
-        return self
+            for length in range(self.lower, self.upper+1):
+                for atom in mol.atoms():
+                    # deep is the radius of the neighborhood sphere in bonds
+                    sub = mol.augmented_substructure([atom[0]], deep=length)
+                    if hash(sub) not in self.features:
                         # if dynamic_only is on, skip all non-dynamic fragments
-                        #if self.only_dynamic and ">" not in sub:
-                        #    continue
-                        #self.feature_names.append(sub)
-        #return self
+                        if self.only_dynamic and ">" not in str(sub):
+                            continue
+                        self.features.append(hash(sub))
+                        self.feature_names.append(str(sub))
+        return self
 
     def transform(self, X:DataFrame, y:Optional[List]=None) -> DataFrame:
         """Transforms the given array of molecules/CGRs to a data frame with features and their values.
@@ -117,25 +124,18 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         -------
         DataFrame containing the fragments and their counts.
         """
-        df = pd.DataFrame(columns=self.feature_names, dtype=int)
-
-        output = []
-        for m in X:
-            all_bits = sum([list(v.values()) for v in m._morgan_hash_dict(self.lower, self.upper)], [])
-            smiles_bits = m.morgan_smiles_hash(self.lower, self.upper)
-            tmp = {}
-            for k,v in m.morgan_smiles_hash(self.lower, self.upper).items():
-                tmp[k] = 0
-                for vv in v:
-                    tmp[k] += all_bits.count(vv)
-            output.append(tmp)
-        output = pd.DataFrame(output)
-        
-        output2 = output[output.columns.intersection(df.columns)]
-
-        df = pd.concat([df, output2])
-        df = df.fillna(0, axis=0)
-        return df
+        table = pd.DataFrame(columns=self.feature_names)
+        for i, mol in enumerate(X):
+            if self.fmt == "smiles":
+                mol = smiles(mol)
+            table.loc[len(table)] = 0
+            for length in range(self.lower, self.upper+1):
+                for atom in mol.atoms():
+                    # deep is the radius of the neighborhood sphere in bonds
+                    sub = mol.augmented_substructure([atom[0]], deep=length)
+                    if hash(sub) in self.features:
+                        table.iloc[i, self.features.index(hash(sub))] += 1
+        return table
     
     def get_feature_names(self) -> List[str]:
         """Returns the list of features as strings.
@@ -144,7 +144,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         -------
         List[str]
         """
-        return list(self.feature_names)
+        return self.feature_names
 
 class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
@@ -550,3 +550,99 @@ class Pruner(BaseEstimator, SelectorMixin, TransformerMixin):
         mask = np.zeros(self.max_len)
         mask[self.indices] += 1
         return mask.astype(bool)
+
+class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
+    """
+    ChythonCircus class is a scikit-learn compatible transformer that calculates the fragment features 
+    from molecules and Condensed Graphs of Reaction (CGR). The features are augmented substructures - 
+    atom-centered fragments that take into account atom and its environment. Implementation-wise,
+    this takes all atoms in the molecule/CGR, and builds topological neighborhood spheres around them.
+    All atoms and bonds that are in a sphere of certain radius (1 bond, 2 bonds, etc) are taken into 
+    the substructure. All such substructures are detected and stored as distinct features. The 
+    substructures will keep any rings found within them. The value of the feature is the number of
+    occurrence of such substructure in the given molecule.
+    This is the old implementation and requires quite a long time to perform.
+
+    The parameters of the augmentor are the lower and the upper limits of the radius. By default,
+    both are set to 0, which means only the count of atoms.
+    Additionally, only_dynamic flag indicates of only fragments that contain a dynamic bond or atom 
+    will be considered (only works in case of CGRs).
+    fmt parameter defines the format in which the molecules are given to the calculator. "mol" if they 
+    are in CGRtools MoleculeContainer or CGRContainer, "smiles" if they are in SMILES.
+    """
+
+    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
+        self.feature_names = []
+        self.features = []
+        self.lower = lower 
+        self.upper = upper
+        self.only_dynamic = only_dynamic
+        self.fmt = fmt
+        self._name = "linear"
+        self._size = (lower, upper)
+    
+    def fit(self, X:DataFrame, y:Optional[List]=None):
+        """Fits the augmentor - finds all possible substructures in the given array of molecules/CGRs.
+
+        Parameters
+        ----------
+        X : array-like, [MoleculeContainers, CGRContainers]
+            the  array/list/... of molecules/CGRs to train the augmentor. Collects all possible substructures.
+
+        y : None
+            required by default by scikit-learn standards, but doesn't change the function at all.
+
+        Returns
+        -------
+        None
+        """
+        for i, mol in enumerate(X):
+            if self.fmt == "smiles":
+                mol = smiles(mol)
+            for length in range(self.lower, self.upper+1):
+                for atom in mol.atoms():
+                    # deep is the radius of the neighborhood sphere in bonds
+                    sub = mol.augmented_substructure([atom[0]], deep=length)
+                    if sub not in self.features:
+                        # if dynamic_only is on, skip all non-dynamic fragments
+                        if self.only_dynamic and ">" not in str(sub):
+                            continue
+                        self.feature_names.append(str(sub))
+                        self.features.append(sub)
+        return self
+
+    def transform(self, X:DataFrame, y:Optional[List]=None) -> DataFrame:
+        """Transforms the given array of molecules/CGRs to a data frame with features and their values.
+
+        Parameters
+        ----------
+        X : array-like, [MoleculeContainers, CGRContainers]
+            the  array/list/... of molecules/CGRs to transform to feature table using trained feature list.
+
+        y : None
+            required by default by scikit-learn standards, but doesn't change the function at all.
+
+        Returns
+        -------
+        DataFrame containing the fragments and their counts.
+        """
+        table = pd.DataFrame(columns=self.feature_names)
+        for i, mol in enumerate(X):
+            if self.fmt == "smiles":
+                mol = smiles(mol)
+            table.loc[len(table)] = 0
+            for sub in self.features:
+                # if CGRs are used, the transformation of the substructure to the CGRcontainer is needed
+                mapping = list(sub.get_mapping(mol))
+                # mapping is the list of all possible substructure mappings into the given molecule/CGR
+                table.loc[i,str(sub)] = len(mapping)
+        return table
+    
+    def get_feature_names(self) -> List[str]:
+        """Returns the list of features as strings.
+
+        Returns
+        -------
+        List[str]
+        """
+        return self.feature_names

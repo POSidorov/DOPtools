@@ -18,7 +18,6 @@ calculators = {
     'mordred2d':"Mordred2DCalculator(**descriptor_params)",
 }
 
-
 def suggest_params(trial, method):
     if method == 'SVR':
         params = { 
