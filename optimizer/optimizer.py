@@ -172,7 +172,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         for r in range(cv_repeats):
             preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits, shuffle=True))
             #if len(y.columns)<2:
-            preds = LE.inverse_transform(preds)
+            if method.endswith('C'):
+                preds = LE.inverse_transform(preds)
 
             preds = preds.reshape((-1, 1))
             for i, c in enumerate(y.columns):
