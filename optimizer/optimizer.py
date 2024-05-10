@@ -133,14 +133,14 @@ def calculate_scores(task, obs, pred):
     return score_df
 
 
-def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop):
+def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop, write_output: bool = True):
     manager = Manager()
     results_dict = manager.dict()
 
     @timeout_decorator.timeout(tmout, timeout_exception=optuna.TrialPruned, use_signals=False)
     def objective(storage, trial):
         n = trial.number
-        if not os.path.exists(outdir+'/trial.'+str(n)):
+        if write_output and not os.path.exists(outdir+'/trial.'+str(n)):
             os.mkdir(outdir+'/trial.'+str(n))
         res_pd = pd.DataFrame(columns=['data_index'])
         res_pd['data_index'] = np.arange(1, len(y)+1, step=1).astype(int)
@@ -182,8 +182,9 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
-        score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
-        res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
+        if write_output:
+            score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
+            res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)
 
         if method.endswith('R'):
             score = np.mean(score_df[score_df['stat'].str.contains('consensus')].R2)
@@ -213,11 +214,14 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             added_row[hp] = results_dict[number][hp]
         results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
     
-    results_pd.to_csv(outdir+'/trials.all', sep=' ', index=False) 
-    if ntrials>50:
-        results_pd.sort_values(by='score', ascending=False).head(50).to_csv(outdir+'/trials.best', sep=' ', index=False) 
+    if write_output:
+        results_pd.to_csv(outdir+'/trials.all', sep=' ', index=False)
+        if ntrials>50:
+            results_pd.sort_values(by='score', ascending=False).head(50).to_csv(outdir+'/trials.best', sep=' ', index=False)
+        else:
+            results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False)
     else:
-        results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False) 
+        return results_pd
 
 
 if __name__ == '__main__':
