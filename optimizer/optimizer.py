@@ -1,3 +1,22 @@
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
+#  file is part of DOPTools repository.
+#
+#  ChemInfoTools is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see
+#  <https://www.gnu.org/licenses/>.
+
 import optuna
 from optuna.study import StudyDirection
 import glob, contextlib, os
@@ -243,4 +262,5 @@ if __name__ == '__main__':
     x_dict, y = collect_data(datadir, method, fmt)
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
-        launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop)
+        launch_study(x_dict, y, outdir, method, ntrials, 
+                    cv_splits, cv_repeats, jobs, tmout, earlystop)
