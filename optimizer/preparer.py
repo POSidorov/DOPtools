@@ -187,22 +187,25 @@ def calculate_descriptors(structures, property_col, desc_name, descriptor_dictio
 
     desc = calculator.fit_transform(structures[indices])
 
-    output_folder = output_params['output']
-    if output_params['separate']:
-        output_folder = os.path.join(output_folder, desc_type)
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        print('The output directory {} created'.format(output_folder))
+    if output_params['write_output']:
+        output_folder = output_params['output']
+        if output_params['separate']:
+            output_folder = os.path.join(output_folder, desc_type)
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            print('The output directory {} created'.format(output_folder))
 
-    if output_params['pickle']:
-        _pickle_descriptors(output_folder, calculator, property_col.name, desc_name)
+        if output_params['pickle']:
+            _pickle_descriptors(output_folder, calculator, property_col.name, desc_name)
 
-    output_name = os.path.join(output_folder, '.'.join([property_col.name, desc_name, output_params['format']]))
-    if output_params['format'] == 'csv':
-        desc = pd.concat([property_col.iloc[indices], desc], axis=1, sort=False)
-        desc.to_csv(output_name, index=False)
+        output_name = os.path.join(output_folder, '.'.join([property_col.name, desc_name, output_params['format']]))
+        if output_params['format'] == 'csv':
+            desc = pd.concat([property_col.iloc[indices], desc], axis=1, sort=False)
+            desc.to_csv(output_name, index=False)
+        else:
+            dump_svmlight_file(np.array(desc), y, output_name, zero_based=False)
     else:
-        dump_svmlight_file(np.array(desc), y, output_name, zero_based=False)
+        return desc
 
 
 if __name__ == '__main__':
@@ -213,6 +216,7 @@ if __name__ == '__main__':
         'separate':args.separate_folders,
         'format':args.format,
         'pickle':args.save,
+        'write_output': True,
     }
     create_output_dir(output_params['output'])
     
