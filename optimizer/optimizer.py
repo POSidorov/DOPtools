@@ -136,9 +136,10 @@ def calculate_scores(task, obs, pred):
 def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop, write_output: bool = True):
     manager = Manager()
     results_dict = manager.dict()
+    results_detailed = manager.dict()
 
     @timeout_decorator.timeout(tmout, timeout_exception=optuna.TrialPruned, use_signals=False)
-    def objective(storage, trial):
+    def objective(storage, results_detailed, trial):
         n = trial.number
         if write_output and not os.path.exists(outdir+'/trial.'+str(n)):
             os.mkdir(outdir+'/trial.'+str(n))
@@ -185,6 +186,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         if write_output:
             score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
             res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)
+        else:
+            results_detailed[n] = {'score': score_df, 'predictions': res_pd}
 
         if method.endswith('R'):
             score = np.mean(score_df[score_df['stat'].str.contains('consensus')].R2)
@@ -194,10 +197,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
     if earlystop[0]>0:
-        study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,), 
+        study.optimize(partial(objective, results_dict, results_detailed), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,),
                        callbacks=[TopNPatienceCallback(earlystop[0], earlystop[1])])
     else:
-        study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,))
+        study.optimize(partial(objective, results_dict, results_detailed), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,))
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
@@ -221,7 +224,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         else:
             results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False)
     else:
-        return results_pd
+        return results_pd, results_detailed
 
 
 if __name__ == '__main__':
