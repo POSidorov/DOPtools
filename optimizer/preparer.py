@@ -18,7 +18,7 @@ import argparse, os
 import pandas as pd
 import numpy as np
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
-from config import calculators
+from .config import calculators
 
 parser = argparse.ArgumentParser(prog='Descriptor calculator', 
                                 description='Prepares the descriptor files for hyperparameter optimization launch')
