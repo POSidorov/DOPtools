@@ -27,7 +27,7 @@ from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
 from functools import partial
 
-from .config import suggest_params, methods
+from config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
