@@ -65,7 +65,7 @@ if __name__ == '__main__':
     rebuild_trial = trials[trials['trial'] == number].squeeze()
 
     trial_preds = pd.read_table(os.path.join(modeldir, 'trial.'+str(number), 'predictions'), sep=' ')
-    prop = list(trial_preds.columns)[1].strip('.observed')
+    prop = list(trial_preds.columns)[1].removesuffix('.observed')
 
     pipeline_steps = []
 

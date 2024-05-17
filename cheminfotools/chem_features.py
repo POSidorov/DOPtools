@@ -114,7 +114,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
-        self._name = "linear"
+        self._name = "circus"
         self._size = (lower, upper)
     
     def fit(self, X:DataFrame, y:Optional[List]=None):
@@ -210,7 +210,7 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
-        self._name = "linear"
+        self._name = "chyline"
         self._size = (lower, upper)
 
     def fit(self, X:DataFrame, y:Optional[List]=None):
