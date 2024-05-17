@@ -27,7 +27,7 @@ from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
 from functools import partial
 
-from config import suggest_params, methods
+from .config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
@@ -35,7 +35,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.svm import SVR, SVC
-import xgboost as xgb
+# import xgboost as xgb
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 from sklearn.metrics import mean_absolute_error as mae 
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, f1_score
@@ -152,14 +152,15 @@ def calculate_scores(task, obs, pred):
     return score_df
 
 
-def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop):
+def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs, tmout, earlystop, write_output: bool = True):
     manager = Manager()
     results_dict = manager.dict()
+    results_detailed = manager.dict()
 
     @timeout_decorator.timeout(tmout, timeout_exception=optuna.TrialPruned, use_signals=False)
-    def objective(storage, trial):
+    def objective(storage, results_detailed, trial):
         n = trial.number
-        if not os.path.exists(outdir+'/trial.'+str(n)):
+        if write_output and not os.path.exists(outdir+'/trial.'+str(n)):
             os.mkdir(outdir+'/trial.'+str(n))
         res_pd = pd.DataFrame(columns=['data_index'])
         res_pd['data_index'] = np.arange(1, len(y)+1, step=1).astype(int)
@@ -201,8 +202,11 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
-        score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
-        res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)  
+        if write_output:
+            score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
+            res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)
+        else:
+            results_detailed[n] = {'score': score_df, 'predictions': res_pd}
 
         if method.endswith('R'):
             score = np.mean(score_df[score_df['stat'].str.contains('consensus')].R2)
@@ -212,10 +216,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
     if earlystop[0]>0:
-        study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,), 
+        study.optimize(partial(objective, results_dict, results_detailed), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,),
                        callbacks=[TopNPatienceCallback(earlystop[0], earlystop[1])])
     else:
-        study.optimize(partial(objective, results_dict), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,))
+        study.optimize(partial(objective, results_dict, results_detailed), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,))
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
@@ -232,11 +236,14 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             added_row[hp] = results_dict[number][hp]
         results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
     
-    results_pd.to_csv(outdir+'/trials.all', sep=' ', index=False) 
-    if ntrials>50:
-        results_pd.sort_values(by='score', ascending=False).head(50).to_csv(outdir+'/trials.best', sep=' ', index=False) 
+    if write_output:
+        results_pd.to_csv(outdir+'/trials.all', sep=' ', index=False)
+        if ntrials>50:
+            results_pd.sort_values(by='score', ascending=False).head(50).to_csv(outdir+'/trials.best', sep=' ', index=False)
+        else:
+            results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False)
     else:
-        results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False) 
+        return results_pd, results_detailed
 
 
 if __name__ == '__main__':
