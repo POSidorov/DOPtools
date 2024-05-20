@@ -183,6 +183,112 @@ def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
     with open(fragmentor_name, 'wb') as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
+def check_parameters(params):
+    if params.input.split('.')[-1] not in ('csv', 'xls', 'xlsx') :
+        raise ValueError('The input file should be of CSV or Excel format.')
+    for i, p in enumerate(params.property_col):
+        if ' ' in p:
+            raise ValueError(f'Column name {p} contains spaces in the name.\nPlease provide alternative names with --property_names option.')
+    if params.property_names:
+        if len(params.property_col) != len(params.property_names):
+            raise ValueError('The number of alternative names is not equal to the number of properties.')
+        
+
+def create_input(input_params):
+    input_dict = {}
+
+    if input_params['input_file'].endswith('csv'):
+        data_table = pd.read_table(input_params['input_file'], sep=',')
+    elif input_params['input_file'].endswith('xls') or input_params['input_file'].endswith('xlsx'):
+        data_table = pd.read_excel(input_params['input_file'])
+
+    structures = [smiles(m) for m in data_table[args.structure_col[0]]]
+    # this is magic, gives an error if done otherwise...
+    for m in structures:
+        try:
+            m.canonicalize(fix_tautomers=False) 
+        except:
+            m.canonicalize(fix_tautomers=False)
+    structures = np.array(structures)
+    input_dict['structures'] = structures
+
+    if input_params['solvent']:
+        solvent_table = SolventVectorizer().fit_transform(data_table[input_params['solvent']])
+        input_dict['solvent_table'] = solvent_table
+
+    for i, p in enumerate(input_params['property_col']):
+        y = data_table[p]
+        indices = list(y[pd.notnull(y)].index)
+        if len(indices) < len(structures):
+            print(f"'{p}' column warning: only {len(indices)} out of {len(structures)} instances have the property.")
+            print(f"Molecules that don't have the property will be discarded from the set.")
+            y = y.iloc[indices]
+        y = np.array(y)
+
+        if input_params['property_names']:
+            name = input_params['property_names'][i]
+        else:
+            name = p
+
+        input_dict['prop'+str(i+1)] = { 'indices': indices,
+                                        'property': y,
+                                        'property_name': name}
+    return input_dict
+
+
+def calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary, out='all'):
+    descriptor_params = descriptor_dictionary[desc_name]
+    desc_type = desc_name.split('_')[0]
+    result = {'name':desc_name, 'type':desc_type}
+    for k, d in input_dict.items():
+        if k.startswith('prop'):
+            calculator = eval(calculators[desc_type])
+
+            desc = calculator.fit_transform(input_dict['structures'][d['indices']])
+            if 'solvent_table' in input_dict.keys():
+                solv = input_dict['solvent_table'].iloc[d['indices']].reset_index(drop=True)
+                desc = pd.concat([desc, solv], axis=1)
+
+            result[k] = {'calculator': calculator, 'table': desc, 
+                         'name':d['property_name'], 'property':d['property']}
+
+    if out == 'all':
+        return result
+    elif out in list(result.keys()):
+        return result[out]
+    else:
+        raise ValueError('The return value is not in the result dictionary')
+
+def output_descriptors(calculated_result, output_params):
+    desc_name = calculated_result['name']
+    desc_type = calculated_result['type']
+
+    output_folder = output_params['output']
+    if output_params['separate']:
+        output_folder = os.path.join(output_folder, desc_type)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print('The output directory {} created'.format(output_folder))
+    for k, d in calculated_result.items():
+        if k.startswith('prop'):
+            if output_params['pickle']:
+                _pickle_descriptors(output_folder, d['calculator'], 
+                                    d['name'], desc_name)
+
+            output_name = os.path.join(output_folder, '.'.join([d['name'], 
+                                                                desc_name, 
+                                                                output_params['format']]))
+            if output_params['format'] == 'csv':
+                desc = pd.concat([pd.Series(d['property'], name=d['name']), d['table']], axis=1, sort=False)
+                desc.to_csv(output_name, index=False)
+            else:
+                dump_svmlight_file(np.array(d['table']), d['property'], 
+                                   output_name, zero_based=False)
+
+def calculate_and_output(input_dict, desc_name, descriptor_dictionary, output_params):
+    result = calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary)
+    output_descriptors(result, output_params)
+
 def create_output_dir(outdir):
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
@@ -190,46 +296,17 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-def calculate_descriptors(structures, property_col, desc_name, descriptor_dictionary, output_params):
-    # creation of the y vector. if some values are absent, only rows with values will be used
-    y = property_col
-    indices = list(y[pd.notnull(y)].index)
-    if len(indices) < len(property_col):
-        print(f"'{p}' column warning: only {len(indices)} out of {len(y)} instances have the property.")
-        print(f"Molecules that don't have the property will be discarded from the set.")
-        y = y.iloc[indices]
-    y = np.array(y)
-
-    desc_type = desc_name.split('_')[0]
-    descriptor_params = descriptor_dictionary[desc_name]
-    calculator = eval(calculators[desc_type])
-
-    desc = calculator.fit_transform(structures[indices])
-
-    if output_params['write_output']:
-        output_folder = output_params['output']
-        if output_params['separate']:
-            output_folder = os.path.join(output_folder, desc_type)
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
-            print('The output directory {} created'.format(output_folder))
-
-        if output_params['pickle']:
-            _pickle_descriptors(output_folder, calculator, property_col.name, desc_name)
-
-        output_name = os.path.join(output_folder, '.'.join([property_col.name, desc_name, output_params['format']]))
-        if output_params['format'] == 'csv':
-            desc = pd.concat([property_col.iloc[indices], desc], axis=1, sort=False)
-            desc.to_csv(output_name, index=False)
-        else:
-            dump_svmlight_file(np.array(desc), y, output_name, zero_based=False)
-    else:
-        return desc
-
-
 if __name__ == '__main__':
     args = parser.parse_args()
+    check_parameters(args)
     
+    input_params = {
+        'input_file':args.input, 
+        'property_col':args.property_col,
+        'property_names':args.property_names,
+        'solvent':args.solvent
+    }
+
     output_params = {
         'output': args.output,
         'separate':args.separate_folders,
@@ -238,62 +315,18 @@ if __name__ == '__main__':
         'write_output': True,
     }
     create_output_dir(output_params['output'])
-    
-    if args.input.endswith('csv'):
-        data_table = pd.read_table(args.input, sep=',')
-    elif args.input.endswith('xls') or args.input.endswith('xlsx'):
-        data_table = pd.read_excel(args.input)
-    else:
-        raise ValueError('The input file should be of CSV or Excel format')
 
-    for i, p in enumerate(args.property_col):
-        if ' ' in p and len(args.property_names)<i+1:
-            raise ValueError('Column names contain spaces or not all alternative names are present.\nPlease provide alternative names with --property_names option')
-
-    solv = None
-    if args.solvent:
-        sv = SolventVectorizer()
-
-        try:
-            solv = sv.transform(data_table[args.solvent])
-        except:
-            print('Error with the solvent column occurred, solvent descriptors will not be calculated')
-            sys.exit()
-
-    structure_dict = {}
-    for s in args.structure_col:
-        structure_dict[s] = [smiles(m) for m in data_table[s]]
-
-        # this is magic, gives an error if done otherwise...
-        for m in structure_dict[s]:
-            try:
-                m.canonicalize(fix_tautomers=False) 
-            except:
-                m.canonicalize(fix_tautomers=False)
-
-    structures = [smiles(m) for m in data_table[args.structure_col[0]]]
-
-    # this is magic, gives an error if done otherwise...
-    for m in structures:
-        try:
-            m.canonicalize(fix_tautomers=False) 
-        except:
-            m.canonicalize(fix_tautomers=False)
-    structures = np.array(structures)
-
-    prop = data_table[args.property_col[0]]
-    prop.name = args.property_names[0]
+    inpt = create_input(input_params)
 
     descriptor_dictionary = _enumerate_parameters(args)
 
     threads = []
 
     for desc in descriptor_dictionary.keys():
-        t = Thread(target=calculate_descriptors, args=(structures, 
-                                                    prop, 
-                                                    desc,
-                                                    descriptor_dictionary,
-                                                    output_params))
+        t = Thread(target=calculate_and_output, args=(inpt, 
+                                                      desc,
+                                                      descriptor_dictionary,
+                                                      output_params))
         threads.append(t)
     
     if args.parallel>0:    

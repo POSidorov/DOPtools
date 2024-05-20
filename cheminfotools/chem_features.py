@@ -135,6 +135,8 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         -------
         None
         """
+        self.feature_names = []
+        self.features = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
@@ -231,6 +233,7 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         -------
         None
         """
+        self.feature_names = []
         output = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
@@ -742,6 +745,8 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         -------
         None
         """
+        self.feature_names = []
+        self.features = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
