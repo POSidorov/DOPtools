@@ -236,8 +236,7 @@ def create_input(input_params):
     return input_dict
 
 
-def calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary, out='all'):
-    descriptor_params = descriptor_dictionary[desc_name]
+def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='all'):
     desc_type = desc_name.split('_')[0]
     result = {'name':desc_name, 'type':desc_type}
     for k, d in input_dict.items():
@@ -250,7 +249,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary, out
                 desc = pd.concat([desc, solv], axis=1)
 
             result[k] = {'calculator': calculator, 'table': desc, 
-                         'name':d['property_name'], 'property':d['property']}
+                         'name': d['property_name'], 'property': d['property']}
 
     if out == 'all':
         return result
@@ -258,6 +257,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary, out
         return result[out]
     else:
         raise ValueError('The return value is not in the result dictionary')
+
 
 def output_descriptors(calculated_result, output_params):
     desc_name = calculated_result['name']
@@ -267,7 +267,7 @@ def output_descriptors(calculated_result, output_params):
     if output_params['separate']:
         output_folder = os.path.join(output_folder, desc_type)
     if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+        os.makedirs(output_folder, exist_ok=True)  # exist_ok is useful when several processes try to create the folder at the same time
         print('The output directory {} created'.format(output_folder))
     for k, d in calculated_result.items():
         if k.startswith('prop'):
@@ -295,6 +295,7 @@ def create_output_dir(outdir):
     else:
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -325,7 +326,7 @@ if __name__ == '__main__':
     for desc in descriptor_dictionary.keys():
         t = Thread(target=calculate_and_output, args=(inpt, 
                                                       desc,
-                                                      descriptor_dictionary,
+                                                      descriptor_dictionary[desc],
                                                       output_params))
         threads.append(t)
     
