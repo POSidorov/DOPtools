@@ -250,7 +250,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary, out
                 desc = pd.concat([desc, solv], axis=1)
 
             result[k] = {'calculator': calculator, 'table': desc, 
-                         'name':d['property_name'], 'property':d['property']}
+                         'name': d['property_name'], 'property': d['property']}
 
     if out == 'all':
         return result
@@ -267,7 +267,7 @@ def output_descriptors(calculated_result, output_params):
     if output_params['separate']:
         output_folder = os.path.join(output_folder, desc_type)
     if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+        os.makedirs(output_folder, exist_ok=True)  # exist_ok is useful when several processes try to create the folder at the same time
         print('The output directory {} created'.format(output_folder))
     for k, d in calculated_result.items():
         if k.startswith('prop'):
