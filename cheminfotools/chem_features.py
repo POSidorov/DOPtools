@@ -109,7 +109,6 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
         self.feature_names = []
-        self.features = []
         self.lower = lower 
         self.upper = upper
         self.only_dynamic = only_dynamic
@@ -136,7 +135,6 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         None
         """
         self.feature_names = []
-        self.features = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
@@ -144,11 +142,10 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 for atom in mol.atoms():
                     # deep is the radius of the neighborhood sphere in bonds
                     sub = mol.augmented_substructure([atom[0]], deep=length)
-                    if hash(sub) not in self.features:
+                    if str(sub) not in self.feature_names:
                         # if dynamic_only is on, skip all non-dynamic fragments
                         if self.only_dynamic and ">" not in str(sub):
                             continue
-                        self.features.append(hash(sub))
                         self.feature_names.append(str(sub))
         return self
 
@@ -179,8 +176,8 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 for atom in mol.atoms():
                     # deep is the radius of the neighborhood sphere in bonds
                     sub = mol.augmented_substructure([atom[0]], deep=length)
-                    if hash(sub) in self.features:
-                        table.iloc[i, self.features.index(hash(sub))] += 1
+                    if str(sub) in self.feature_names:
+                        table.iloc[i, self.feature_names.index(str(sub))] += 1
         return table
     
     
