@@ -169,11 +169,13 @@ def _enumerate_parameters(args):
     if args.circus:
         for lower in _set_default(args.circus_min, [1]):
             for upper in _set_default(args.circus_max, [2]):
-                param_dict[_make_name(('circus',lower, upper))] = {'lower':lower, 'upper':upper}
+                if int(lower) <= int(upper):
+                    param_dict[_make_name(('circus',lower, upper))] = {'lower':lower, 'upper':upper}
     if args.linear:
         for lower in _set_default(args.linear_min, [2]):
             for upper in _set_default(args.linear_max, [5]):
-                param_dict[_make_name(('chyline',lower, upper))] = {'lower':lower, 'upper':upper}
+                if int(lower) <= int(upper):
+                    param_dict[_make_name(('chyline',lower, upper))] = {'lower':lower, 'upper':upper}
     if args.mordred2d:
         param_dict[_make_name(('mordred2d',))] = {}
     return param_dict
@@ -201,6 +203,8 @@ def create_input(input_params):
         data_table = pd.read_table(input_params['input_file'], sep=',')
     elif input_params['input_file'].endswith('xls') or input_params['input_file'].endswith('xlsx'):
         data_table = pd.read_excel(input_params['input_file'])
+    else:
+        raise ValueError("Input file format not supported. Please use csv, xls or xlsx.")
 
     structures = [smiles(m) for m in data_table[args.structure_col[0]]]
     # this is magic, gives an error if done otherwise...
