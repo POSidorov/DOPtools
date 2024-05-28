@@ -138,7 +138,6 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         self.feature_names = []
         for i, mol in enumerate(X):
-            print(i)
             if self.fmt == "smiles":
                 mol = smiles(mol)
             if isinstance(mol, ReactionContainer):
