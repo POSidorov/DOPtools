@@ -43,7 +43,9 @@ parser = argparse.ArgumentParser(prog='Descriptor calculator',
                                 description='Prepares the descriptor files for hyperparameter optimization launch')
 parser.add_argument('-i', '--input', required=True, 
                     help='input file, requires csv or Excel format')
-parser.add_argument('--structure_col', required=True, action='extend', type=str, nargs='+', default=[])
+parser.add_argument('--structure_col', required=True, type=str, 
+                    help='the name of the column where the structure SMILES are stored')
+parser.add_argument('--concatenate', action='extend', type=str, nargs='+', default=[])
 parser.add_argument('--property_col', required=True, action='extend', type=str, nargs='+', default=[])
 parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[])
 
@@ -206,19 +208,20 @@ def create_input(input_params):
     else:
         raise ValueError("Input file format not supported. Please use csv, xls or xlsx.")
 
-    structures = [smiles(m) for m in data_table[args.structure_col[0]]]
-    # this is magic, gives an error if done otherwise...
-    for m in structures:
-        try:
-            m.canonicalize(fix_tautomers=False) 
-        except:
-            m.canonicalize(fix_tautomers=False)
-    structures = np.array(structures)
-    input_dict['structures'] = structures
+    input_dict['structures'] = pd.DataFrame(columns=[input_params['structure_col']] + input_params['concatenate'])
+    for col in [input_params['structure_col']] + input_params['concatenate']:
+        structures = [smiles(m) for m in data_table[col]]
+        # this is magic, gives an error if done otherwise...
+        for m in structures:
+            try:
+                m.canonicalize(fix_tautomers=False) 
+            except:
+                m.canonicalize(fix_tautomers=False)
+        input_dict['structures'][col] = structures
+    #input_dict['structures'] = structures
 
     if input_params['solvent']:
-        solvent_table = SolventVectorizer().fit_transform(data_table[input_params['solvent']])
-        input_dict['solvent_table'] = solvent_table
+        input_dict['solvents'] = data_table[input_params['solvent']]
 
     for i, p in enumerate(input_params['property_col']):
         y = data_table[p]
@@ -245,12 +248,21 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
     result = {'name':desc_name, 'type':desc_type}
     for k, d in input_dict.items():
         if k.startswith('prop'):
-            calculator = eval(calculators[desc_type])
+            base_column = list(input_dict['structures'].columns)[0]
+            if len(input_dict['structures'].columns) == 1 and 'solvents' not in input_dict.keys():
+                calculator = eval(calculators[desc_type])
+                desc = calculator.fit_transform(input_dict['structures'][base_column].iloc[d['indices']])
+            else:
+                calculators_dict = {}
+                for c in input_dict['structures'].columns:
+                    calculators_dict[c] = eval(calculators[desc_type])
+                if 'solvents' in input_dict.keys():
+                    calculators_dict[input_dict['solvents'].name] = SolventVectorizer()
+                    input_table = pd.concat([input_dict['structures'], input_dict['solvents']], axis=1)
 
-            desc = calculator.fit_transform(input_dict['structures'][d['indices']])
-            if 'solvent_table' in input_dict.keys():
-                solv = input_dict['solvent_table'].iloc[d['indices']].reset_index(drop=True)
-                desc = pd.concat([desc, solv], axis=1)
+                calculator = ComplexFragmentor(associator = calculators_dict, 
+                                               structure_columns=[base_column])
+                desc = calculator.fit_transform(input_table.iloc[d['indices']])
 
             result[k] = {'calculator': calculator, 'table': desc, 
                          'name': d['property_name'], 'property': d['property']}
@@ -307,8 +319,10 @@ if __name__ == '__main__':
     
     input_params = {
         'input_file':args.input, 
+        'structure_col':args.structure_col,
         'property_col':args.property_col,
         'property_names':args.property_names,
+        'concatenate': args.concatenate,
         'solvent':args.solvent
     }
 
