@@ -39,7 +39,7 @@ class ColorAtom:
     Mol. Inf., 2012, 31(9), 639-642, 2012
 
     Current implementation is designed for regression tasks, for models built with Scikit-learn library and
-    using ISIDA or CircuS fragments implemented in CGRTools or chem_features module of this library.
+    using CircuS fragments implemented in this library.
     """
     def __init__(self, fragmentor=None, model=None, is_complex:bool=False, isida_like:bool=False):
         DEPICT.depict_settings(monochrome=True, aam=False)

@@ -24,15 +24,6 @@ from sklearn.metrics import mean_absolute_error as mae
 
 import argparse
 
-parser = argparse.ArgumentParser(prog='Model CV plotter', 
-                                description='Plot out the CV results of the optimizer')
-parser.add_argument('-d', '--datadir', required=True)
-parser.add_argument('-o', '--outfile', type=str, default='')
-parser.add_argument('--errorbar', action='store_true')
-parser.add_argument('--stats', action='store_true')
-parser.add_argument('--title', type=str)
-
-
 def r2(a, b):
     return 1. - np.sum((a-b)**2)/np.sum((a-np.mean(a))**2)
 
@@ -69,6 +60,14 @@ def make_plot(predictions, **params):
     return fig, ax
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog='Model CV plotter', 
+                                description='Plot out the CV results of the optimizer')
+    parser.add_argument('-d', '--datadir', required=True)
+    parser.add_argument('-o', '--outfile', type=str, default='')
+    parser.add_argument('--errorbar', action='store_true')
+    parser.add_argument('--stats', action='store_true')
+    parser.add_argument('--title', type=str)
+    
     args = parser.parse_args()
     datadir = args.datadir
     outfile = args.outfile

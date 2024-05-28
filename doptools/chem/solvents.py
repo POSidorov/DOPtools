@@ -1,8 +1,25 @@
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
+#  file is part of DOPTools repository.
+#
+#  ChemInfoTools is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see
+#  <https://www.gnu.org/licenses/>.
 
 from itertools import compress
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import SelectorMixin 
 
 class SolventVectorizer(BaseEstimator, TransformerMixin):
     def __init__(self, sp:bool=True, sdp:bool=True, sa:bool=True, sb:bool=True): 
@@ -43,11 +60,11 @@ class SolventVectorizer(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, x):
-        return DataFrame([compress(solvents[x], self.__index) if type(x)==str else compress((0,0,0,0), self.__index) for x in x], columns=self.__header)
+        return DataFrame([compress(available_solvents[x], self.__index) if type(x)==str else compress((0,0,0,0), self.__index) for x in x], columns=self.__header)
 
 
 
-solvents = { float('nan'): (  0 ,  0 ,  0 ,  0),
+available_solvents = { float('nan'): (  0 ,  0 ,  0 ,  0),
     None: (  0 ,  0 ,  0 ,  0),
     "gas phase": (  0 ,  0 ,  0 ,  0),
     "water": (  0.681 ,  0.997 ,  1.062 ,  0.025),

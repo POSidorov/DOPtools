@@ -43,31 +43,6 @@ from sklearn.multioutput import MultiOutputRegressor
 
 import argparse
 
-parser = argparse.ArgumentParser(prog='Optuna optimizer', 
-                                description='Optimizes the hyperparameters of ML method on given data, similar to Dragos\'s optimizer')
-parser.add_argument('-d', '--datadir', required=True, 
-    help='the folder containing descriptor files to run the optimization on.')
-parser.add_argument('-o', '--outdir', required=True, 
-    help='the output folder for the results of optimization.')
-parser.add_argument('--ntrials', type=int, default=100, 
-    help='number of hyperparameter sets to explore. After exploring this number of sets, the optimization stops.')
-parser.add_argument('--cv_splits', type=int, default=5, 
-    help='number of folds for K-fold cross-validation')
-parser.add_argument('--cv_repeats', type=int, default=1, 
-    help='number of times the cross-validation will be repeated with shuffling. Scores are reported as consensus between repeats.')
-parser.add_argument('--earlystop_patience', type=int, default=0, 
-    help='number of optimization steps that the best N solutions must not change for the early stopping. By default early stopping is not triggered.')
-parser.add_argument('--earlystop_leaders', type=int, default=1, 
-    help='number N of best solutions that will be checked for the early stopping.')
-parser.add_argument('--timeout', type=int, default=60, 
-    help='timeout in sec. If a trial takes longer it will be killed.')
-parser.add_argument('-j', '--jobs', type=int, default=1, 
-    help='number of processes that will be launched in parallel during the optimization.')
-parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'], 
-    help='ML algorithm to be used for optimization. Only one can be used at a time.')
-#parser.add_argument('--multi', action='store_true')
-parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
-
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 def r2(a, b):
@@ -247,7 +222,31 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
 
 if __name__ == '__main__':
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(prog='Optuna optimizer', 
+                                description='Optimizes the hyperparameters of ML method on given data, similar to Dragos\'s optimizer')
+    parser.add_argument('-d', '--datadir', required=True, 
+        help='the folder containing descriptor files to run the optimization on.')
+    parser.add_argument('-o', '--outdir', required=True, 
+        help='the output folder for the results of optimization.')
+    parser.add_argument('--ntrials', type=int, default=100, 
+        help='number of hyperparameter sets to explore. After exploring this number of sets, the optimization stops.')
+    parser.add_argument('--cv_splits', type=int, default=5, 
+        help='number of folds for K-fold cross-validation')
+    parser.add_argument('--cv_repeats', type=int, default=1, 
+        help='number of times the cross-validation will be repeated with shuffling. Scores are reported as consensus between repeats.')
+    parser.add_argument('--earlystop_patience', type=int, default=0, 
+        help='number of optimization steps that the best N solutions must not change for the early stopping. By default early stopping is not triggered.')
+    parser.add_argument('--earlystop_leaders', type=int, default=1, 
+        help='number N of best solutions that will be checked for the early stopping.')
+    parser.add_argument('--timeout', type=int, default=60, 
+        help='timeout in sec. If a trial takes longer it will be killed.')
+    parser.add_argument('-j', '--jobs', type=int, default=1, 
+        help='number of processes that will be launched in parallel during the optimization.')
+    parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'], 
+        help='ML algorithm to be used for optimization. Only one can be used at a time.')
+    #parser.add_argument('--multi', action='store_true')
+    parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
+        args = parser.parse_args()
     datadir = args.datadir
     outdir = args.outdir
     ntrials = args.ntrials

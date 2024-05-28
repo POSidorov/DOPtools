@@ -21,19 +21,20 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '0.5.0'
+version = '1.0b'
 
 setup(
-    name='ChemInfoTools',
+    name='doptools',
     version=version,
     packages=find_packages(),
-    url='https://github.com/POSidorov/ChemInfoTools',
+    url='https://github.com/POSidorov/DOPtools',
     license='LGPLv3',
     author=['Dr. Pavel Sidorov'],
     author_email=['pavel.o.sidorov@gmail.com'],
-    python_requires='>=3.7.0',
-    install_requires=['pandas>=0.25', 'numpy>=1.20', 'scipy>=1.7', 'matplotlib>=3.4', 'cgrtools>=4.1',
-                      'scikit-learn>=0.24', 'ipython>=7.22', 'chython>=1.70'],
+    python_requires='>=3.9.0',
+    install_requires=['pandas>=2.1', 'numpy>=1.25', 'scipy>=1.7', 'matplotlib>=3.4', 
+                      'scikit-learn>=1.3', 'ipython>=7.22', 'chython>=1.70', 'rdkit>=2023.09.02',
+                      'optuna>=3.5', 'xgboost>=2.0', 'timeout-decorator==0.5', 'mordred>=1.2'],
     long_description=(Path(__file__).parent / 'README.md').open(encoding='utf-8').read(),
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
@@ -44,6 +45,8 @@ setup(
                  'Operating System :: OS Independent',
                  'Programming Language :: Python',
                  'Programming Language :: Python :: 3',
-                 'Programming Language :: Python :: 3.7',
+                 'Programming Language :: Python :: 3.9',
+                 'Programming Language :: Python :: 3.10',
+                 'Programming Language :: Python :: 3.11',
                  ]
 )
