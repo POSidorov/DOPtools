@@ -32,6 +32,7 @@ from rdkit.DataStructs.cDataStructs import ExplicitBitVect
 from rdkit.Avalon import pyAvalonTools
 from mordred import Calculator, descriptors
 from abc import ABC, abstractmethod
+from .utils import _add_stereo_substructure
 
 class DescriptorCalculator:
     '''
@@ -145,12 +146,12 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 mol = reac.compose()
             for length in range(self.lower, self.upper+1):
                 if not self.on_bond:
-                    for atom in mol.atoms():
+                    for atom in mol._atoms:
                         # deep is the radius of the neighborhood sphere in bonds
-                        sub = mol.augmented_substructure([atom[0]], deep=length)
+                        sub = mol.augmented_substructure([atom], deep=length)
                         sub_smiles = str(sub)
                         if isinstance(mol, CGRContainer):
-                            sub_smiles = add_stereo_substructure(sub, reac)
+                            sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles not in self.feature_names:
                             # if dynamic_only is on, skip all non-dynamic fragments
                             if self.only_dynamic and ">" not in sub_smiles:
@@ -162,7 +163,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                         sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
                         sub_smiles = str(sub)
                         if isinstance(mol, CGRContainer):
-                            sub_smiles = add_stereo_substructure(sub, reac)
+                            sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles not in self.feature_names:
                             # if dynamic_only is on, skip all non-dynamic fragments
                             if self.only_dynamic and ">" not in sub_smiles:
@@ -198,12 +199,12 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
             table.loc[len(table)] = 0
             for length in range(self.lower, self.upper+1):
                 if not self.on_bond:
-                    for atom in mol.atoms():
+                    for atom in mol._atoms:
                         # deep is the radius of the neighborhood sphere in bonds
-                        sub = mol.augmented_substructure([atom[0]], deep=length)
+                        sub = mol.augmented_substructure([atom], deep=length)
                         sub_smiles = str(sub)
                         if isinstance(mol, CGRContainer):
-                            sub_smiles = add_stereo_substructure(sub, reac)
+                            sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles in self.feature_names:
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
                 else:
@@ -212,7 +213,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                         sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
                         sub_smiles = str(sub)
                         if isinstance(mol, CGRContainer):
-                            sub_smiles = add_stereo_substructure(sub, reac)
+                            sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles in self.feature_names:
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
         return table
