@@ -23,7 +23,8 @@ import numpy as np
 from numpy import array
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import SelectorMixin 
-from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule, to_rdkit_molecule
+from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
+from chython import from_rdkit_molecule, to_rdkit_molecule
 from typing import Optional, List, Dict, Tuple
 from rdkit import Chem
 from rdkit.Chem import MACCSkeys, AllChem, rdMolDescriptors
