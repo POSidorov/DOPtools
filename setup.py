@@ -21,7 +21,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '1.0b'
+version = '1.0b1'
 
 setup(
     name='doptools',
@@ -29,14 +29,14 @@ setup(
     packages=find_packages(),
     url='https://github.com/POSidorov/DOPtools',
     license='LGPLv3',
-    author=['Dr. Pavel Sidorov'],
-    author_email=['pavel.o.sidorov@gmail.com'],
+    author='Dr. Pavel Sidorov',
+    author_email='pavel.o.sidorov@gmail.com',
     python_requires='>=3.9.0',
     install_requires=['pandas>=2.1', 'numpy>=1.25', 'scipy>=1.7', 'matplotlib>=3.4', 
                       'scikit-learn>=1.3', 'ipython>=7.22', 'chython>=1.70', 'rdkit>=2023.09.02',
                       'optuna>=3.5', 'xgboost>=2.0', 'timeout-decorator==0.5', 'mordred>=1.2'],
     description='A package for calculation of molecular descriptors in Scikit-Learn compatible way and model optimization',
-    long_description=(Path(__file__).parent / 'README.md').open(encoding='utf-8').read(),
+    long_description=(Path(__file__).parent / 'README.rst').open(encoding='utf-8').read(),
     scripts=['doptools/optimizer/optimizer.py','doptools/optimizer/preparer.py',
              'doptools/optimizer/plotter.py','doptools/optimizer/rebuilder.py'],
     classifiers=['Environment :: Plugins',

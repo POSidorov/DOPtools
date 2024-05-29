@@ -35,11 +35,11 @@ from abc import ABC, abstractmethod
 from doptools.chem.utils import _add_stereo_substructure
 
 class DescriptorCalculator:
-    '''
+    """
     An abstract class for the descriptor calculatiors in this library.
     Made for utility functions, such as retrieveing the name, size, or
     features of the calculator.
-    '''
+    """
     def __init__(self, name:str, size:Tuple[int]):
         self._name = name
         self._size = size
@@ -49,31 +49,20 @@ class DescriptorCalculator:
     def size(self) -> Tuple[int]:
         """
         Returns the size of the calculator as a tuple of integers.
-
-        Returns
-        -------
-        str
         """
+        
         return self._size
 
     @property
     def name(self) -> str:
         """
         Returns the name of the calculator as string.
-
-        Returns
-        -------
-        str
         """
         return self._name
 
     def get_feature_names(self) -> List[str]:
         """
         Returns the list of features as strings.
-
-        Returns
-        -------
-        List[str]
         """
         return self.feature_names
     
@@ -110,6 +99,24 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, on_bond=False, fmt:str="mol"): 
+        """
+        Circus descriptor calculator constructor.
+
+        :param lower: lower limit of the radius.
+        :type lower: int
+
+        :param upper: upper limit of the radius.
+        :type upper: int
+
+        :param only_dynamic: toggle for calculating only fragments with dynamic items.
+        :type only_dynamic: bool
+
+        :param on_bond: toggle for calculating fragments centering on bonds.
+        :type on_bond: bool
+
+        param fmt: format of the molecules for input ('mol' for MoleculeContainers, 'smiles' for strings).
+        :type fmt: str
+        """
         self.feature_names = []
         self.lower = lower 
         self.upper = upper
@@ -121,21 +128,16 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     
     def fit(self, X:DataFrame, y:Optional[List]=None):
         """
-        Fits the augmentor - finds all possible substructures in the
+        Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the
-        array/list/... of molecules/CGRs to train the augmentor.
-        Collects all possible substructures.
+        :param X: the array/list/... of molecules/CGRs to train the augmentor.
+            Collects all possible substructures.
+        :type X: array-like, [MoleculeContainers, CGRContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         self.feature_names = []
         for i, mol in enumerate(X):
@@ -176,18 +178,13 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the
-        array/list/... of molecules/CGRs to transform to feature table
-        using trained feature list.
+        :param X: the array/list/... of molecules/CGRs to transform to feature table
+            using trained feature list.
+        :type X: array-like, [MoleculeContainers, CGRContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame containing the fragments and their counts.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
@@ -252,21 +249,16 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
     def fit(self, X:DataFrame, y:Optional[List]=None):
         """
-        Fits the linear fragmentor - finds all possible substructures in
-        the given array of molecules/CGRs.
+        Fits the calculator - finds all possible substructures in the
+        given array of molecules/CGRs.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the
-        array/list/... of molecules/CGRs to train the augmentor.
-        Collects all possible substructures.
+        :param X: the array/list/... of molecules/CGRs to train the augmentor.
+            Collects all possible substructures.
+        :type X: array-like, [MoleculeContainers, CGRContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         self.feature_names = []
         output = []
@@ -282,18 +274,13 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the
-        array/list/... of molecules/CGRs to transform to feature table
-        using trained feature list.
+        :param X: the array/list/... of molecules/CGRs to transform to feature table
+            using trained feature list.
+        :type X: array-like, [MoleculeContainers, CGRContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame containing the fragments and their counts.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         df = pd.DataFrame(columns=self.feature_names, dtype=int)
 
@@ -342,22 +329,14 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         
     def fit(self, X, y=None):
         """
-        Fits the fingperinter. For RDkit FP and Morgan FP, the
-        substructures corresponding to different FP will be stores. For
-        other types, fit doesn't really do anything, as the FP can be
-        calculated on the fly.
+        Fits the fingerprint calculator.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers] the
-        array/list/... of molecules to train the fingerprinter.
+        :param X: the array/list/... of molecules to train the calculator.
+        :type X: array-like, [MoleculeContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         if self.fp_type=='morgan':
             self.feature_names = dict([(i, []) for i in range(self.nBits)])
@@ -464,18 +443,13 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         Transforms the given array of molecules to a data frame
         with features and their values.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers] the
-        array/list/... of molecules to transform to feature table
-        using trained feature list.
+        :param X: the array/list/... of molecules to transform to feature table
+            using trained feature list.
+        :type X: array-like, [MoleculeContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame containing binary values for fingerprints.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         res = []
         for x in X:
@@ -529,30 +503,21 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     def get_structural_feature_names(self) -> List[str]:
         """
         Returns the list of only structural features associated to the structure_column as strings.
-
-        Returns
-        -------
-        List[str]
         """
         return self.fragmentor.get_feature_names()
     
     def fit(self, x:DataFrame, y:Optional[List]=None):
         """
-        Fits the ComplexFragmentor - fits all feature generators
-        separately, then concatenates them.
+        Fits the calculator - finds all possible substructures in the
+        given array of molecules/CGRs.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the data
-        frame to train all feature generators. Must contain all columns
-        indicated in the associator.
+        :param X: the dataframe with the columns containing structures or solvents.
+            Trains each calculator separately on the corresponding column.
+        :type X: DataFrame
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         for k, v in self.associator.items():
             v.fit(x[k])
@@ -565,19 +530,14 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         with their values. Applies each feature generator
         separately, then concatenates them.
 
-        Parameters
-        ----------
-        X : DataFrame the data frame to transform to feature table using
-        trained feature list. Must contain columns indicated in the
-        associator.
+        :param X: the data frame to transform to feature table using
+            trained feature list. Must contain columns indicated in the
+            associator.
+        :type X: DataFrame
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame containing the fragments and their counts and other
-        descriptors.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         concat = []
         for k, v in self.associator.items():
@@ -590,7 +550,10 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         return res
 
 class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin):
-
+    """
+    Mordred2DCalculator class is a scikit-learn compatible transformer that
+    calculates Mordred 2D descriptors.
+    """
     def __init__(self):
         self._size = ()
         self._name = "mordred2D"
@@ -598,20 +561,14 @@ class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin)
 
     def fit(self, X, y=None):
         """
-        Fits the Mordred calculator. Necessary to determine which
-        features are yielding non-number values to exclude them.
+        Fits the Mordred calculator.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers] the
-        array/list/... of molecules to train the fingerprinter.
+        :param X: the array/list/... of molecules to train the calculator.
+        :type X: array-like, [MoleculeContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         mols = [Chem.MolFromSmiles(str(x)) for x in X]
         self.calculator = Calculator(descriptors, ignore_3D=True)
@@ -624,18 +581,13 @@ class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin)
         Transforms the given array of molecules to a data frame
         with features and their values.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers] the
-        array/list/... of molecules to transform to feature table
-        using trained feature list.
+        :param X: the array/list/... of molecules to transform to feature table
+            using trained feature list.
+        :type X: array-like, [MoleculeContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame containing numerical values for Mordred descriptors.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         mols = [Chem.MolFromSmiles(str(x)) for x in X]
         matrix = self.calculator.pandas(mols).select_dtypes(include='number')
@@ -656,41 +608,20 @@ class PassThrough(BaseEstimator, TransformerMixin):
     
     def fit(self, x:DataFrame, y=None):
         """
-        Fits the ComplexFragmentor - fits all feature generators
-        separately, then concatenates them.
-
-        Parameters
-        ----------
-        X : array-like, DataFrame must contain the column taken as
-        self.column_name
-
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        Fits the calculator. Parameters are not necessary.
         """
         return self
     
     def transform(self, x:DataFrame):
         """
-        Transforms the given data frame to a data frame of features with
-        their values. Applies each feature generator separately, then
-        concatenates them.
+        Returns the column without any transformation.
 
-        Parameters
-        ----------
-        X : DataFrame the data frame to transform to feature table using
-        trained feature list. Must contain columns indicated in the
-        associator.
+        :param X: dataframe from which the columns will be taken
+        :type X: DataFrame
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame contaning the column.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         return pd.Series(x, name=self.column_name)
 
@@ -724,6 +655,21 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
+        """
+        Circus descriptor calculator constructor.
+
+        :param lower: lower limit of the radius.
+        :type lower: int
+
+        :param upper: upper limit of the radius.
+        :type upper: int
+
+        :param only_dynamic: toggle for calculating only fragments with dynamic items.
+        :type only_dynamic: bool
+
+        param fmt: format of the molecules for input ('mol' for MoleculeContainers, 'smiles' for strings).
+        :type fmt: str
+        """
         self.feature_names = []
         self.features = []
         self.lower = lower 
@@ -735,21 +681,16 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
     
     def fit(self, X:DataFrame, y:Optional[List]=None):
         """
-        Fits the augmentor - finds all possible substructures in the
+        Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the
-        array/list/... of molecules/CGRs to train the augmentor.
-        Collects all possible substructures.
+        :param X: the array/list/... of molecules/CGRs to train the augmentor.
+            Collects all possible substructures.
+        :type X: array-like, [MoleculeContainers, CGRContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        None
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         self.feature_names = []
         self.features = []
@@ -773,18 +714,13 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
 
-        Parameters
-        ----------
-        X : array-like, [MoleculeContainers, CGRContainers] the
-        array/list/... of molecules/CGRs to transform to feature table
-        using trained feature list.
+        :param X: the array/list/... of molecules/CGRs to transform to feature table
+            using trained feature list.
+        :type X: array-like, [MoleculeContainers, CGRContainers]
 
-        y : None required by default by scikit-learn standards, but
-        doesn't change the function at all.
-
-        Returns
-        -------
-        DataFrame containing the fragments and their counts.
+        :param y: required by default by scikit-learn standards, but
+            doesn't change the function at all.
+        :type y: None
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
