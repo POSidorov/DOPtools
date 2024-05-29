@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
@@ -29,14 +30,14 @@ import multiprocessing
 from threading import Thread
 import pickle
 
-from cheminfotools.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, ComplexFragmentor, Mordred2DCalculator
-from cheminfotools.solvents import SolventVectorizer
+from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, ComplexFragmentor, Mordred2DCalculator
+from doptools.chem.solvents import SolventVectorizer
 
 import argparse, os
 import pandas as pd
 import numpy as np
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
-from .config import calculators
+from doptools.optimizer.config import calculators
 
 
 def _set_default(argument, default_values):

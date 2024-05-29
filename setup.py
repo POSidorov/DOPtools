@@ -36,6 +36,8 @@ setup(
                       'scikit-learn>=1.3', 'ipython>=7.22', 'chython>=1.70', 'rdkit>=2023.09.02',
                       'optuna>=3.5', 'xgboost>=2.0', 'timeout-decorator==0.5', 'mordred>=1.2'],
     long_description=(Path(__file__).parent / 'README.md').open(encoding='utf-8').read(),
+    scripts=['doptools/optimizer/optimizer.py','doptools/optimizer/preparer.py',
+             'doptools/optimizer/plotter.py','doptools/optimizer/rebuilder.py'],
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',

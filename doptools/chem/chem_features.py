@@ -32,7 +32,7 @@ from rdkit.DataStructs.cDataStructs import ExplicitBitVect
 from rdkit.Avalon import pyAvalonTools
 from mordred import Calculator, descriptors
 from abc import ABC, abstractmethod
-from .utils import _add_stereo_substructure
+from doptools.chem.utils import _add_stereo_substructure
 
 class DescriptorCalculator:
     '''

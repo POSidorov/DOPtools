@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
@@ -27,7 +28,7 @@ from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
 from functools import partial
 
-from config import suggest_params, methods
+from doptools.optimizer.config import suggest_params, methods
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
@@ -35,7 +36,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.svm import SVR, SVC
-# import xgboost as xgb
+import xgboost as xgb
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 from sklearn.metrics import mean_absolute_error as mae 
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, f1_score
@@ -246,7 +247,7 @@ if __name__ == '__main__':
         help='ML algorithm to be used for optimization. Only one can be used at a time.')
     #parser.add_argument('--multi', action='store_true')
     parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'])
-        args = parser.parse_args()
+    args = parser.parse_args()
     datadir = args.datadir
     outdir = args.outdir
     ntrials = args.ntrials

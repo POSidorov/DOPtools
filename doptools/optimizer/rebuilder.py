@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
@@ -23,7 +24,7 @@ import numpy as np
 from multiprocessing import Manager
 from functools import partial
 
-from .config import methods
+from doptools.optimizer.config import methods
 import pickle
 
 from sklearn.pipeline import Pipeline
