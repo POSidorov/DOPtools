@@ -37,7 +37,7 @@ CircuS descriptors
 
 The descriptors are implemented using CGRtools library and its native substructure extraction functions. Their functionality is the following. The user indicates the desired lower and upper limits for the size of substructures, as the topological radius (number of bonds from a certain atom). Size of 0 means only atom itself, size of 1 – atom and all atoms directly connected to it, and so on. It should be noted that due to the way how substructure extraction is implemented in CGRtools library, the size means the number of atoms from the center, and all the bonds between selected atoms will be present, which may be slightly counterintuitive (see an example for a 5-member ring below). This is repeated for all atoms in the molecule/CGR and for all sizes from lower to upper limit to construct the fragment table.
 
-.. image:: /docs/img/circus-demo1.png
+.. image:: docs/img/circus-demo1.png
 
 The calculation of CircuS descriptors is done by the ChythonCircus class in the chem_features module. As an extension of scikit-learn transformer class, it can take alist, an array, or pandas Series containing the molecules and perform the fragmentation, resultsing in a pandas DataFrame of descriptors. The required parameters are the lower and upper limits of the size, format of the input molecules (CGRtools MoleculeContainer or CGRContainer or SMILES), and whether or not the CGR will be processed by taking into account only dynamic objects or not. *fit* and *transform* functions are used as usual. The feature names (SMILES of the fragments) can be accessed after training ia *get_feature_names* function. 
 
@@ -70,5 +70,5 @@ The application of the ColorAtom requires a trained pipeline containing a fragme
 
 The coloring is done with matplotlib library. The atom contributions are normalized between 0 and 1 according to the maximum absolute value of the contribution. Therefore, if several structures are present, they will all have their colors normalized by the maximum value amond all contributions. The default colormap is PiYG. The "lower" (more negative) contributions are shown by red color, the "upper" (more positive) - by green. An example can be seen below:
 
-.. image:: /docs/img/coloratom-demo1.png
+.. image:: docs/img/coloratom-demo1.png
 
