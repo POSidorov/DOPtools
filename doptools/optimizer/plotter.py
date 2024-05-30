@@ -23,6 +23,10 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+
 import argparse
 
 def r2(a, b):

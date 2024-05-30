@@ -35,6 +35,10 @@ from sklearn.feature_selection import VarianceThreshold
 from sklearn.svm import SVR, SVC
 import xgboost as xgb
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+
 import argparse
 
 if __name__ == '__main__':

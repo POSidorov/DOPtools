@@ -44,6 +44,10 @@ from sklearn.multioutput import MultiOutputRegressor
 
 import argparse
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 def r2(a, b):

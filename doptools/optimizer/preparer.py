@@ -39,6 +39,9 @@ import numpy as np
 from sklearn.datasets import load_svmlight_file, dump_svmlight_file
 from doptools.optimizer.config import calculators
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
 def _set_default(argument, default_values):
     if len(argument)>0:
