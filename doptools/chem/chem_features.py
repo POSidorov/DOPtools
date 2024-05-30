@@ -521,7 +521,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         for k, v in self.associator.items():
             v.fit(x[k])
-            self.feature_names += [k+f for f in v.get_feature_names()]
+            self.feature_names += [k+'::'+f for f in v.get_feature_names()]
         return self
     
     def transform(self, x:DataFrame) -> DataFrame:

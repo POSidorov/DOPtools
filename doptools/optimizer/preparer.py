@@ -84,7 +84,10 @@ def _enumerate_parameters(args):
         for lower in _set_default(args.circus_min, [1]):
             for upper in _set_default(args.circus_max, [2]):
                 if int(lower) <= int(upper):
-                    param_dict[_make_name(('circus',lower, upper))] = {'lower':lower, 'upper':upper}
+                    if args.onbond:
+                        param_dict[_make_name(('circus_b',lower, upper))] = {'lower':lower, 'upper':upper, 'on_bond':True}
+                    else:
+                        param_dict[_make_name(('circus',lower, upper))] = {'lower':lower, 'upper':upper}
     if args.linear:
         for lower in _set_default(args.linear_min, [2]):
             for upper in _set_default(args.linear_max, [5]):
@@ -168,6 +171,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
                 calculators_dict = {}
                 for c in input_dict['structures'].columns:
                     calculators_dict[c] = eval(calculators[desc_type])
+                input_table = input_dict['structures']
                 if 'solvents' in input_dict.keys():
                     calculators_dict[input_dict['solvents'].name] = SolventVectorizer()
                     input_table = pd.concat([input_dict['structures'], input_dict['solvents']], axis=1)
@@ -305,6 +309,8 @@ if __name__ == '__main__':
                         help='minimum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default value 1')
     parser.add_argument('--circus_max', nargs='+', action='extend', type=int, default=[],
                         help='maximum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default value 2')
+    parser.add_argument('--onbond', action='store_true', 
+                        help='toggle the calculation of CircuS fragments on bonds')
 
     parser.add_argument('--mordred2d', action='store_true', 
                         help='put the option to calculate Mordred 2D descriptors')
