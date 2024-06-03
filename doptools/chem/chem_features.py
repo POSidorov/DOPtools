@@ -369,7 +369,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             pass
         elif self.fp_type == 'layered':
             pass
-        elif self.fp_type == 'ap':
+        elif self.fp_type == 'atompairs':
             pass
         elif self.fp_type == 'torsion':
             pass
