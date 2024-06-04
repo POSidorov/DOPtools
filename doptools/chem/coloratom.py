@@ -250,3 +250,6 @@ class ColorAtom:
         text = text.replace("3>2", "[#>=]").replace("3>1", "[#>-]").replace("3>0", "[#>.]")
         text = text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
         return text
+
+
+__all__ = ['ColorAtom']

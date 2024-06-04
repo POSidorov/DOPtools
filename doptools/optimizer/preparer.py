@@ -367,3 +367,7 @@ if __name__ == '__main__':
         for t in threads:
             t.start()
             t.join()
+
+
+__all__ = ['calculate_and_output', 'calculate_descriptor_table', 'check_parameters',
+           'create_input', 'create_output_dir', 'output_descriptors']

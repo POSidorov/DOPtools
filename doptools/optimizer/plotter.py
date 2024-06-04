@@ -22,18 +22,13 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
+import argparse
+from doptools.optimizer.utils import rmse, r2
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
-import argparse
-
-def r2(a, b):
-    return 1. - np.sum((a-b)**2)/np.sum((a-np.mean(a))**2)
-
-def rmse(a, b):
-    return np.sqrt(np.sum((a-b)**2)/len(a))
 
 def make_plot(predictions, **params):
     fig, ax = plt.subplots(figsize=(4,4), dpi=300, facecolor="white")
@@ -88,3 +83,6 @@ if __name__ == '__main__':
         plt.savefig(outfile)
     else:
         plt.show()
+
+
+__all__ = ['make_plot']

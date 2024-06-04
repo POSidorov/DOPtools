@@ -29,6 +29,7 @@ from multiprocessing import Manager
 from functools import partial
 
 from doptools.optimizer.config import suggest_params, methods
+from doptools.optimizer.utils import r2, rmse
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
@@ -50,11 +51,6 @@ warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-def r2(a, b):
-    return 1. - np.sum((a-b)**2)/np.sum((a-np.mean(a))**2)
-
-def rmse(a, b):
-    return np.sqrt(np.sum((a-b)**2)/len(a))
 
 class TopNPatienceCallback:
     def __init__(self, patience: int, leaders:int = 1):
@@ -275,3 +271,6 @@ if __name__ == '__main__':
     with contextlib.redirect_stdout(open(os.devnull, "w")):
         launch_study(x_dict, y, outdir, method, ntrials, 
                     cv_splits, cv_repeats, jobs, tmout, earlystop)
+
+
+__all__ = ['calculate_scores', 'collect_data', 'launch_study']

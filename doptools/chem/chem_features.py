@@ -733,4 +733,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
                 # mapping is the list of all possible substructure mappings into the given molecule/CGR
                 table.loc[i,str(sub)] = len(mapping)
         return table
-    
+
+
+__all__ = ['ChythonCircus', 'ChythonCircusNonhash', 'ChythonLinear', 'ComplexFragmentor',
+           'DescriptorCalculator', 'Fingerprinter', 'Mordred2DCalculator', 'PassThrough']

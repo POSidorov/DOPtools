@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
@@ -17,5 +18,15 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-from .chem import *
-from .optimizer import *
+import numpy as np
+
+
+def r2(a, b):
+    return 1. - np.sum((a-b)**2)/np.sum((a-np.mean(a))**2)
+
+
+def rmse(a, b):
+    return np.sqrt(np.sum((a-b)**2)/len(a))
+
+
+__all__ = ['r2', 'rmse']

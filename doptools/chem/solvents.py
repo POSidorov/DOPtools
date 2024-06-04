@@ -230,3 +230,5 @@ available_solvents = { float('nan'): (  0 ,  0 ,  0 ,  0),
     "hexadecane": ( 0.704 ,  0  , 0  , 0.086),
     "squalane": (   0.714 ,  0 ,  0  , 0.05),
     "petroleum ether": (0.593  , 0.005,  0  , 0.043)}
+
+__all__ = ['available_solvents', 'SolventVectorizer']
