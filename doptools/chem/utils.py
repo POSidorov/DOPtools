@@ -1,4 +1,25 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2022-2024 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
+#  file is part of DOPTools repository.
+#
+#  ChemInfoTools is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful, but
+#  WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+#  General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see
+#  <https://www.gnu.org/licenses/>.
+
 from chython.containers import MoleculeContainer, ReactionContainer, CGRContainer
+
 
 def _gather_ct_stereos(reaction):
     res = {}
@@ -13,6 +34,7 @@ def _gather_ct_stereos(reaction):
             res.pop(k)
     return res
 
+
 def _gather_rs_stereos(reaction):
     res = {}
     for r in reaction.reactants:
@@ -23,26 +45,28 @@ def _gather_rs_stereos(reaction):
             res.update([(k, (v, 'p')) for k, v in p._atoms_stereo.items()])
     return res
 
+
 def _pos_in_string(cgr, cgr_string, number):
     index1 = 0
     order = 0
     atom_number = cgr.smiles_atoms_order[order]
-    while order<=cgr.smiles_atoms_order.index(number):
+    while order <= cgr.smiles_atoms_order.index(number):
         atom_symbol = cgr._atoms[atom_number].atomic_symbol
         index2 = cgr_string.index(atom_symbol, index1, len(cgr_string))
         if index2 == index1:
             index1 += 1
         else:
             index1 = index2+1
-        order +=1
+        order += 1
         atom_number = cgr.smiles_atoms_order[order]
     return index1
+
 
 def _pos_in_string_atom(cgr, cgr_string, number):
     index1 = 0
     order = 0
     atom_number = cgr.smiles_atoms_order[order]
-    while order<=cgr.smiles_atoms_order.index(number):
+    while order <= cgr.smiles_atoms_order.index(number):
         atom_symbol = cgr._atoms[atom_number].atomic_symbol
         index2 = cgr_string.index(atom_symbol, index1, len(cgr_string))
         if index2 == index1:
@@ -54,6 +78,7 @@ def _pos_in_string_atom(cgr, cgr_string, number):
             atom_number = cgr.smiles_atoms_order[order]
     return index1-1
 
+
 def _add_stereo_substructure(substructure, reaction):
     substructure_atoms = list(substructure._atoms)
     cts = _gather_ct_stereos(reaction)
@@ -62,15 +87,15 @@ def _add_stereo_substructure(substructure, reaction):
     new_smiles = cgr_smiles
     for atoms, stereo in cts.items():
         if atoms[0] in substructure._atoms and atoms[1] in substructure._atoms:
-            if len(substructure.int_adjacency[atoms[0]])>1 and len(substructure.int_adjacency[atoms[1]])>1:
+            if len(substructure.int_adjacency[atoms[0]]) > 1 and len(substructure.int_adjacency[atoms[1]]) > 1:
                 bond_string = substructure._format_bond(atoms[0], atoms[1], 0)
                 if '>' not in bond_string:
                     continue
                 index1, index2 = _pos_in_string(substructure, cgr_smiles, atoms[0]), _pos_in_string(substructure, cgr_smiles, atoms[1])
                 if stereo[1] == 'r':
-                    bond_index = cgr_smiles.index("=>", min(index1,index2), max(index1,index2))
+                    bond_index = cgr_smiles.index("=>", min(index1, index2), max(index1, index2))
                 else:
-                    bond_index = cgr_smiles.index(">=", min(index1,index2), max(index1,index2))+1
+                    bond_index = cgr_smiles.index(">=", min(index1, index2), max(index1, index2))+1
                 if stereo[0]:
                     new_smiles = cgr_smiles[:bond_index]+"/=\\"+cgr_smiles[bond_index+1:]
                 else:
@@ -81,7 +106,7 @@ def _add_stereo_substructure(substructure, reaction):
                 atom_string = substructure._format_atom(atoms, 0)
                 index1 = _pos_in_string_atom(substructure, new_smiles, atoms)
                 index2 = index1+1
-                if index1-1>=0 and cgr_smiles[index1-1]=='[':
+                if index1-1>=0 and cgr_smiles[index1-1] == '[':
                     index1 = index1-1
                     index2 = new_smiles.index(']', index1, len(new_smiles))
                 else:
