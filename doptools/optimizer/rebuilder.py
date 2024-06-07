@@ -18,24 +18,16 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-import glob, contextlib, os
+import os
 import pandas as pd
-import numpy as np
-from multiprocessing import Manager
-from functools import partial
 import pickle
+import argparse
 
-from doptools.optimizer.config import methods
+from doptools.optimizer.config import get_raw_model
 
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, LabelBinarizer
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.svm import SVR, SVC
-import xgboost as xgb
-
-import argparse
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -73,12 +65,12 @@ def rebuild(descdir, modeldir, number, outdir):
 
     params = rebuild_trial[rebuild_trial.index[list(rebuild_trial.index).index('method')+1:]].to_dict()
     method = rebuild_trial['method']
-    model = eval(methods[method])
+    model = get_raw_model(method, params)
     pipeline_steps.append(('model', model))
 
     pipeline = Pipeline(pipeline_steps)
 
-    modelfile_name = '_'.join([rebuild_trial['method'], 'trial'+str(number), desc_name])
+    modelfile_name = '_'.join([method, 'trial'+str(number), desc_name])
     with open(os.path.join(outdir, modelfile_name+'.pkl'), 'wb') as f:
         pickle.dump(pipeline, f)
 

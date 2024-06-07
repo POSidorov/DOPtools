@@ -17,10 +17,17 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
+from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, Mordred2DCalculator
+
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.svm import SVR, SVC
+from xgboost import XGBRegressor, XGBClassifier
+
+
 methods = {'SVR': "SVR(**params, gamma='auto')", 
            'SVC': "SVC(**params, gamma='auto')",
-           'XGBR': "xgb.XGBRegressor(**params, verbosity=0, nthread=1)",
-           'XGBC': "xgb.XGBClassifier(**params, verbosity=0, nthread=1)",
+           'XGBR': "XGBRegressor(**params, verbosity=0, nthread=1)",
+           'XGBC': "XGBClassifier(**params, verbosity=0, nthread=1)",
            'RFR': "RandomForestRegressor(**params)",
            'RFC': "RandomForestClassifier(**params)"}
 
@@ -37,6 +44,24 @@ calculators = {
     'torsion': "Fingerprinter(fp_type='torsion', **descriptor_params)",
     'mordred2d': "Mordred2DCalculator(**descriptor_params)",
 }
+
+
+def get_raw_model(method: str, params=None):
+    if params is None:
+        params = {}
+    if method in methods.keys():
+        return eval(methods[method])
+    else:
+        raise ValueError("Unknown method "+method+". Allowed values: "+", ".join(methods.keys()))
+
+
+def get_raw_calculator(desc_type: str, descriptor_params=None):
+    if descriptor_params is None:
+        descriptor_params = {}
+    if desc_type in calculators.keys():
+        return eval(calculators[desc_type])
+    else:
+        raise ValueError("Unknown descriptors type "+desc_type+". Allowed values: "+", ".join(calculators.keys()))
 
 
 def suggest_params(trial, method):
@@ -113,4 +138,4 @@ def suggest_params(trial, method):
     return params
 
 
-__all__ = ['calculators', 'methods', 'suggest_params']
+__all__ = ['calculators', 'methods', 'suggest_params', 'get_raw_calculator', 'get_raw_model']

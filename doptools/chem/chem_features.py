@@ -20,18 +20,14 @@
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
-from numpy import array
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import SelectorMixin 
 from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
-from chython import from_rdkit_molecule, to_rdkit_molecule
 from typing import Optional, List, Dict, Tuple
 from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem, rdMolDescriptors
-from rdkit.DataStructs.cDataStructs import ExplicitBitVect
+from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
 from mordred import Calculator, descriptors
-from abc import ABC, abstractmethod
 from doptools.chem.utils import _add_stereo_substructure
 
 

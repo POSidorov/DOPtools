@@ -18,26 +18,19 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem
-from rdkit.DataStructs.cDataStructs import ExplicitBitVect
-from rdkit.Chem import rdMolDescriptors
-from rdkit.Avalon import pyAvalonTools
-from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule, to_rdkit_molecule
-from mordred import Calculator, descriptors
-import sys
-import multiprocessing
+from chython import smiles
 from threading import Thread
 import pickle
+import argparse
+import os
 
-from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, ComplexFragmentor, Mordred2DCalculator
-from doptools.chem.solvents import SolventVectorizer
-
-import argparse, os
 import pandas as pd
 import numpy as np
-from sklearn.datasets import load_svmlight_file, dump_svmlight_file
-from doptools.optimizer.config import calculators
+from sklearn.datasets import dump_svmlight_file
+
+from doptools.chem.chem_features import ComplexFragmentor
+from doptools.chem.solvents import SolventVectorizer
+from doptools.optimizer.config import get_raw_calculator
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -122,6 +115,7 @@ def check_parameters(params):
 
 def create_input(input_params):
     input_dict = {}
+    structures = []
 
     if input_params['input_file'].endswith('csv'):
         data_table = pd.read_table(input_params['input_file'], sep=',')
@@ -172,12 +166,12 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
         if k.startswith('prop'):
             base_column = list(input_dict['structures'].columns)[0]
             if len(input_dict['structures'].columns) == 1 and 'solvents' not in input_dict.keys():
-                calculator = eval(calculators[desc_type])
+                calculator = get_raw_calculator(desc_type, descriptor_params)
                 desc = calculator.fit_transform(input_dict['structures'][base_column].iloc[d['indices']])
             else:
                 calculators_dict = {}
                 for c in input_dict['structures'].columns:
-                    calculators_dict[c] = eval(calculators[desc_type])
+                    calculators_dict[c] = get_raw_calculator(desc_type, descriptor_params)
                 input_table = input_dict['structures']
                 if 'solvents' in input_dict.keys():
                     calculators_dict[input_dict['solvents'].name] = SolventVectorizer()

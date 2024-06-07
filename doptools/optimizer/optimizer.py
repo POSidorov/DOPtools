@@ -28,17 +28,14 @@ from timeout_decorator.timeout_decorator import TimeoutError
 from multiprocessing import Manager
 from functools import partial
 
-from doptools.optimizer.config import suggest_params, methods
+from doptools.optimizer.config import suggest_params, get_raw_model
 from doptools.optimizer.utils import r2, rmse
 
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, LabelBinarizer, LabelEncoder
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
+from sklearn.model_selection import KFold, cross_val_predict
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.svm import SVR, SVC
-import xgboost as xgb
-from sklearn.datasets import load_svmlight_file, dump_svmlight_file
+from sklearn.datasets import load_svmlight_file
 from sklearn.metrics import mean_absolute_error as mae 
 from sklearn.metrics import roc_auc_score, accuracy_score, balanced_accuracy_score, f1_score
 from sklearn.multioutput import MultiOutputRegressor
@@ -158,7 +155,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         params = suggest_params(trial, method)
         storage[n] = {'desc': desc, 'scaling': scaling, 'method': method, **params}
 
-        model = eval(methods[method])
+        model = get_raw_model(method, params)
 
         #if multi:
         #    model = MultiOutputRegressor(model)

@@ -18,8 +18,6 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-from chython.containers import MoleculeContainer, ReactionContainer, CGRContainer
-
 
 def _gather_ct_stereos(reaction):
     res = {}
