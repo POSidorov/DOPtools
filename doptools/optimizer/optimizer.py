@@ -53,7 +53,7 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
 class TopNPatienceCallback:
-    def __init__(self, patience: int, leaders:int = 1):
+    def __init__(self, patience: int, leaders: int = 1):
         self.patience = patience
         self.leaders = leaders
         self._leaders_unchanged_steps = 0
@@ -77,6 +77,7 @@ class TopNPatienceCallback:
         if self._leaders_unchanged_steps >= self.patience:
             study.stop()
 
+
 def collect_data(datadir, task, fmt='svm'):
     desc_dict = {}
     y = {}
@@ -90,30 +91,33 @@ def collect_data(datadir, task, fmt='svm'):
             data = pd.read_table(f)
             y[propname] = data[propname]
             col_idx = list(data.columns).index()
-            desc_dict[name] = data.iloc[:,col_idx+1:]
+            desc_dict[name] = data.iloc[:, col_idx+1:]
     if task.endswith('C'):
         return desc_dict, pd.DataFrame(y, dtype=int)
     else:
         return desc_dict, pd.DataFrame(y)
 
+
 def calculate_scores(task, obs, pred):
     def create_row(task, stat_name, x, y):
         if task == 'R':
-            return {'stat':stat_name, 'R2':r2(x, y), 'RMSE':rmse(x, y), 'MAE':mae(x, y)}
-        elif task == 'C' and len(set(x))==2:
-            return {'stat':stat_name, 'ROC_AUC':roc_auc_score(x, y), 'ACC':accuracy_score(x, y), 
-                             'BAC':balanced_accuracy_score(x, y), 'F1':f1_score(x, y)}
-        elif task == 'C' and len(set(x))>2:
-            return {'stat':stat_name, 'ROC_AUC':roc_auc_score(LabelBinarizer().fit_transform(x), 
-                                                LabelBinarizer().fit_transform(y), multi_class='ovr'), 
-                    'ACC':accuracy_score(x, y), 
-                    'BAC':balanced_accuracy_score(x, y), 
-                    'F1':f1_score(x, y, average='macro')}
+            return {'stat': stat_name, 'R2': r2(x, y), 'RMSE': rmse(x, y), 'MAE': mae(x, y)}
+        elif task == 'C' and len(set(x)) == 2:
+            return {'stat': stat_name, 'ROC_AUC': roc_auc_score(x, y), 'ACC': accuracy_score(x, y),
+                    'BAC': balanced_accuracy_score(x, y), 'F1': f1_score(x, y)}
+        elif task == 'C' and len(set(x)) > 2:
+            return {'stat': stat_name, 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(x),
+                                                                LabelBinarizer().fit_transform(y), multi_class='ovr'),
+                    'ACC': accuracy_score(x, y),
+                    'BAC': balanced_accuracy_score(x, y),
+                    'F1': f1_score(x, y, average='macro')}
 
     if task == 'R':
         score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
     elif task == 'C':
         score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
+    else:
+        raise ValueError("Unknown task type")
 
     for c in obs.columns:
         preds_partial = pred[[d for d in pred.columns if c+'.predicted' in d]]
@@ -152,7 +156,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         X = VarianceThreshold().fit_transform(X)
 
         params = suggest_params(trial, method)
-        storage[n] = {'desc': desc, 'scaling': scaling, 'method':method, **params}
+        storage[n] = {'desc': desc, 'scaling': scaling, 'method': method, **params}
 
         model = eval(methods[method])
 
@@ -174,7 +178,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             preds = preds.reshape((-1, 1))
             for i, c in enumerate(y.columns):
                 res_pd[c + '.observed'] = y[c]
-                res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:,i]
+                res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:, i]
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
@@ -191,7 +195,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         return score
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
-    if earlystop[0]>0:
+    if earlystop[0] > 0:
         study.optimize(partial(objective, results_dict, results_detailed), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,),
                        callbacks=[TopNPatienceCallback(earlystop[0], earlystop[1])])
     else:
@@ -200,21 +204,21 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
     results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score'])
-    intermediate = study.trials_dataframe(attrs=('number','value'))
+    intermediate = study.trials_dataframe(attrs=('number', 'value'))
     
     for i, row in intermediate.iterrows():
         number = int(row.number)
         if number not in results_dict:
             continue
         
-        added_row = {'trial':number,'score':row.value}
+        added_row = {'trial': number, 'score': row.value}
         for hp in hyperparam_names:
             added_row[hp] = results_dict[number][hp]
         results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
     
     if write_output:
         results_pd.to_csv(outdir+'/trials.all', sep=' ', index=False)
-        if ntrials>50:
+        if ntrials > 50:
             results_pd.sort_values(by='score', ascending=False).head(50).to_csv(outdir+'/trials.best', sep=' ', index=False)
         else:
             results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False)
@@ -223,8 +227,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='Optuna optimizer', 
-                                description='Optimizes the hyperparameters of ML method on given data, similar to Dragos\'s optimizer')
+    parser = argparse.ArgumentParser(prog='Optuna optimizer',
+        description='Optimizes the hyperparameters of ML method on given data, similar to Dragos\'s optimizer')
     parser.add_argument('-d', '--datadir', required=True, 
         help='the folder containing descriptor files to run the optimization on.')
     parser.add_argument('-o', '--outdir', required=True, 
@@ -270,7 +274,7 @@ if __name__ == '__main__':
     
     with contextlib.redirect_stdout(open(os.devnull, "w")):
         launch_study(x_dict, y, outdir, method, ntrials, 
-                    cv_splits, cv_repeats, jobs, tmout, earlystop)
+                     cv_splits, cv_repeats, jobs, tmout, earlystop)
 
 
 __all__ = ['calculate_scores', 'collect_data', 'launch_study']

@@ -85,15 +85,15 @@ def rebuild(descdir, modeldir, number, outdir):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Optimized model rebuilder', 
-                                    description='Rebuilds the model from the optimized trial parameters,\nsaving it as an UNTRAINED pipeline in pickle')
-    parser.add_argument('-d', '--descdir', required=True, 
-        help='the folder containing descriptor files. Can contain folders separated by descriptor type')
-    parser.add_argument('-m', '--modeldir', required=True, 
-        help='the folder containing model output files. Should contain "trials.all" file.')
-    parser.add_argument('-n', '--number', type=int, required=True, 
-        help='the trial number for the model to be rebuilt.')
-    parser.add_argument('-o', '--outdir', required=True, 
-        help='the output folder for the models.')
+                                     description='Rebuilds the model from the optimized trial parameters,\nsaving it as an UNTRAINED pipeline in pickle')
+    parser.add_argument('-d', '--descdir', required=True,
+                        help='the folder containing descriptor files. Can contain folders separated by descriptor type')
+    parser.add_argument('-m', '--modeldir', required=True,
+                        help='the folder containing model output files. Should contain "trials.all" file.')
+    parser.add_argument('-n', '--number', type=int, required=True,
+                        help='the trial number for the model to be rebuilt.')
+    parser.add_argument('-o', '--outdir', required=True,
+                        help='the output folder for the models.')
 
     args = parser.parse_args()
     descdir = args.descdir
