@@ -78,10 +78,10 @@ class TopNPatienceCallback:
 def collect_data(datadir, task, fmt='svm'):
     desc_dict = {}
     y = {}
-    for f in glob.glob(datadir+"/*."+fmt):
-        name = f.split('/')[-1][:-4].split('.')[1]
-        propname = f.split('/')[-1].split('.')[0]
-        fullname = f.split('/')[-1]
+    for f in glob.glob(os.path.join(datadir,"*."+fmt)):
+        name = f.split(os.sep)[-1][:-4].split('.')[1]
+        propname = f.split(os.sep)[-1].split('.')[0]
+        fullname = f.split(os.sep)[-1]
         if fmt == 'svm':
             desc_dict[name], y[propname] = load_svmlight_file(f)
         elif fmt == 'csv':
@@ -137,8 +137,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
     @timeout_decorator.timeout(tmout, timeout_exception=optuna.TrialPruned, use_signals=False)
     def objective(storage, results_detailed, trial):
         n = trial.number
-        if write_output and not os.path.exists(outdir+'/trial.'+str(n)):
-            os.mkdir(outdir+'/trial.'+str(n))
+        if write_output and not os.path.exists(os.path.join(outdir,'trial.'+str(n))):
+            os.mkdir(os.path.join(outdir,'trial.'+str(n)))
         res_pd = pd.DataFrame(columns=['data_index'])
         res_pd['data_index'] = np.arange(1, len(y)+1, step=1).astype(int)
         
@@ -180,8 +180,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         score_df = calculate_scores(method[-1], y, res_pd)
 
         if write_output:
-            score_df.to_csv(outdir+'/trial.'+str(n)+'/stats', sep=' ', float_format='%.3f', index=False)
-            res_pd.to_csv(outdir+'/trial.'+str(n)+'/predictions', sep=' ', float_format='%.3f', index=False)
+            score_df.to_csv(os.path.join(outdir,'trial.'+str(n),'stats'), sep=' ', 
+                float_format='%.3f', index=False)
+            res_pd.to_csv(os.path.join(outdir,'trial.'+str(n),'predictions'), sep=' ', 
+                float_format='%.3f', index=False)
         else:
             results_detailed[n] = {'score': score_df, 'predictions': res_pd}
 
@@ -214,11 +216,11 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
     
     if write_output:
-        results_pd.to_csv(outdir+'/trials.all', sep=' ', index=False)
-        if ntrials > 50:
-            results_pd.sort_values(by='score', ascending=False).head(50).to_csv(outdir+'/trials.best', sep=' ', index=False)
+        results_pd.to_csv(os.path.join(outdir,'trials.all'), sep=' ', index=False)
+        if ntrials>50:
+            results_pd.sort_values(by='score', ascending=False).head(50).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
         else:
-            results_pd.sort_values(by='score', ascending=False).to_csv(outdir+'/trials.best', sep=' ', index=False)
+            results_pd.sort_values(by='score', ascending=False).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
     else:
         return results_pd, results_detailed
 
