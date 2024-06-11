@@ -17,26 +17,52 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
+from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, Mordred2DCalculator
+
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.svm import SVR, SVC
+from xgboost import XGBRegressor, XGBClassifier
+
+
 methods = {'SVR': "SVR(**params, gamma='auto')", 
-            'SVC':"SVC(**params, gamma='auto')",
-            'XGBR':"xgb.XGBRegressor(**params, verbosity=0, nthread=1)",
-            'XGBC':"xgb.XGBClassifier(**params, verbosity=0, nthread=1)",
-            'RFR':"RandomForestRegressor(**params)",
-            'RFC':"RandomForestClassifier(**params)"}
+           'SVC': "SVC(**params, gamma='auto')",
+           'XGBR': "XGBRegressor(**params, verbosity=0, nthread=1)",
+           'XGBC': "XGBClassifier(**params, verbosity=0, nthread=1)",
+           'RFR': "RandomForestRegressor(**params)",
+           'RFC': "RandomForestClassifier(**params)"}
 
 calculators = {
-    'circus':"ChythonCircus(**descriptor_params)",
-    'chyline':"ChythonLinear(**descriptor_params)",
-    'morgan':"Fingerprinter(fp_type='morgan', **descriptor_params)",
-    'morganfeatures':"Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",
-    'rdkfp':"Fingerprinter(fp_type='rdkfp', **descriptor_params)",
-    'rdkfplinear':"Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",
-    'layered':"Fingerprinter(fp_type='layered', **descriptor_params)",
-    'atompairs':"Fingerprinter(fp_type='atompairs', **descriptor_params)",
-    'avalon':"Fingerprinter(fp_type='avalon', **descriptor_params)",
-    'torsion':"Fingerprinter(fp_type='torsion', **descriptor_params)",
-    'mordred2d':"Mordred2DCalculator(**descriptor_params)",
+    'circus': "ChythonCircus(**descriptor_params)",
+    'chyline': "ChythonLinear(**descriptor_params)",
+    'morgan': "Fingerprinter(fp_type='morgan', **descriptor_params)",
+    'morganfeatures': "Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",
+    'rdkfp': "Fingerprinter(fp_type='rdkfp', **descriptor_params)",
+    'rdkfplinear': "Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",
+    'layered': "Fingerprinter(fp_type='layered', **descriptor_params)",
+    'atompairs': "Fingerprinter(fp_type='atompairs', **descriptor_params)",
+    'avalon': "Fingerprinter(fp_type='avalon', **descriptor_params)",
+    'torsion': "Fingerprinter(fp_type='torsion', **descriptor_params)",
+    'mordred2d': "Mordred2DCalculator(**descriptor_params)",
 }
+
+
+def get_raw_model(method: str, params=None):
+    if params is None:
+        params = {}
+    if method in methods.keys():
+        return eval(methods[method])
+    else:
+        raise ValueError("Unknown method "+method+". Allowed values: "+", ".join(methods.keys()))
+
+
+def get_raw_calculator(desc_type: str, descriptor_params=None):
+    if descriptor_params is None:
+        descriptor_params = {}
+    if desc_type in calculators.keys():
+        return eval(calculators[desc_type])
+    else:
+        raise ValueError("Unknown descriptors type "+desc_type+". Allowed values: "+", ".join(calculators.keys()))
+
 
 def suggest_params(trial, method):
     if method == 'SVR':
@@ -74,39 +100,42 @@ def suggest_params(trial, method):
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 18),
             'eta': trial.suggest_float('eta', 1e-9, 1, log=True),
-            'gamma': trial.suggest_float ('gamma', 1,9),
-            'reg_alpha' : trial.suggest_int('reg_alpha', 10, 180),
-            'reg_lambda' : trial.suggest_float('reg_lambda', 0, 1),
-            'colsample_bytree' : trial.suggest_float('colsample_bytree', 0.5, 1),
-            'min_child_weight' : trial.suggest_int('min_child_weight', 0, 10),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
-            
+            'gamma': trial.suggest_float('gamma', 1, 9),
+            'reg_alpha': trial.suggest_int('reg_alpha', 10, 180),
+            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1),
+            'min_child_weight': trial.suggest_int('min_child_weight', 0, 10),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
         }
     elif method == 'XGBC':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 18),
             'eta': trial.suggest_float('eta', 1e-9, 1, log=True),
-            'gamma': trial.suggest_float ('gamma', 1,9),
-            'reg_alpha' : trial.suggest_int('reg_alpha', 10, 180),
-            'reg_lambda' : trial.suggest_float('reg_lambda', 0, 1),
-            'colsample_bytree' : trial.suggest_float('colsample_bytree', 0.5, 1),
-            'min_child_weight' : trial.suggest_int('min_child_weight', 0, 10),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
-            
+            'gamma': trial.suggest_float('gamma', 1, 9),
+            'reg_alpha': trial.suggest_int('reg_alpha', 10, 180),
+            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1),
+            'min_child_weight': trial.suggest_int('min_child_weight', 0, 10),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
         }
     elif method == 'RFR':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 10),
-            'max_features' : trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
-            'max_samples' : trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
+            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
+            'max_samples': trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
         }
     elif method == 'RFC':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 10),
-            'max_features' : trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
-            'max_samples' : trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20,50,100,150,200]),
+            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
+            'max_samples': trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
+            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
         }
+    else:
+        raise ValueError("Unknown method")
 
     return params
+
+
+__all__ = ['calculators', 'methods', 'suggest_params', 'get_raw_calculator', 'get_raw_model']

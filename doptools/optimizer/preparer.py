@@ -18,36 +18,31 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem
-from rdkit.DataStructs.cDataStructs import ExplicitBitVect
-from rdkit.Chem import rdMolDescriptors
-from rdkit.Avalon import pyAvalonTools
-from chython import smiles, CGRContainer, MoleculeContainer, from_rdkit_molecule, to_rdkit_molecule
-from mordred import Calculator, descriptors
-import sys
-import multiprocessing
+from chython import smiles
 from threading import Thread
 import pickle
+import argparse
+import os
 
-from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, ComplexFragmentor, Mordred2DCalculator
-from doptools.chem.solvents import SolventVectorizer
-
-import argparse, os
 import pandas as pd
 import numpy as np
-from sklearn.datasets import load_svmlight_file, dump_svmlight_file
-from doptools.optimizer.config import calculators
+from sklearn.datasets import dump_svmlight_file
+
+from doptools.chem.chem_features import ComplexFragmentor
+from doptools.chem.solvents import SolventVectorizer
+from doptools.optimizer.config import get_raw_calculator
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
+
 def _set_default(argument, default_values):
-    if len(argument)>0:
+    if len(argument) > 0:
         return list(set(argument))
     else:
         return default_values
+
 
 def _enumerate_parameters(args):
     def _make_name(iterable):
@@ -57,56 +52,58 @@ def _enumerate_parameters(args):
     if args.morgan:
         for nb in _set_default(args.morgan_nBits, [1024]):
             for mr in _set_default(args.morgan_radius, [2]):
-                param_dict[_make_name(('morgan',nb,mr))] = {'nBits':nb, 'radius':mr}
+                param_dict[_make_name(('morgan', nb, mr))] = {'nBits': nb, 'radius': mr}
     if args.morganfeatures:
         for nb in _set_default(args.morganfeatures_nBits, [1024]):
             for mr in _set_default(args.morganfeatures_radius, [2]):
-                param_dict[_make_name(('morganfeatures',nb,mr))] = {'nBits':nb, 'radius':mr}
+                param_dict[_make_name(('morganfeatures', nb, mr))] = {'nBits': nb, 'radius': mr}
     if args.rdkfp:
         for nb in _set_default(args.rdkfp_nBits, [1024]):
             for rl in _set_default(args.rdkfp_length, [3]):
-                param_dict[_make_name(('rdkfp',nb,rl))] = {'nBits':nb, 'radius':rl}
+                param_dict[_make_name(('rdkfp', nb, rl))] = {'nBits': nb, 'radius': rl}
     if args.rdkfplinear:
         for nb in _set_default(args.rdkfplinear_nBits, [1024]):
             for rl in _set_default(args.rdkfplinear_length, [3]):
-                param_dict[_make_name(('rdkfplinear',nb,rl))] = {'nBits':nb, 'radius':rl}
+                param_dict[_make_name(('rdkfplinear', nb, rl))] = {'nBits': nb, 'radius': rl}
     if args.layered:
         for nb in _set_default(args.layered_nBits, [1024]):
             for rl in _set_default(args.layered_length, [3]):
-                param_dict[_make_name(('layered',nb,rl))] = {'nBits':nb, 'radius':rl}
+                param_dict[_make_name(('layered', nb, rl))] = {'nBits': nb, 'radius': rl}
     if args.avalon:
         for nb in _set_default(args.avalon_nBits, [1024]):
-            param_dict[_make_name(('avalon',nb))] = {'nBits':nb}
+            param_dict[_make_name(('avalon', nb))] = {'nBits': nb}
     if args.torsion:
         for nb in _set_default(args.torsion_nBits, [1024]):
-            param_dict[_make_name(('torsion',nb))] = {'nBits':nb}
+            param_dict[_make_name(('torsion', nb))] = {'nBits': nb}
     if args.atompairs:
         for nb in _set_default(args.atompairs_nBits, [1024]):
-            param_dict[_make_name(('atompairs',nb))] = {'nBits':nb}
+            param_dict[_make_name(('atompairs', nb))] = {'nBits': nb}
     if args.circus:
         for lower in _set_default(args.circus_min, [1]):
             for upper in _set_default(args.circus_max, [2]):
                 if int(lower) <= int(upper):
                     if args.onbond:
-                        param_dict[_make_name(('circus_b',lower, upper))] = {'lower':lower, 'upper':upper, 'on_bond':True}
+                        param_dict[_make_name(('circus_b', lower, upper))] = {'lower': lower, 'upper': upper, 'on_bond': True}
                     else:
-                        param_dict[_make_name(('circus',lower, upper))] = {'lower':lower, 'upper':upper}
+                        param_dict[_make_name(('circus', lower, upper))] = {'lower': lower, 'upper': upper}
     if args.linear:
         for lower in _set_default(args.linear_min, [2]):
             for upper in _set_default(args.linear_max, [5]):
                 if int(lower) <= int(upper):
-                    param_dict[_make_name(('chyline',lower, upper))] = {'lower':lower, 'upper':upper}
+                    param_dict[_make_name(('chyline', lower, upper))] = {'lower': lower, 'upper': upper}
     if args.mordred2d:
         param_dict[_make_name(('mordred2d',))] = {}
     return param_dict
+
 
 def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
     fragmentor_name = os.path.join(output_dir, '.'.join([prop_name, desc_name, 'pkl']))
     with open(fragmentor_name, 'wb') as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
+
 def check_parameters(params):
-    if params.input.split('.')[-1] not in ('csv', 'xls', 'xlsx') :
+    if params.input.split('.')[-1] not in ('csv', 'xls', 'xlsx'):
         raise ValueError('The input file should be of CSV or Excel format.')
     for i, p in enumerate(params.property_col):
         if ' ' in p:
@@ -118,6 +115,7 @@ def check_parameters(params):
 
 def create_input(input_params):
     input_dict = {}
+    structures = []
 
     if input_params['input_file'].endswith('csv'):
         data_table = pd.read_table(input_params['input_file'], sep=',')
@@ -155,31 +153,31 @@ def create_input(input_params):
         else:
             name = p
 
-        input_dict['prop'+str(i+1)] = { 'indices': indices,
-                                        'property': y,
-                                        'property_name': name}
+        input_dict['prop'+str(i+1)] = {'indices': indices,
+                                       'property': y,
+                                       'property_name': name}
     return input_dict
 
 
 def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='all'):
     desc_type = desc_name.split('_')[0]
-    result = {'name':desc_name, 'type':desc_type}
+    result = {'name': desc_name, 'type': desc_type}
     for k, d in input_dict.items():
         if k.startswith('prop'):
             base_column = list(input_dict['structures'].columns)[0]
             if len(input_dict['structures'].columns) == 1 and 'solvents' not in input_dict.keys():
-                calculator = eval(calculators[desc_type])
+                calculator = get_raw_calculator(desc_type, descriptor_params)
                 desc = calculator.fit_transform(input_dict['structures'][base_column].iloc[d['indices']])
             else:
                 calculators_dict = {}
                 for c in input_dict['structures'].columns:
-                    calculators_dict[c] = eval(calculators[desc_type])
+                    calculators_dict[c] = get_raw_calculator(desc_type, descriptor_params)
                 input_table = input_dict['structures']
                 if 'solvents' in input_dict.keys():
                     calculators_dict[input_dict['solvents'].name] = SolventVectorizer()
                     input_table = pd.concat([input_dict['structures'], input_dict['solvents']], axis=1)
 
-                calculator = ComplexFragmentor(associator = calculators_dict, 
+                calculator = ComplexFragmentor(associator=calculators_dict,
                                                structure_columns=[base_column])
                 desc = calculator.fit_transform(input_table.iloc[d['indices']])
 
@@ -220,9 +218,11 @@ def output_descriptors(calculated_result, output_params):
                 dump_svmlight_file(np.array(d['table']), d['property'], 
                                    output_name, zero_based=False)
 
+
 def calculate_and_output(input_dict, desc_name, descriptor_dictionary, output_params):
     result = calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary)
     output_descriptors(result, output_params)
+
 
 def create_output_dir(outdir):
     if os.path.exists(outdir):
@@ -322,25 +322,25 @@ if __name__ == '__main__':
                         help='column that contains the solvents. Check the available solvents in the solvents.py script')
 
     parser.add_argument('--output_structures', action='store_true',
-                        help='output the csv file contatining structures along with descriptors')
+                        help='output the csv file containing structures along with descriptors')
 
     args = parser.parse_args()
     check_parameters(args)
     
     input_params = {
-        'input_file':args.input, 
-        'structure_col':args.structure_col,
-        'property_col':args.property_col,
-        'property_names':args.property_names,
+        'input_file': args.input,
+        'structure_col': args.structure_col,
+        'property_col': args.property_col,
+        'property_names': args.property_names,
         'concatenate': args.concatenate,
-        'solvent':args.solvent
+        'solvent': args.solvent
     }
 
     output_params = {
         'output': args.output,
-        'separate':args.separate_folders,
-        'format':args.format,
-        'pickle':args.save,
+        'separate': args.separate_folders,
+        'format': args.format,
+        'pickle': args.save,
         'write_output': True,
     }
     create_output_dir(output_params['output'])
@@ -358,7 +358,7 @@ if __name__ == '__main__':
                                                       output_params))
         threads.append(t)
     
-    if args.parallel>0:    
+    if args.parallel > 0:
         for t in threads:
             t.start()
         for t in threads:
@@ -367,3 +367,7 @@ if __name__ == '__main__':
         for t in threads:
             t.start()
             t.join()
+
+
+__all__ = ['calculate_and_output', 'calculate_descriptor_table', 'check_parameters',
+           'create_input', 'create_output_dir', 'output_descriptors']

@@ -20,4 +20,3 @@
 from .chem_features import *
 from .coloratom import *
 from .solvents import *
-from .utils import *

@@ -18,47 +18,23 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-import glob, contextlib, os
+import os
 import pandas as pd
-import numpy as np
-from multiprocessing import Manager
-from functools import partial
-
-from doptools.optimizer.config import methods
 import pickle
+import argparse
+
+from doptools.optimizer.config import get_raw_model
 
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, LabelBinarizer
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.model_selection import RepeatedKFold, cross_val_score, KFold, cross_val_predict
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.svm import SVR, SVC
-import xgboost as xgb
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
-import argparse
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='Optimized model rebuilder', 
-                                    description='Rebuilds the model from the optimized trial parameters,\nsaving it as an UNTRAINED pipeline in pickle')
-    parser.add_argument('-d', '--descdir', required=True, 
-        help='the folder containing descriptor files. Can contain folders separated by descriptor type')
-    parser.add_argument('-m', '--modeldir', required=True, 
-        help='the folder containing model output files. Should contain "trials.all" file.')
-    parser.add_argument('-n', '--number', type=int, required=True, 
-        help='the trial number for the model to be rebuilt.')
-    parser.add_argument('-o', '--outdir', required=True, 
-        help='the output folder for the models.')
-
-    args = parser.parse_args()
-    descdir = args.descdir
-    modeldir = args.modeldir
-    number = args.number
-    outdir = args.outdir
-
+def rebuild(descdir, modeldir, number, outdir):
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
     else:
@@ -89,12 +65,35 @@ if __name__ == '__main__':
 
     params = rebuild_trial[rebuild_trial.index[list(rebuild_trial.index).index('method')+1:]].to_dict()
     method = rebuild_trial['method']
-    model = eval(methods[method])
+    model = get_raw_model(method, params)
     pipeline_steps.append(('model', model))
 
     pipeline = Pipeline(pipeline_steps)
 
-    modelfile_name = '_'.join([rebuild_trial['method'], 'trial'+str(number), desc_name])
+    modelfile_name = '_'.join([method, 'trial'+str(number), desc_name])
     with open(os.path.join(outdir, modelfile_name+'.pkl'), 'wb') as f:
         pickle.dump(pipeline, f)
 
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(prog='Optimized model rebuilder', 
+                                     description='Rebuilds the model from the optimized trial parameters,\nsaving it as an UNTRAINED pipeline in pickle')
+    parser.add_argument('-d', '--descdir', required=True,
+                        help='the folder containing descriptor files. Can contain folders separated by descriptor type')
+    parser.add_argument('-m', '--modeldir', required=True,
+                        help='the folder containing model output files. Should contain "trials.all" file.')
+    parser.add_argument('-n', '--number', type=int, required=True,
+                        help='the trial number for the model to be rebuilt.')
+    parser.add_argument('-o', '--outdir', required=True,
+                        help='the output folder for the models.')
+
+    args = parser.parse_args()
+    descdir = args.descdir
+    modeldir = args.modeldir
+    number = args.number
+    outdir = args.outdir
+
+    rebuild(descdir, modeldir, number, outdir)
+
+
+__all__ = ['rebuild']

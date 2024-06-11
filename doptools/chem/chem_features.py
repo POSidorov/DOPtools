@@ -20,19 +20,16 @@
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
-from numpy import array
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_selection import SelectorMixin 
 from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
-from chython import from_rdkit_molecule, to_rdkit_molecule
 from typing import Optional, List, Dict, Tuple
 from rdkit import Chem
-from rdkit.Chem import MACCSkeys, AllChem, rdMolDescriptors
-from rdkit.DataStructs.cDataStructs import ExplicitBitVect
+from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
 from mordred import Calculator, descriptors
-from abc import ABC, abstractmethod
 from doptools.chem.utils import _add_stereo_substructure
+
 
 class DescriptorCalculator:
     """
@@ -40,7 +37,7 @@ class DescriptorCalculator:
     Made for utility functions, such as retrieveing the name, size, or
     features of the calculator.
     """
-    def __init__(self, name:str, size:Tuple[int]):
+    def __init__(self, name: str, size: Tuple[int]):
         self._name = name
         self._size = size
         self.feature_names = []
@@ -65,7 +62,6 @@ class DescriptorCalculator:
         Returns the list of features as strings.
         """
         return self.feature_names
-    
     
 
 class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
@@ -98,7 +94,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     in SMILES.
     """
 
-    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, on_bond=False, fmt:str="mol"): 
+    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, on_bond: bool = False, fmt: str = "mol"):
         """
         Circus descriptor calculator constructor.
 
@@ -126,7 +122,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self._name = "circus"
         self._size = (lower, upper)
     
-    def fit(self, X:DataFrame, y:Optional[List]=None):
+    def fit(self, X: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -141,6 +137,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         self.feature_names = []
         for i, mol in enumerate(X):
+            reac = None
             if self.fmt == "smiles":
                 mol = smiles(mol)
             if isinstance(mol, ReactionContainer):
@@ -173,7 +170,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                             self.feature_names.append(sub_smiles)
         return self
 
-    def transform(self, X:DataFrame, y:Optional[List]=None) -> DataFrame:
+    def transform(self, X: DataFrame, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -188,6 +185,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
+            reac = None
             if self.fmt == "smiles":
                 mol = smiles(mol)
             if isinstance(mol, ReactionContainer):
@@ -215,7 +213,6 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
         return table
     
-    
 
 class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
@@ -238,7 +235,7 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
     in a chython MoleculeContainer or CGRContainer, "smiles" if they are
     in SMILES.
     """
-    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
+    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, fmt: str = "mol"):
         self.feature_names = []
         self.lower = lower 
         self.upper = upper
@@ -247,7 +244,7 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self._name = "chyline"
         self._size = (lower, upper)
 
-    def fit(self, X:DataFrame, y:Optional[List]=None):
+    def fit(self, X: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -269,7 +266,7 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.feature_names = pd.DataFrame(output).columns
         return self
 
-    def transform(self, X:DataFrame, y:Optional[List]=None):
+    def transform(self, X: DataFrame, y: Optional[List] = None):
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -295,6 +292,7 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         df = df.fillna(0)
         return df
 
+
 class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
     Fingeprinter class is a scikit-learn compatible transformer that
@@ -308,7 +306,9 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     FP), and any addiitonal parameters that the RDkit FP type can
     take.
     """
-    def __init__(self, fp_type, nBits=1024, radius=None, params={}):
+    def __init__(self, fp_type, nBits: int = 1024, radius=None, params=None):
+        if params is None:
+            params = {}
         self.fp_type = fp_type
         self.nBits = nBits
         if radius is None:
@@ -320,14 +320,14 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
         self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
-        if fp_type=="morgan" and 'useFeatures' in params.keys():
+        if fp_type == "morgan" and 'useFeatures' in params.keys():
             self._name = "morganfeatures"
-        elif fp_type=="rdkfp" and 'branchedPaths' in params.keys():
+        elif fp_type == "rdkfp" and 'branchedPaths' in params.keys():
             self._name = "rdkfplinear"
         else:
             self._name = fp_type
         
-    def fit(self, X, y=None):
+    def fit(self, X: DataFrame, y=None):
         """
         Fits the fingerprint calculator.
 
@@ -338,7 +338,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
-        if self.fp_type=='morgan':
+        if self.fp_type == 'morgan':
             self.feature_names = dict([(i, []) for i in range(self.nBits)])
             for x in X:
                 temp = {}
@@ -351,11 +351,11 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 self.info.update(temp)
                 for k, v in temp.items():
                     for i in v:
-                        if i[1]>0:
-                            env = Chem.FindAtomEnvironmentOfRadiusN(m,i[1],i[0])
-                            amap={}
-                            submol=Chem.PathToSubmol(m,env,atomMap=amap)
-                            self.feature_names[k].append(Chem.MolToSmiles(submol,canonical=True))
+                        if i[1] > 0:
+                            env = Chem.FindAtomEnvironmentOfRadiusN(m, i[1], i[0])
+                            amap = {}
+                            submol = Chem.PathToSubmol(m, env, atomMap=amap)
+                            self.feature_names[k].append(Chem.MolToSmiles(submol, canonical=True))
                         else:
                             self.feature_names[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
                         #self.feature_names_chython[k].append(str(x.augmented_substructure([i[0]+1], deep=i[1])))
@@ -373,7 +373,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             pass
         elif self.fp_type == 'torsion':
             pass
-        elif self.fp_type=='rdkfp':
+        elif self.fp_type == 'rdkfp':
             self.feature_names = dict([(i, []) for i in range(self.nBits)])
             for x in X:
                 temp = {}
@@ -397,14 +397,14 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     def get_features(self, x):
 
         features = dict([(i, []) for i in range(self.nBits)])
-        if self.fp_type=='morgan':
+        if self.fp_type == 'morgan':
             m = Chem.MolFromSmiles(str(x))
             temp = {} 
-            AllChem.GetMorganFingerprintAsBitVect(m, 
-                                                nBits=self.nBits, 
-                                                radius=self.size[0], 
-                                                bitInfo=temp, 
-                                                **self.params)
+            AllChem.GetMorganFingerprintAsBitVect(m,
+                                                  nBits=self.nBits,
+                                                  radius=self.size[0],
+                                                  bitInfo=temp,
+                                                  **self.params)
             for k, v in temp.items():
                 for i in v:
                     features[k].append(str(m.augmented_substructure([i[0]+1], deep=i[1])))
@@ -436,7 +436,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         return features
 
     def get_feature_names(self) -> List[str]:
-        return([str(i) for i in range(self.nBits)])
+        return [str(i) for i in range(self.nBits)]
                                        
     def transform(self, X, y=None):
         """
@@ -454,28 +454,29 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         res = []
         for x in X:
             m = Chem.MolFromSmiles(str(x))
-            if self.fp_type=='morgan':
+            if self.fp_type == 'morgan':
                 res.append(AllChem.GetMorganFingerprintAsBitVect(m, 
                                                                  nBits=self.nBits, 
                                                                  radius=self.size[0], 
                                                                  **self.params))
-            if self.fp_type=='avalon':
+            if self.fp_type == 'avalon':
                 res.append(pyAvalonTools.GetAvalonFP(m, nBits=self.nBits))
-            if self.fp_type=='rdkfp':
+            if self.fp_type == 'rdkfp':
                 res.append(Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                maxPath=self.size[0], **self.params))
-            if self.fp_type=='layered':
-                res.append(Chem.LayeredFingerprint(m, fpSize=self.nBits, 
-                                maxPath=self.size[0], **self.params))
-            if self.fp_type=='atompairs':
-                res.append(rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(m, nBits=self.nBits, 
-                                **self.params))
-            if self.fp_type=='torsion':
-                res.append(rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(m, nBits=self.nBits, 
-                                **self.params))
+                                               maxPath=self.size[0], **self.params))
+            if self.fp_type == 'layered':
+                res.append(Chem.LayeredFingerprint(m, fpSize=self.nBits,
+                                                   maxPath=self.size[0], **self.params))
+            if self.fp_type == 'atompairs':
+                res.append(rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(m, nBits=self.nBits,
+                                                                                  **self.params))
+            if self.fp_type == 'torsion':
+                res.append(rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(m, nBits=self.nBits,
+                                                                                            **self.params))
             
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
-    
+
+
 class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
     ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features 
@@ -494,7 +495,9 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     ComplexFragmentor assumes that one of the types of features will be structural, thus, 
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
-    def __init__(self, associator:Dict[str,object], structure_columns:List[str]=[]):
+    def __init__(self, associator: Dict[str, object], structure_columns=None):
+        if structure_columns is None:
+            structure_columns = []
         self.associator = associator
         self.structure_columns = structure_columns
         #self.fragmentor = self.associator[self.structure_column]
@@ -506,14 +509,14 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         return self.fragmentor.get_feature_names()
     
-    def fit(self, x:DataFrame, y:Optional[List]=None):
+    def fit(self, x: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
 
-        :param X: the dataframe with the columns containing structures or solvents.
+        :param x: the dataframe with the columns containing structures or solvents.
             Trains each calculator separately on the corresponding column.
-        :type X: DataFrame
+        :type x: DataFrame
 
         :param y: required by default by scikit-learn standards, but
             doesn't change the function at all.
@@ -524,16 +527,16 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
             self.feature_names += [k+'::'+f for f in v.get_feature_names()]
         return self
     
-    def transform(self, x:DataFrame) -> DataFrame:
+    def transform(self, x: DataFrame, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given data frame to a data frame of features
         with their values. Applies each feature generator
         separately, then concatenates them.
 
-        :param X: the data frame to transform to feature table using
+        :param x: the data frame to transform to feature table using
             trained feature list. Must contain columns indicated in the
             associator.
-        :type X: DataFrame
+        :type x: DataFrame
 
         :param y: required by default by scikit-learn standards, but
             doesn't change the function at all.
@@ -548,6 +551,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         res = pd.concat(concat, axis=1, sort=False)
         res.columns = self.feature_names
         return res
+
 
 class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
@@ -602,22 +606,22 @@ class PassThrough(BaseEstimator, TransformerMixin):
     passthrough function. Needed to be compatible with
     ComplexFragmentor.
     """
-    def __init__(self, column_name:str):
+    def __init__(self, column_name: str):
         self.column_name = column_name
         self.feature_names = [self.column_name]
     
-    def fit(self, x:DataFrame, y=None):
+    def fit(self, x: DataFrame, y=None):
         """
         Fits the calculator. Parameters are not necessary.
         """
         return self
     
-    def transform(self, x:DataFrame):
+    def transform(self, x: DataFrame, y: Optional[List] = None):
         """
         Returns the column without any transformation.
 
-        :param X: dataframe from which the columns will be taken
-        :type X: DataFrame
+        :param x: dataframe from which the columns will be taken
+        :type x: DataFrame
 
         :param y: required by default by scikit-learn standards, but
             doesn't change the function at all.
@@ -654,7 +658,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
     in SMILES.
     """
 
-    def __init__(self, lower:int=0, upper:int=0, only_dynamic:bool=False, fmt:str="mol"): 
+    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, fmt: str = "mol"):
         """
         Circus descriptor calculator constructor.
 
@@ -679,7 +683,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         self._name = "linear"
         self._size = (lower, upper)
     
-    def fit(self, X:DataFrame, y:Optional[List]=None):
+    def fit(self, X: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -709,7 +713,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
                         self.features.append(sub)
         return self
 
-    def transform(self, X:DataFrame, y:Optional[List]=None) -> DataFrame:
+    def transform(self, X: DataFrame, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -731,6 +735,9 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
                 # if CGRs are used, the transformation of the substructure to the CGRcontainer is needed
                 mapping = list(sub.get_mapping(mol))
                 # mapping is the list of all possible substructure mappings into the given molecule/CGR
-                table.loc[i,str(sub)] = len(mapping)
+                table.loc[i, str(sub)] = len(mapping)
         return table
-    
+
+
+__all__ = ['ChythonCircus', 'ChythonCircusNonhash', 'ChythonLinear', 'ComplexFragmentor',
+           'DescriptorCalculator', 'Fingerprinter', 'Mordred2DCalculator', 'PassThrough']
