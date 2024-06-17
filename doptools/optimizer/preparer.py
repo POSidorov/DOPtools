@@ -106,7 +106,7 @@ def check_parameters(params):
     if params.input.split('.')[-1] not in ('csv', 'xls', 'xlsx'):
         raise ValueError('The input file should be of CSV or Excel format.')
     for i, p in enumerate(params.property_col):
-        if ' ' in p:
+        if ' ' in p and len(params.property_names)<(i+1):
             raise ValueError(f'Column name {p} contains spaces in the name.\nPlease provide alternative names with --property_names option.')
     if params.property_names:
         if len(params.property_col) != len(params.property_names):

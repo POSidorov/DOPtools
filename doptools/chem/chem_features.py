@@ -94,7 +94,8 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     in SMILES.
     """
 
-    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, on_bond: bool = False, fmt: str = "mol"):
+    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, 
+                 on_bond: bool = False, fmt: str = "mol", keep_stereo = 'no'):
         """
         Circus descriptor calculator constructor.
 
@@ -121,6 +122,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.on_bond = on_bond
         self._name = "circus"
         self._size = (lower, upper)
+        self.keep_stereo = keep_stereo
     
     def fit(self, X: DataFrame, y: Optional[List] = None):
         """
@@ -149,25 +151,39 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([atom], deep=length)
                         sub_smiles = str(sub)
-                        if isinstance(mol, CGRContainer):
+                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles not in self.feature_names:
                             # if dynamic_only is on, skip all non-dynamic fragments
                             if self.only_dynamic and ">" not in sub_smiles:
                                 continue
                             self.feature_names.append(sub_smiles)
+                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                            sub_smiles = _add_stereo_substructure(sub, reac)
+                            if sub_smiles not in self.feature_names:
+                            # if dynamic_only is on, skip all non-dynamic fragments
+                                if self.only_dynamic and ">" not in sub_smiles:
+                                    continue
+                                self.feature_names.append(sub_smiles)
                 else:
                     for bond in mol.bonds():
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
                         sub_smiles = str(sub)
-                        if isinstance(mol, CGRContainer):
+                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles not in self.feature_names:
                             # if dynamic_only is on, skip all non-dynamic fragments
                             if self.only_dynamic and ">" not in sub_smiles:
                                 continue
                             self.feature_names.append(sub_smiles)
+                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                            sub_smiles = _add_stereo_substructure(sub, reac)
+                            if sub_smiles not in self.feature_names:
+                            # if dynamic_only is on, skip all non-dynamic fragments
+                                if self.only_dynamic and ">" not in sub_smiles:
+                                    continue
+                                self.feature_names.append(sub_smiles)
         return self
 
     def transform(self, X: DataFrame, y: Optional[List] = None) -> DataFrame:
@@ -198,19 +214,28 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([atom], deep=length)
                         sub_smiles = str(sub)
-                        if isinstance(mol, CGRContainer):
+                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles in self.feature_names:
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
+                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                            sub_smiles = _add_stereo_substructure(sub, reac)
+                            if sub_smiles in self.feature_names:
+                                table.iloc[i, self.feature_names.index(sub_smiles)] += 1
+                        
                 else:
                     for bond in mol.bonds():
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
                         sub_smiles = str(sub)
-                        if isinstance(mol, CGRContainer):
+                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles in self.feature_names:
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
+                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                            sub_smiles = _add_stereo_substructure(sub, reac)
+                            if sub_smiles in self.feature_names:
+                                table.iloc[i, self.feature_names.index(sub_smiles)] += 1
         return table
     
 
@@ -283,6 +308,8 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
         output = []
         for m in X:
+            if self.fmt == "smiles":
+                m = smiles(m)
             output.append(m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
         output = pd.DataFrame(output)
         output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
