@@ -22,7 +22,7 @@ import argparse
 import os
 import pickle
 import warnings
-from threading import Thread
+import multiprocessing as mp
 
 import numpy as np
 import pandas as pd
@@ -220,10 +220,10 @@ def output_descriptors(calculated_result, output_params):
                                    output_name, zero_based=False)
 
 
-def calculate_and_output(input_dict, desc_name, descriptor_dictionary, output_params):
-    result = calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary)
+def calculate_and_output(input_args):
+    inpt, desc, descriptor_params, output_params = input_args
+    result = calculate_descriptor_table(inpt, desc, descriptor_params)
     output_descriptors(result, output_params)
-
 
 def create_output_dir(outdir):
     if os.path.exists(outdir):
@@ -232,7 +232,6 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
                                      description='Prepares the descriptor files for hyperparameter optimization launch.')
@@ -240,7 +239,7 @@ if __name__ == '__main__':
     # I/O aruments
     parser.add_argument('-i', '--input', required=True, 
                         help='Input file, requires csv or Excel format')
-    parser.add_argument('--structure_col', action='extend', type=str, nargs='+', default=['SMILES'],
+    parser.add_argument('--structure_col', action='extend', type=str, default='SMILES',
                         help='Column name with molecular structures representations. Default = SMILES.')
     parser.add_argument('--concatenate', action='extend', type=str, nargs='+', default=[],
                         help='Additional column names with molecular structures representations to be concatenated with the primary structure column.')
@@ -248,8 +247,8 @@ if __name__ == '__main__':
                         help='Column with properties to be used. Case sensitive.')
     parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[],
                         help='Alternative name for the property columns specified by --property_col.')
-    parser.add_argument('--standardize', action='store_true', default=True, choices=[True, False],
-                        help='Standardize the input structures? Default = True.')
+    parser.add_argument('--standardize', action='store_true', default=False,
+                        help='Standardize the input structures? Default = False.')
     parser.add_argument('-o', '--output', required=True,
                          help='Output folder where the descriptor files will be saved.')
     parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'],
@@ -370,24 +369,21 @@ if __name__ == '__main__':
 
     descriptor_dictionary = _enumerate_parameters(args)
 
-    threads = []
+    # Create a multiprocessing pool (excluding mordred) with the specified number of processes
+    # If args.parallel is 0 or negative, use the default number of processes
+    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else None)
+    non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred' not in desc]
+    # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
+    # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
+    pool.map(calculate_and_output, [(inpt, desc, descriptor_dictionary[desc], output_params) for desc in non_mordred_descriptors])
+    pool.close() # Close the pool and prevent any more tasks from being submitted
+    pool.join() # Wait for all the tasks to complete
 
-    for desc in descriptor_dictionary.keys():
-        t = Thread(target=calculate_and_output, args=(inpt, 
-                                                      desc,
-                                                      descriptor_dictionary[desc],
-                                                      output_params))
-        threads.append(t)
-    
-    if args.parallel > 0:
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-    else:
-        for t in threads:
-            t.start()
-            t.join()
+    # Serial mordred calculations
+    mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred' in desc]
+    for desc in mordred_descriptors:
+        calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
+
 
 
 __all__ = ['calculate_and_output', 'calculate_descriptor_table', 'check_parameters',
