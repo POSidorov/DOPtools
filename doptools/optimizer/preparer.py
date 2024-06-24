@@ -36,7 +36,6 @@ from doptools.optimizer.config import get_raw_calculator
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
-
 def _set_default(argument, default_values):
     if len(argument) > 0:
         return list(set(argument))
