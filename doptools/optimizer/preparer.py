@@ -18,24 +18,23 @@
 #  along with this program; if not, see
 #  <https://www.gnu.org/licenses/>.
 
-from chython import smiles
-from threading import Thread
-import pickle
 import argparse
 import os
+import pickle
+import warnings
+import multiprocessing as mp
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+from chython import smiles
 from sklearn.datasets import dump_svmlight_file
 
 from doptools.chem.chem_features import ComplexFragmentor
 from doptools.chem.solvents import SolventVectorizer
 from doptools.optimizer.config import get_raw_calculator
 
-import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
-
 
 def _set_default(argument, default_values):
     if len(argument) > 0:
@@ -127,12 +126,13 @@ def create_input(input_params):
     input_dict['structures'] = pd.DataFrame(columns=[input_params['structure_col']] + input_params['concatenate'])
     for col in [input_params['structure_col']] + input_params['concatenate']:
         structures = [smiles(m) for m in data_table[col]]
-        # this is magic, gives an error if done otherwise...
-        for m in structures:
-            try:
-                m.canonicalize(fix_tautomers=False) 
-            except:
-                m.canonicalize(fix_tautomers=False)
+        if args.standardize:
+            # this is magic, gives an error if done otherwise...
+            for m in structures:
+                try:
+                    m.canonicalize(fix_tautomers=False) 
+                except:
+                    m.canonicalize(fix_tautomers=False)
         input_dict['structures'][col] = structures
     #input_dict['structures'] = structures
 
@@ -219,10 +219,10 @@ def output_descriptors(calculated_result, output_params):
                                    output_name, zero_based=False)
 
 
-def calculate_and_output(input_dict, desc_name, descriptor_dictionary, output_params):
-    result = calculate_descriptor_table(input_dict, desc_name, descriptor_dictionary)
+def calculate_and_output(input_args):
+    inpt, desc, descriptor_params, output_params = input_args
+    result = calculate_descriptor_table(inpt, desc, descriptor_params)
     output_descriptors(result, output_params)
-
 
 def create_output_dir(outdir):
     if os.path.exists(outdir):
@@ -231,98 +231,117 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
-                                     description='Prepares the descriptor files for hyperparameter optimization launch')
+                                     description='Prepares the descriptor files for hyperparameter optimization launch.')
+    
+    # I/O aruments
     parser.add_argument('-i', '--input', required=True, 
-                        help='input file, requires csv or Excel format')
-    parser.add_argument('--structure_col', required=True, type=str, 
-                        help='the name of the column where the structure SMILES are stored')
-    parser.add_argument('--concatenate', action='extend', type=str, nargs='+', default=[])
-    parser.add_argument('--property_col', required=True, action='extend', type=str, nargs='+', default=[])
-    parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[])
+                        help='Input file, requires csv or Excel format')
+    parser.add_argument('--structure_col', action='extend', type=str, default='SMILES',
+                        help='Column name with molecular structures representations. Default = SMILES.')
+    parser.add_argument('--concatenate', action='extend', type=str, nargs='+', default=[],
+                        help='Additional column names with molecular structures representations to be concatenated with the primary structure column.')
+    parser.add_argument('--property_col', required=True, action='extend', type=str, nargs='+', default=[],
+                        help='Column with properties to be used. Case sensitive.')
+    parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[],
+                        help='Alternative name for the property columns specified by --property_col.')
+    parser.add_argument('--standardize', action='store_true', default=False,
+                        help='Standardize the input structures? Default = False.')
+    parser.add_argument('-o', '--output', required=True,
+                         help='Output folder where the descriptor files will be saved.')
+    parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'],
+                        help='Descriptor files format. Default = svm.')
+    parser.add_argument('-p', '--parallel', action='store', type=int, default=0,
+                        help='Number of parallel processes to use. Default = 0')
+    parser.add_argument('-s', '--save', action='store_true',
+                        help='Save (pickle) the fragmentors for each descriptor type.')
+    parser.add_argument('--separate_folders', action='store_true',
+                        help='Save each descriptor type into a separate folders.')
 
-    parser.add_argument('-o', '--output', required=True)
-    parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'])
-    parser.add_argument('-p', '--parallel', action='store', type=int, default=0)
-    parser.add_argument('-s', '--save', action='store_true', help='save the fragmentors for each descriptor type')
-    parser.add_argument('--separate_folders', action='store_true', help='save each descriptor type into a separate folders')
-
+    # Morgan fingerprints
     parser.add_argument('--morgan', action='store_true', 
-                        help='put the option to calculate Morgan fingerprints')
+                        help='Option to calculate Morgan fingerprints.')
     parser.add_argument('--morgan_nBits', nargs='+', action='extend', type=int, default=[],
-                        help='number of bits for Morgan fingerprints')
+                        help='Number of bits for Morgan FP. Allows several numbers, which will be stored separately. Default = 1024.')
     parser.add_argument('--morgan_radius', nargs='+', action='extend', type=int, default=[],
-                        help='maximum radius of Morgan FP. Allows several numbers, which will be stored separately. Default radius 2')
+                        help='Maximum radius of Morgan FP. Allows several numbers, which will be stored separately. Default = 2.')
 
+    # Morgan feature fingerprints
     parser.add_argument('--morganfeatures', action='store_true', 
-                        help='put the option to calculate Morgan feature fingerprints')
+                        help='Option to calculate Morgan feature fingerprints.')
     parser.add_argument('--morganfeatures_nBits', nargs='+', action='extend', type=int, default=[],
-                        help='number of bits for Morgan feature fingerprints')
+                        help='Number of bits for Morgan feature FP. Allows several numbers, which will be stored separately. Default = 1024.')
     parser.add_argument('--morganfeatures_radius', nargs='+', action='extend', type=int, default=[],
-                        help='maximum radius of Morgan feature FP. Allows several numbers, which will be stored separately. Default radius 2')
+                        help='Maximum radius of Morgan feature FP. Allows several numbers, which will be stored separately. Default = 2.')
 
+    # RDKit fingerprints
     parser.add_argument('--rdkfp', action='store_true', 
-                        help='put the option to calculate RDkit fingerprints')
+                        help='Option to calculate RDkit fingerprints.')
     parser.add_argument('--rdkfp_nBits', nargs='+', action='extend', type=int, default=[],
-                        help='number of bits for RDkit fingerprints')
+                        help='Number of bits for RDkit FP. Allows several numbers, which will be stored separately. Default = 1024.')
     parser.add_argument('--rdkfp_length', nargs='+', action='extend', type=int, default=[],
-                        help='maximum length of RDkit FP. Allows several numbers, which will be stored separately. Default length 3')
+                        help='Maximum length of RDkit FP. Allows several numbers, which will be stored separately. Default = 3.')
 
+    # RDKit linear fingerprints
     parser.add_argument('--rdkfplinear', action='store_true', 
-                        help='put the option to calculate RDkit linear fingerprints')
+                        help='Option to calculate RDkit linear fingerprints.')
     parser.add_argument('--rdkfplinear_nBits', nargs='+', action='extend', type=int, default=[],
-                        help='number of bits for RDkit linear fingerprints')
+                        help='Number of bits for RDkit linear FP. Allows several numbers, which will be stored separately. Default = 1024.')
     parser.add_argument('--rdkfplinear_length', nargs='+', action='extend', type=int, default=[],
-                        help='maximum length of RDkit linear FP. Allows several numbers, which will be stored separately. Default length 3')
+                        help='Maximum length of RDkit linear FP. Allows several numbers, which will be stored separately. Default = 3.')
 
+    # RDKit layered fingerprints
     parser.add_argument('--layered', action='store_true', 
-                        help='put the option to calculate RDkit layered fingerprints')
+                        help='Option to calculate RDkit layered fingerprints.')
     parser.add_argument('--layered_nBits', nargs='+', action='extend', type=int, default=[],
-                        help='number of bits for RDkit layered fingerprints')
+                        help='Number of bits for RDkit layered FP. Allows several numbers, which will be stored separately. Default = 1024.')
     parser.add_argument('--layered_length', nargs='+', action='extend', type=int, default=[],
-                        help='maximum length of RDkit layered FP. Allows several numbers, which will be stored separately. Default length 3')
+                        help='Maximum length of RDkit layered FP. Allows several numbers, which will be stored separately. Default = 3.')
 
+    # Avalon fingerprints
     parser.add_argument('--avalon', action='store_true', 
-                        help='put the option to calculate Avalon fingerprints')
+                        help='Option to calculate Avalon fingerprints.')
     parser.add_argument('--avalon_nBits', nargs='+', action='extend', type=int, default=[], 
-                        help='number of bits for Avalon fingerprints')
+                        help='Number of bits for Avalon FP. Allows several numbers, which will be stored separately. Default = 1024.')
 
+    # Atom pair fingerprints
     parser.add_argument('--atompairs', action='store_true', 
-                        help='put the option to calculate atom pair fingerprints')
+                        help='Option to calculate atom pair fingerprints.')
     parser.add_argument('--atompairs_nBits', nargs='+', action='extend', type=int, default=[],
-                        help='number of bits for atom pair fingerprints')
+                        help='Number of bits for atom pair FP. Allows several numbers, which will be stored separately. Default = 1024.')
 
+    # Topological torsion fingerprints
     parser.add_argument('--torsion', action='store_true', 
-                        help='put the option to calculate topological torsion fingerprints')
+                        help='Option to calculate topological torsion fingerprints.')
     parser.add_argument('--torsion_nBits', nargs='+', action='extend', type=int, default=[], 
-                        help='number of bits for topological torsion fingerprints')
+                        help='Number of bits for topological torsion FP. Allows several numbers, which will be stored separately. Default = 1024.')
 
+    # Chython Linear fragments
     parser.add_argument('--linear', action='store_true', 
-                        help='put the option to calculate ChyLine fragments')
+                        help='Option to calculate ChyLine fragments.')
     parser.add_argument('--linear_min', nargs='+', action='extend', type=int, default=[],
-                        help='minimum length of linear fragments. Allows several numbers, which will be stored separately. Default value 2')
+                        help='Minimum length of linear fragments. Allows several numbers, which will be stored separately. Default = 2.')
     parser.add_argument('--linear_max', nargs='+', action='extend', type=int, default=[],
-                        help='maximum length of linear fragments. Allows several numbers, which will be stored separately. Default value 5')
+                        help='Maximum length of linear fragments. Allows several numbers, which will be stored separately. Default = 5.')
 
+    # CircuS (Circular Substructures) fragments
     parser.add_argument('--circus', action='store_true', 
-                        help='put the option to calculate CircuS fragments')
+                        help='Option to calculate CircuS fragments.')
     parser.add_argument('--circus_min', nargs='+', action='extend', type=int, default=[],
-                        help='minimum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default value 1')
+                        help='Minimum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default = 1.')
     parser.add_argument('--circus_max', nargs='+', action='extend', type=int, default=[],
-                        help='maximum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default value 2')
+                        help='Maximum radius of CircuS fragments. Allows several numbers, which will be stored separately. Default = 2.')
     parser.add_argument('--onbond', action='store_true', 
-                        help='toggle the calculation of CircuS fragments on bonds')
+                        help='Toggle the calculation of CircuS fragments on bonds. With this option the fragments will be bond-cetered, making a bond the minimal element.')
 
+    # Mordred 2D fingerprints
     parser.add_argument('--mordred2d', action='store_true', 
-                        help='put the option to calculate Mordred 2D descriptors')
-
+                        help='Option to calculate Mordred 2D descriptors.')
+    # Solvents
     parser.add_argument('--solvent', type=str, action='store', default='',
-                        help='column that contains the solvents. Check the available solvents in the solvents.py script')
+                        help='Column that contains the solvents. Check the available solvents in the solvents.py script.')
 
-    parser.add_argument('--output_structures', action='store_true',
-                        help='output the csv file containing structures along with descriptors')
 
     args = parser.parse_args()
     check_parameters(args)
@@ -349,24 +368,21 @@ if __name__ == '__main__':
 
     descriptor_dictionary = _enumerate_parameters(args)
 
-    threads = []
+    # Create a multiprocessing pool (excluding mordred) with the specified number of processes
+    # If args.parallel is 0 or negative, use the default number of processes
+    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else None)
+    non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred' not in desc]
+    # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
+    # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
+    pool.map(calculate_and_output, [(inpt, desc, descriptor_dictionary[desc], output_params) for desc in non_mordred_descriptors])
+    pool.close() # Close the pool and prevent any more tasks from being submitted
+    pool.join() # Wait for all the tasks to complete
 
-    for desc in descriptor_dictionary.keys():
-        t = Thread(target=calculate_and_output, args=(inpt, 
-                                                      desc,
-                                                      descriptor_dictionary[desc],
-                                                      output_params))
-        threads.append(t)
-    
-    if args.parallel > 0:
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-    else:
-        for t in threads:
-            t.start()
-            t.join()
+    # Serial mordred calculations
+    mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred' in desc]
+    for desc in mordred_descriptors:
+        calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
+
 
 
 __all__ = ['calculate_and_output', 'calculate_descriptor_table', 'check_parameters',
