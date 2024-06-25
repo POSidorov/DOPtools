@@ -31,9 +31,8 @@ from mordred import Calculator, descriptors
 from doptools.chem.utils import _add_stereo_substructure
 from functools import partialmethod
 
-import warnings
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=DeprecationWarning)
+from rdkit import RDLogger
+RDLogger.DisableLog('rdApp.*')
 
 # disabling the mordred tqdm log
 from tqdm import tqdm
