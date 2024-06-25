@@ -32,13 +32,14 @@ import pandas as pd
 from optuna.study import StudyDirection
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_selection import VarianceThreshold
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, mae, roc_auc_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import mean_absolute_error as mae
 from sklearn.model_selection import KFold, cross_val_predict
 #from sklearn.multioutput import MultiOutputRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder, MinMaxScaler
 from timeout_decorator import TimeoutError
-from timeout_decorator.timeout_decorator import timeout_decorator
+from timeout_decorator import timeout_decorator
 
 from doptools.optimizer.config import get_raw_model, suggest_params
 from doptools.optimizer.utils import r2, rmse

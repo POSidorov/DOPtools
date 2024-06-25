@@ -72,3 +72,14 @@ The coloring is done with matplotlib library. The atom contributions are normali
 
 .. image:: docs/img/coloratom-demo1.png
 
+
+Copyright
+============
+2023-2024 Pavel Sidorov pavel.o.sidorov@gmail.com main developer
+
+Contributors
+============
+* Philippe Gantzer p.gantzer@icredd.hokudai.ac.jp
+* Iuri Casciuc yurii.kashuk@gmail.com
+* Said Byadi saidbyadi@icredd.hokudai.ac.jp
+* Timur Gimadiev timur.gimadiev@gmail.com

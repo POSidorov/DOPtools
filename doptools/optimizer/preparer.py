@@ -23,6 +23,7 @@ import os
 import pickle
 import warnings
 import multiprocessing as mp
+import json
 
 import numpy as np
 import pandas as pd
@@ -238,7 +239,7 @@ if __name__ == '__main__':
     # I/O aruments
     parser.add_argument('-i', '--input', required=True, 
                         help='Input file, requires csv or Excel format')
-    parser.add_argument('--structure_col', action='extend', type=str, default='SMILES',
+    parser.add_argument('--structure_col', action='store', type=str, default='SMILES',
                         help='Column name with molecular structures representations. Default = SMILES.')
     parser.add_argument('--concatenate', action='extend', type=str, nargs='+', default=[],
                         help='Additional column names with molecular structures representations to be concatenated with the primary structure column.')
@@ -258,6 +259,8 @@ if __name__ == '__main__':
                         help='Save (pickle) the fragmentors for each descriptor type.')
     parser.add_argument('--separate_folders', action='store_true',
                         help='Save each descriptor type into a separate folders.')
+    parser.add_argument('--load_config', action='store', type=str, default='',
+                        help='Load descriptor configuration from a JSON file. JSON parameters are prioritized!')
 
     # Morgan fingerprints
     parser.add_argument('--morgan', action='store_true', 
@@ -344,6 +347,11 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
+    if args.load_config:
+        with open(args.load_config) as f:
+            p = json.load(f)
+        vars(args).update(p)
+
     check_parameters(args)
     
     input_params = {
@@ -370,8 +378,8 @@ if __name__ == '__main__':
 
     # Create a multiprocessing pool (excluding mordred) with the specified number of processes
     # If args.parallel is 0 or negative, use the default number of processes
-    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else None)
-    non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred' not in desc]
+    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
+    non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' not in desc]
     # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
     # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
     pool.map(calculate_and_output, [(inpt, desc, descriptor_dictionary[desc], output_params) for desc in non_mordred_descriptors])
@@ -379,7 +387,7 @@ if __name__ == '__main__':
     pool.join() # Wait for all the tasks to complete
 
     # Serial mordred calculations
-    mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred' in desc]
+    mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' in desc]
     for desc in mordred_descriptors:
         calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
 

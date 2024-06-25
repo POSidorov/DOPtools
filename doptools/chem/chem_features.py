@@ -29,6 +29,15 @@ from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
 from mordred import Calculator, descriptors
 from doptools.chem.utils import _add_stereo_substructure
+from functools import partialmethod
+
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+warnings.simplefilter(action='ignore', category=DeprecationWarning)
+
+# disabling the mordred tqdm log
+from tqdm import tqdm
+tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 
 class DescriptorCalculator:
