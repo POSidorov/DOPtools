@@ -121,6 +121,9 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
         param fmt: format of the molecules for input ('mol' for MoleculeContainers, 'smiles' for strings).
         :type fmt: str
+
+        param keep_stereo: ("yes", "no", or "both") applicable for reactions to generate stereo-keeping CGR fragments.
+        :type keep_stereo: str
         """
         self.feature_names = []
         self.lower = lower 
@@ -538,11 +541,12 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
     
-    def get_structural_feature_names(self) -> List[str]:
+    # CURRENTLY NOT IMPLEMENTED
+    #def get_structural_feature_names(self) -> List[str]:
         """
         Returns the list of only structural features associated to the structure_column as strings.
         """
-        return self.fragmentor.get_feature_names()
+    #    return self.fragmentor.get_feature_names()
     
     def fit(self, x: DataFrame, y: Optional[List] = None):
         """
@@ -557,6 +561,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
+        self.feature_names = []
         for k, v in self.associator.items():
             v.fit(x[k])
             self.feature_names += [k+'::'+f for f in v.get_feature_names()]
