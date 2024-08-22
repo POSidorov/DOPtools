@@ -127,7 +127,7 @@ def create_input(input_params):
     input_dict['structures'] = pd.DataFrame(columns=[input_params['structure_col']] + input_params['concatenate'])
     for col in [input_params['structure_col']] + input_params['concatenate']:
         structures = [smiles(m) for m in data_table[col]]
-        if args.standardize:
+        if input_params['standardize']:
             # this is magic, gives an error if done otherwise...
             for m in structures:
                 try:
@@ -357,6 +357,7 @@ if __name__ == '__main__':
     input_params = {
         'input_file': args.input,
         'structure_col': args.structure_col,
+        'standardize': args.standardize,
         'property_col': args.property_col,
         'property_names': args.property_names,
         'concatenate': args.concatenate,
