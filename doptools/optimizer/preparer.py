@@ -30,12 +30,13 @@ import pandas as pd
 from chython import smiles
 from sklearn.datasets import dump_svmlight_file
 
-from doptools.chem.chem_features import ComplexFragmentor
+from doptools.chem.chem_features import ComplexFragmentor, PassThrough
 from doptools.chem.solvents import SolventVectorizer
 from doptools.optimizer.config import get_raw_calculator
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
+
 
 def _set_default(argument, default_values):
     if len(argument) > 0:
@@ -140,6 +141,9 @@ def create_input(input_params):
     if input_params['solvent']:
         input_dict['solvents'] = data_table[input_params['solvent']]
 
+    if 'passthrough' in input_params.keys() and input_params['passthrough']:
+        input_dict['passthrough'] = data_table[list(input_params['passthrough'])]
+
     for i, p in enumerate(input_params['property_col']):
         y = data_table[p]
         indices = list(y[pd.notnull(y)].index)
@@ -166,7 +170,8 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
     for k, d in input_dict.items():
         if k.startswith('prop'):
             base_column = list(input_dict['structures'].columns)[0]
-            if len(input_dict['structures'].columns) == 1 and 'solvents' not in input_dict.keys():
+            if len(input_dict['structures'].columns) == 1 and 'solvents' not in input_dict.keys() \
+                    and 'passthrough' not in input_dict.keys():
                 calculator = get_raw_calculator(desc_type, descriptor_params)
                 desc = calculator.fit_transform(input_dict['structures'][base_column].iloc[d['indices']])
             else:
@@ -177,6 +182,12 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
                 if 'solvents' in input_dict.keys():
                     calculators_dict[input_dict['solvents'].name] = SolventVectorizer()
                     input_table = pd.concat([input_dict['structures'], input_dict['solvents']], axis=1)
+                if 'passthrough' in input_dict.keys():
+                    if type(input_dict['passthrough']) is not pd.DataFrame:
+                        input_dict['passthrough'] = pd.DataFrame(input_dict['passthrough'])
+                    for pt in input_dict['passthrough']:
+                        calculators_dict[pt] = PassThrough(column_name=pt)
+                        input_table = pd.concat([input_table, input_dict['passthrough'][pt]], axis=1)
 
                 calculator = ComplexFragmentor(associator=calculators_dict,
                                                structure_columns=[base_column])
@@ -225,6 +236,7 @@ def calculate_and_output(input_args):
     result = calculate_descriptor_table(inpt, desc, descriptor_params)
     output_descriptors(result, output_params)
 
+
 def create_output_dir(outdir):
     if os.path.exists(outdir):
         print('The output directory {} already exists. The data may be overwritten'.format(outdir))
@@ -232,11 +244,12 @@ def create_output_dir(outdir):
         os.makedirs(outdir)
         print('The output directory {} created'.format(outdir))
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
                                      description='Prepares the descriptor files for hyperparameter optimization launch.')
     
-    # I/O aruments
+    # I/O arguments
     parser.add_argument('-i', '--input', required=True, 
                         help='Input file, requires csv or Excel format')
     parser.add_argument('--structure_col', action='store', type=str, default='SMILES',
@@ -391,7 +404,6 @@ if __name__ == '__main__':
     mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' in desc]
     for desc in mordred_descriptors:
         calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
-
 
 
 __all__ = ['calculate_and_output', 'calculate_descriptor_table', 'check_parameters',
