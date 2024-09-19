@@ -669,6 +669,9 @@ class PassThrough(BaseEstimator, TransformerMixin):
         """
         return pd.Series(x, name=self.column_name)
 
+    def get_feature_names(self):
+        return self.feature_names
+
 
 class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
     """
@@ -777,6 +780,9 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
                 # mapping is the list of all possible substructure mappings into the given molecule/CGR
                 table.loc[i, str(sub)] = len(mapping)
         return table
+
+    def get_feature_names(self):
+        return self.feature_names
 
 
 __all__ = ['ChythonCircus', 'ChythonCircusNonhash', 'ChythonLinear', 'ComplexFragmentor',
