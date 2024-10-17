@@ -23,6 +23,7 @@ import contextlib
 import glob
 import os
 import warnings
+import json
 from functools import partial
 from multiprocessing import Manager
 
@@ -185,6 +186,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 float_format='%.3f', index=False)
             res_pd.to_csv(os.path.join(outdir,'trial.'+str(n),'predictions'), sep=' ', 
                 float_format='%.3f', index=False)
+            with open(os.path.join(outdir,'trial.'+str(n),'parameters.json'), 'w') as param_file:
+                json.dump(storage[n], param_file)
         else:
             results_detailed[n] = {'score': score_df, 'predictions': res_pd}
 
