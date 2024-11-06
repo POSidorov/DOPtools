@@ -34,6 +34,7 @@ from optuna.study import StudyDirection
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.model_selection import KFold, cross_val_predict
 #from sklearn.multioutput import MultiOutputRegressor
@@ -41,6 +42,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder, MinMaxScaler
 from timeout_decorator import TimeoutError
 from timeout_decorator import timeout_decorator
+from sklearn.utils import shuffle
 
 from doptools.optimizer.config import get_raw_model, suggest_params
 from doptools.optimizer.utils import r2, rmse
@@ -103,18 +105,19 @@ def calculate_scores(task, obs, pred):
             return {'stat': stat_name, 'R2': r2(x, y), 'RMSE': rmse(x, y), 'MAE': mae(x, y)}
         elif task == 'C' and len(set(x)) == 2:
             return {'stat': stat_name, 'ROC_AUC': roc_auc_score(x, y), 'ACC': accuracy_score(x, y),
-                    'BAC': balanced_accuracy_score(x, y), 'F1': f1_score(x, y)}
+                    'BAC': balanced_accuracy_score(x, y), 'F1': f1_score(x, y),'MCC': matthews_corrcoef(x, y)}
         elif task == 'C' and len(set(x)) > 2:
             return {'stat': stat_name, 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(x),
                                                                 LabelBinarizer().fit_transform(y), multi_class='ovr'),
                     'ACC': accuracy_score(x, y),
                     'BAC': balanced_accuracy_score(x, y),
-                    'F1': f1_score(x, y, average='macro')}
+                    'F1': f1_score(x, y, average='macro'),
+                    'MCC': matthews_corrcoef(x, y)}
 
     if task == 'R':
         score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
     elif task == 'C':
-        score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
+        score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1', "MCC"])
     else:
         raise ValueError("Unknown task type")
 
@@ -159,25 +162,31 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
         model = get_raw_model(method, params)
 
-        #if multi:
-        #    model = MultiOutputRegressor(model)
-        #    Y = y
-        #else:
         Y = np.array(y[y.columns[0]])
         if method.endswith('C'):
             LE = LabelEncoder()
             Y = LE.fit_transform(Y)
 
         for r in range(cv_repeats):
-            preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits, shuffle=True))
+            Y = pd.Series(Y)
+            X, Y = shuffle(X, Y)
+            shuffle_indices = Y.index
+
+            preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits))
             #if len(y.columns)<2:
             if method.endswith('C'):
                 preds = LE.inverse_transform(preds)
-
-            preds = preds.reshape((-1, 1))
-            for i, c in enumerate(y.columns):
-                res_pd[c + '.observed'] = y[c]
-                res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:, i]
+                preds_proba = cross_val_predict(model, X, Y, cv=KFold(cv_splits), method="predict_proba")
+                for i, c in enumerate(y.columns):
+                    res_pd[c + '.observed'] = y[c]
+                    res_pd[c + '.predicted.class.repeat'+str(r+1)] = preds
+                    for j in range(preds_probs.shape[1]):
+                        res_pd[c + '.predicted_prob.class_'+str(j)+'.repeat'+str(r+1)] = preds_proba[:,j]
+            else:
+                preds = preds.reshape((-1, 1))
+                for i, c in enumerate(y.columns):
+                    res_pd[c + '.observed'] = y[c]
+                    res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:, i]
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
