@@ -88,7 +88,7 @@ def make_classification_plot(predictions, **params):
 
     return fig, ax
 
-    
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Model CV plotter', 
                                      description='Plot out the CV results of the optimizer')
@@ -116,4 +116,4 @@ if __name__ == '__main__':
         plt.show()
 
 
-__all__ = ['make_plot']
+__all__ = ['make_regression_plot', 'make_classification_plot']
