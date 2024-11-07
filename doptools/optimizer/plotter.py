@@ -76,7 +76,7 @@ def make_classification_plot(predictions, class_number, **params):
         repeat = column.split("repeat")[-1]
         viz = RocCurveDisplay.from_predictions(
             a,
-            predictions[column],
+            cv_res[column],
             name=f"ROC repeat {repeat}",
             alpha=0.3,
             lw=1,
@@ -115,7 +115,7 @@ def make_classification_plot(predictions, class_number, **params):
     ax.set(
         xlabel="False Positive Rate",
         ylabel="True Positive Rate",
-        title=f"Mean ROC curve with variability\n(Positive label '{repeat}')",
+        title=f"Mean ROC curve with variability\n(Positive label '{class_number}')",
     )
     ax.legend(loc="lower right", fontsize=9)
     return fig, ax
