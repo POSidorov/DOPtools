@@ -59,33 +59,63 @@ def make_regression_plot(predictions, **params):
     return fig, ax
 
 
-def make_classification_plot(predictions, **params):
-    fig, ax = plt.subplots(figsize=(4, 4), dpi=300, facecolor="white")
+def make_classification_plot(predictions, class_number, **params):
+    fig, ax = plt.subplots(figsize=(5, 5), dpi=300, facecolor="w")
 
     cv_res = pd.read_table(predictions, sep=' ')
     prop_name = cv_res.columns[1].split('.')[0]
 
     a = cv_res[prop_name+".observed"]
-    b = cv_res[[c for c in cv_res.columns if c.startswith(prop_name+'.predicted')]]
-    if errorbar:
-        ax.errorbar(a, b.mean(axis=1), b.std(axis=1), fmt="r.")
-    else:
-        ax.plot(a, b, 'ro')
-    ax.plot([a.min(), a.max()], [a.min(), a.max()], "k--")
-    ax.set_xlabel("Observed "+prop_name)
-    ax.set_ylabel("Predicted "+prop_name)
-    ax.set_title(title)
+    b = cv_res[[c for c in cv_res.columns if c.startswith(prop_name+'.predicted_prob.class_'+str(class_number))]]
+    mean_fpr = np.linspace(0, 1, 100)
+    tprs = []
+    aucs = []
+    for column in b.columns:
+        repeat = column.split("repeat")[-1]
+        viz = RocCurveDisplay.from_predictions(
+            a,
+            predictions[column],
+            name=f"ROC repeat {repeat}",
+            alpha=0.3,
+            lw=1,
+            ax=ax,
+        )
+        interp_tpr = np.interp(mean_fpr, viz.fpr, viz.tpr)
+        interp_tpr[0] = 0.0
+        tprs.append(interp_tpr)
+        aucs.append(viz.roc_auc)
 
-    if stats:
-        textstr = "\n".join([
-            "MAE(CV) = %.3f" % (mae(a, b.mean(axis=1)), ),
-            "RMSE(CV) = %.3f" % (rmse(a, b.mean(axis=1)), ),
-            "R2(CV) = %.3f" % (r2(a, b.mean(axis=1)), )
-            ])
-        ax.text(0.05, 0.95, textstr, transform=ax.transAxes,
-                verticalalignment="top", horizontalalignment="left",
-                bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0})
+    mean_tpr = np.mean(tprs, axis=0)
+    mean_tpr[-1] = 1.0
+    mean_auc = auc(mean_fpr, mean_tpr)
+    std_auc = np.std(aucs)
+    ax.plot(
+        mean_fpr,
+        mean_tpr,
+        color="k",
+        label=r"Mean ROC (AUC = %0.2f $\pm$ %0.2f)" % (mean_auc, std_auc),
+        lw=2,
+        alpha=0.8,
+    )
 
+    std_tpr = np.std(tprs, axis=0)
+    tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+    tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
+    ax.fill_between(
+        mean_fpr,
+        tprs_lower,
+        tprs_upper,
+        color="grey",
+        alpha=0.2,
+        label=r"$\pm$ 1 std. dev.",
+    )
+
+    ax.set(
+        xlabel="False Positive Rate",
+        ylabel="True Positive Rate",
+        title=f"Mean ROC curve with variability\n(Positive label '{repeat}')",
+    )
+    ax.legend(loc="lower right", fontsize=9)
     return fig, ax
 
 
