@@ -34,13 +34,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
 
-def rebuild(descdir, modeldir, number, outdir):
-    if os.path.exists(outdir):
-        print('The output directory {} already exists. The data may be overwritten'.format(outdir))
-    else:
-        os.makedirs(outdir)
-        print('The output directory {} created'.format(outdir))
-
+def rebuild_from_file(descdir, modeldir, number):
     trials = pd.read_table(os.path.join(modeldir, 'trials.all'), sep=' ')
     rebuild_trial = trials[trials['trial'] == number].squeeze()
 
@@ -70,10 +64,7 @@ def rebuild(descdir, modeldir, number, outdir):
 
     pipeline = Pipeline(pipeline_steps)
 
-    modelfile_name = '_'.join([method, 'trial'+str(number), desc_name])
-    with open(os.path.join(outdir, modelfile_name+'.pkl'), 'wb') as f:
-        pickle.dump(pipeline, f)
-
+    return pipeline, rebuild_trial
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Optimized model rebuilder', 
@@ -93,7 +84,17 @@ if __name__ == '__main__':
     number = args.number
     outdir = args.outdir
 
-    rebuild(descdir, modeldir, number, outdir)
+    if os.path.exists(outdir):
+        print('The output directory {} already exists. The data may be overwritten'.format(outdir))
+    else:
+        os.makedirs(outdir)
+        print('The output directory {} created'.format(outdir))
+
+    pipeline, trial = rebuild_from_file(descdir, modeldir, number)
+
+    modelfile_name = '_'.join([trial['method'], 'trial'+str(number), trial['desc']])
+    with open(os.path.join(outdir, modelfile_name+'.pkl'), 'wb') as f:
+        pickle.dump(pipeline, f)
 
 
-__all__ = ['rebuild']
+__all__ = ['rebuild_from_file']

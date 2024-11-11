@@ -127,6 +127,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--datadir', required=True)
     parser.add_argument('-o', '--outfile', type=str, default='')
     parser.add_argument('-t', '--task', type=str, default='R', choices=['R', 'C'])
+    parser.add_argument('--pos_class', type=str, help="The label for the positive class")
     parser.add_argument('--errorbar', action='store_true')
     parser.add_argument('--stats', action='store_true')
     parser.add_argument('--title', type=str)
@@ -137,8 +138,12 @@ if __name__ == '__main__':
     stats = args.stats
     errorbar = args.errorbar
     title = args.title
+    pos_class = args.pos_class
 
-    fig, ax = make_plot(datadir+'/predictions')
+    if args.task == "R":
+        fig, ax = make_regression_plot(datadir+'/predictions')
+    elif args.task == "C":
+        fig, ax = make_classification_plot(datadir+'/predictions', pos_class)
     plt.tight_layout(pad=2)
     if args.outfile:
         if not outfile.endswith('.png'):

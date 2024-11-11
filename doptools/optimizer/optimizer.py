@@ -24,6 +24,7 @@ import glob
 import os
 import warnings
 import json
+import copy
 from functools import partial
 from multiprocessing import Manager
 
@@ -197,7 +198,14 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             res_pd.to_csv(os.path.join(outdir,'trial.'+str(n),'predictions'), sep=' ', 
                 float_format='%.3f', index=False)
             with open(os.path.join(outdir,'trial.'+str(n),'parameters.json'), 'w') as param_file:
-                json.dump(storage[n], param_file, indent=4)
+                param_output = copy.deepcopy(storage[n])
+                param_output["ntrials"] = ntrials
+                param_output["cv_splits"] = cv_splits
+                param_output["cv_repeats"] = cv_repeats
+                param_output["jobs"] = jobs
+                param_output["timeout"] = tmout
+                param_output["earlystop"] = earlystop
+                json.dump(param_output, param_file, indent=4)
         else:
             results_detailed[n] = {'score': score_df, 'predictions': res_pd}
 
@@ -237,63 +245,6 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             results_pd.sort_values(by='score', ascending=False).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
     else:
         return results_pd, results_detailed
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='Optuna optimizer',
-        description='Optimizes the hyperparameters of ML method on given data, as well as selects the "best" descriptor space.')
-
-    parser.add_argument('-d', '--datadir', required=True,
-                        help='Path to the directory containing the descriptors files to run the optimisation on.')
-    parser.add_argument('-o', '--outdir', required=True,
-                        help='Path to the output directory where the results optimization will be saved.')
-    
-    parser.add_argument('--ntrials', type=int, default=100,
-                        help='Number of hyperparameter sets to explore. After exploring this number of sets, the optimization stops. Default = 100.')
-    parser.add_argument('--cv_splits', type=int, default=5,
-                        help='Number of folds for K-fold cross-validation. Default = 5.')
-    parser.add_argument('--cv_repeats', type=int, default=1,
-                        help='Number of times the cross-validation will be repeated with shuffling. Scores are reported as consensus between repeats. Default = 1.')
-    
-    parser.add_argument('--earlystop_patience', type=int, default=0,
-                        help='Number of optimization steps that the best N solutions must not change for the early stopping. By default early stopping is not triggered.')
-    parser.add_argument('--earlystop_leaders', type=int, default=1,
-                        help='Number N of best solutions that will be checked for the early stopping. Default = 1.')
-    parser.add_argument('--timeout', type=int, default=60,
-                        help='Timeout in sec. If a trial takes longer it will be killed. Default = 60.')
-    
-    parser.add_argument('-j', '--jobs', type=int, default=1,
-                        help='Number of processes that will be launched in parallel during the optimization. Default = 1.')
-    parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'],
-                        help='ML algorithm to be used for optimization. Only one can be used at a time.')
-    #parser.add_argument('--multi', action='store_true')
-    parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'],
-                        help='Format of the input descriptor files. Default = svm.')
-    
-    args = parser.parse_args()
-    datadir = args.datadir
-    outdir = args.outdir
-    ntrials = args.ntrials
-    cv_splits = args.cv_splits
-    cv_repeats = args.cv_repeats
-    tmout = args.timeout
-    jobs = args.jobs
-    method = args.method
-    #multi = args.multi
-    fmt = args.format
-    earlystop = (args.earlystop_patience, args.earlystop_leaders)
-
-    if os.path.exists(outdir):
-        print('The output directory {} already exists. The data may be overwritten'.format(outdir))
-    else:
-        os.makedirs(outdir)
-        print('The output directory {} created'.format(outdir))
-
-    x_dict, y = collect_data(datadir, method, fmt)
-    
-    with contextlib.redirect_stdout(open(os.devnull, "w")):
-        launch_study(x_dict, y, outdir, method, ntrials, 
-                     cv_splits, cv_repeats, jobs, tmout, earlystop)
 
 
 __all__ = ['calculate_scores', 'collect_data', 'launch_study']
