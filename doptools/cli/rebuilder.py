@@ -58,6 +58,9 @@ def rebuild_from_file(descdir, modeldir, number):
     pipeline_steps.append(('variance', VarianceThreshold()))
 
     params = rebuild_trial[rebuild_trial.index[list(rebuild_trial.index).index('method')+1:]].to_dict()
+    for k, p in params.items():
+        if pd.isnull(p):
+            params[k] = None
     method = rebuild_trial['method']
     model = get_raw_model(method, params)
     pipeline_steps.append(('model', model))
