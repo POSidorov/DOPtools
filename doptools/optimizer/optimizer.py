@@ -27,6 +27,7 @@ import json
 import copy
 from functools import partial
 from multiprocessing import Manager
+from scipy.sparse import issparse
 
 import numpy as np
 import optuna
@@ -151,7 +152,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         
         desc = trial.suggest_categorical('desc_type', list(x_dict.keys()))
         scaling = trial.suggest_categorical('scaling', ['scaled', 'original'])
-        X = x_dict[desc].toarray()
+
+        X = x_dict[desc]
+        if issparse(X):
+            X = X.toarray()
 
         if scaling == 'scaled':
             mms = MinMaxScaler()

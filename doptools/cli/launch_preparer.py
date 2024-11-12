@@ -35,6 +35,39 @@ from doptools.chem.solvents import SolventVectorizer
 from doptools.optimizer.config import get_raw_calculator
 from doptools.optimizer.preparer import *
 
+basic_params = {
+    "circus": true, 
+    "circus_min": [0], 
+    "circus_max": [2, 3, 4], 
+    "linear": true, 
+    "linear_min": [2], 
+    "linear_max": [5, 6, 7, 8], 
+    "morgan": true, 
+    "morgan_nBits": [1024], 
+    "morgan_radius": [2, 3, 4], 
+    "morganfeatures": true, 
+    "morganfeatures_nBits": [1024], 
+    "morganfeatures_radius": [2, 3, 4], 
+    "rdkfp": true, 
+    "rdkfp_nBits": [1024], 
+    "rdkfp_length": [2,3,4], 
+    "rdkfplinear": true, 
+    "rdkfplinear_nBits": [1024], 
+    "rdkfplinear_length": [5,6,7,8], 
+    "layered": true, 
+    "layered_nBits": [1024], 
+    "layered_length": [5,6,7,8], 
+    "avalon": true, 
+    "avalon_nBits": [1024], 
+    "atompairs": true, 
+    "atompairs_nBits": [1024], 
+    "torsion": true, 
+    "torsion_nBits": [1024], 
+    "separate_folders": true,
+    "save":true,
+    "standardize": true
+}
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
                                      description='Prepares the descriptor files for hyperparameter optimization launch.')
@@ -63,7 +96,7 @@ if __name__ == '__main__':
     parser.add_argument('--separate_folders', action='store_true',
                         help='Save each descriptor type into a separate folders.')
     parser.add_argument('--load_config', action='store', type=str, default='',
-                        help='Load descriptor configuration from a JSON file. JSON parameters are prioritized!')
+                        help='Load descriptor configuration from a JSON file. JSON parameters are prioritized! Use "basic" to load default parameters')
 
     # Morgan fingerprints
     parser.add_argument('--morgan', action='store_true', 
@@ -150,7 +183,10 @@ if __name__ == '__main__':
 
 
     args = parser.parse_args()
-    if args.load_config:
+
+    if args.load_config == "basic":
+        vars(args).update(basic_params)
+    elif args.load_config:
         with open(args.load_config) as f:
             p = json.load(f)
         vars(args).update(p)
