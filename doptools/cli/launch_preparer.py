@@ -68,6 +68,57 @@ basic_params = {
     "standardize": True
 }
 
+def _enumerate_parameters(args):
+    def _make_name(iterable):
+        return '_'.join([str(i) for i in iterable])
+
+    param_dict = {}
+    if args.morgan:
+        for nb in _set_default(args.morgan_nBits, [1024]):
+            for mr in _set_default(args.morgan_radius, [2]):
+                param_dict[_make_name(('morgan', nb, mr))] = {'nBits': nb, 'radius': mr}
+    if args.morganfeatures:
+        for nb in _set_default(args.morganfeatures_nBits, [1024]):
+            for mr in _set_default(args.morganfeatures_radius, [2]):
+                param_dict[_make_name(('morganfeatures', nb, mr))] = {'nBits': nb, 'radius': mr}
+    if args.rdkfp:
+        for nb in _set_default(args.rdkfp_nBits, [1024]):
+            for rl in _set_default(args.rdkfp_length, [3]):
+                param_dict[_make_name(('rdkfp', nb, rl))] = {'nBits': nb, 'radius': rl}
+    if args.rdkfplinear:
+        for nb in _set_default(args.rdkfplinear_nBits, [1024]):
+            for rl in _set_default(args.rdkfplinear_length, [3]):
+                param_dict[_make_name(('rdkfplinear', nb, rl))] = {'nBits': nb, 'radius': rl}
+    if args.layered:
+        for nb in _set_default(args.layered_nBits, [1024]):
+            for rl in _set_default(args.layered_length, [3]):
+                param_dict[_make_name(('layered', nb, rl))] = {'nBits': nb, 'radius': rl}
+    if args.avalon:
+        for nb in _set_default(args.avalon_nBits, [1024]):
+            param_dict[_make_name(('avalon', nb))] = {'nBits': nb}
+    if args.torsion:
+        for nb in _set_default(args.torsion_nBits, [1024]):
+            param_dict[_make_name(('torsion', nb))] = {'nBits': nb}
+    if args.atompairs:
+        for nb in _set_default(args.atompairs_nBits, [1024]):
+            param_dict[_make_name(('atompairs', nb))] = {'nBits': nb}
+    if args.circus:
+        for lower in _set_default(args.circus_min, [1]):
+            for upper in _set_default(args.circus_max, [2]):
+                if int(lower) <= int(upper):
+                    if args.onbond:
+                        param_dict[_make_name(('circus_b', lower, upper))] = {'lower': lower, 'upper': upper, 'on_bond': True}
+                    else:
+                        param_dict[_make_name(('circus', lower, upper))] = {'lower': lower, 'upper': upper}
+    if args.linear:
+        for lower in _set_default(args.linear_min, [2]):
+            for upper in _set_default(args.linear_max, [5]):
+                if int(lower) <= int(upper):
+                    param_dict[_make_name(('chyline', lower, upper))] = {'lower': lower, 'upper': upper}
+    if args.mordred2d:
+        param_dict[_make_name(('mordred2d',))] = {}
+    return param_dict
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
                                      description='Prepares the descriptor files for hyperparameter optimization launch.')
