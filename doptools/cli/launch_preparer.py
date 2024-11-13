@@ -68,6 +68,13 @@ basic_params = {
     "standardize": True
 }
 
+def _set_default(argument, default_values):
+    if len(argument) > 0:
+        return list(set(argument))
+    else:
+        return default_values
+
+
 def _enumerate_parameters(args):
     def _make_name(iterable):
         return '_'.join([str(i) for i in iterable])
@@ -118,6 +125,12 @@ def _enumerate_parameters(args):
     if args.mordred2d:
         param_dict[_make_name(('mordred2d',))] = {}
     return param_dict
+
+
+def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
+    fragmentor_name = os.path.join(output_dir, '.'.join([prop_name, desc_name, 'pkl']))
+    with open(fragmentor_name, 'wb') as f:
+        pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
