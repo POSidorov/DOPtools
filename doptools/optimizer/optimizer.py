@@ -189,10 +189,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                     for j in range(preds_proba.shape[1]):
                         res_pd[c + '.predicted_prob.class_'+str(j)+'.repeat'+str(r+1)] = preds_proba[:,j]
             else:
-                preds = preds.reshape((-1, 1))
+                #preds = preds.reshape((-1, 1))
                 for i, c in enumerate(y.columns):
                     res_pd[c + '.observed'] = y[c]
-                    res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:, i]
+                    res_pd[c + '.predicted.repeat'+str(r+1)] = preds
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
