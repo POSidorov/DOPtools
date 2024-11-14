@@ -192,7 +192,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 #preds = preds.reshape((-1, 1))
                 for i, c in enumerate(y.columns):
                     res_pd[c + '.observed'] = y[c]
-                    res_pd[c + '.predicted.repeat'+str(r+1)] = preds
+                    res_pd[c + '.predicted.repeat'+str(r+1)] = pd.Series(preds, index=shuffle_indices).sort_index()
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
