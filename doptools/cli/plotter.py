@@ -31,7 +31,8 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
 
-def make_regression_plot(predictions, **params):
+def make_regression_plot(predictions, errorbar=False, stats=False, title=""):
+
     fig, ax = plt.subplots(figsize=(4, 4), dpi=300, facecolor="white")
 
     cv_res = pd.read_table(predictions, sep=' ')
@@ -141,7 +142,7 @@ if __name__ == '__main__':
     pos_class = args.pos_class
 
     if args.task == "R":
-        fig, ax = make_regression_plot(datadir+'/predictions')
+        fig, ax = make_regression_plot(datadir+'/predictions', errorbar=errorbar, stats=stats, title=title)
     elif args.task == "C":
         fig, ax = make_classification_plot(datadir+'/predictions', pos_class)
     plt.tight_layout(pad=2)

@@ -185,9 +185,9 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 preds_proba = cross_val_predict(model, X, Y, cv=KFold(cv_splits), method="predict_proba")
                 for i, c in enumerate(y.columns):
                     res_pd[c + '.observed'] = y[c]
-                    res_pd[c + '.predicted.class.repeat'+str(r+1)] = preds
+                    res_pd[c + '.predicted.class.repeat'+str(r+1)] = pd.Series(preds, index=shuffle_indices).sort_index()
                     for j in range(preds_proba.shape[1]):
-                        res_pd[c + '.predicted_prob.class_'+str(j)+'.repeat'+str(r+1)] = preds_proba[:,j]
+                        res_pd[c + '.predicted_prob.class_'+str(j)+'.repeat'+str(r+1)] = pd.Series(preds_proba[:,j], index=shuffle_indices).sort_index()
             else:
                 #preds = preds.reshape((-1, 1))
                 for i, c in enumerate(y.columns):
