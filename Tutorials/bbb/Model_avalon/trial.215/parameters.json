@@ -1,0 +1,18 @@
+{
+    "desc": "avalon_1024",
+    "scaling": "scaled",
+    "method": "RFC",
+    "max_depth": 10,
+    "max_features": null,
+    "max_samples": 0.7,
+    "n_estimators": 50,
+    "ntrials": 500,
+    "cv_splits": 10,
+    "cv_repeats": 5,
+    "jobs": 15,
+    "timeout": 600,
+    "earlystop": [
+        0,
+        1
+    ]
+}

@@ -1,7 +1,0 @@
-stat R2 RMSE MAE
-Epipi.consensus 0.913 19.497 10.233
-Epipi.predicted.repeat5 0.910 19.786 10.462
-Epipi.predicted.repeat4 0.914 19.337 10.259
-Epipi.predicted.repeat3 0.912 19.561 10.483
-Epipi.predicted.repeat2 0.907 20.127 10.555
-Epipi.predicted.repeat1 0.908 19.987 10.818
