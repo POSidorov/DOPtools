@@ -21,7 +21,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '1.1'
+version = '1.1.1'
 
 setup(
     name='doptools',
@@ -38,8 +38,8 @@ setup(
                       'xlwt>=1.3', 'xlrd>=2.0'],
     description='A package for calculation of molecular descriptors in Scikit-Learn compatible way and model optimization',
     long_description=(Path(__file__).parent / 'README.rst').open(encoding='utf-8').read(),
-    scripts=['doptools/optimizer/optimizer.py','doptools/optimizer/preparer.py',
-             'doptools/optimizer/plotter.py','doptools/optimizer/rebuilder.py'],
+    scripts=['doptools/cli/launch_optimizer.py','doptools/cli/launch_preparer.py',
+             'doptools/cli/plotter.py','doptools/cli/rebuilder.py'],
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',

@@ -19,3 +19,4 @@
 
 from .chem import *
 from .optimizer import *
+from .cli import *

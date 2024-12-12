@@ -25,7 +25,7 @@ from xgboost import XGBRegressor, XGBClassifier
 
 
 methods = {'SVR': "SVR(**params, gamma='auto')", 
-           'SVC': "SVC(**params, gamma='auto')",
+           'SVC': "SVC(**params, gamma='auto', probability=True)",
            'XGBR': "XGBRegressor(**params, verbosity=0, nthread=1)",
            'XGBC': "XGBClassifier(**params, verbosity=0, nthread=1)",
            'RFR': "RandomForestRegressor(**params)",

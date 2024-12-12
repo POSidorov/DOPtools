@@ -23,8 +23,11 @@ import contextlib
 import glob
 import os
 import warnings
+import json
+import copy
 from functools import partial
 from multiprocessing import Manager
+from scipy.sparse import issparse
 
 import numpy as np
 import optuna
@@ -33,6 +36,7 @@ from optuna.study import StudyDirection
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.model_selection import KFold, cross_val_predict
 #from sklearn.multioutput import MultiOutputRegressor
@@ -40,6 +44,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder, MinMaxScaler
 from timeout_decorator import TimeoutError
 from timeout_decorator import timeout_decorator
+from sklearn.utils import shuffle
 
 from doptools.optimizer.config import get_raw_model, suggest_params
 from doptools.optimizer.utils import r2, rmse
@@ -102,23 +107,25 @@ def calculate_scores(task, obs, pred):
             return {'stat': stat_name, 'R2': r2(x, y), 'RMSE': rmse(x, y), 'MAE': mae(x, y)}
         elif task == 'C' and len(set(x)) == 2:
             return {'stat': stat_name, 'ROC_AUC': roc_auc_score(x, y), 'ACC': accuracy_score(x, y),
-                    'BAC': balanced_accuracy_score(x, y), 'F1': f1_score(x, y)}
+                    'BAC': balanced_accuracy_score(x, y), 'F1': f1_score(x, y),'MCC': matthews_corrcoef(x, y)}
         elif task == 'C' and len(set(x)) > 2:
             return {'stat': stat_name, 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(x),
                                                                 LabelBinarizer().fit_transform(y), multi_class='ovr'),
                     'ACC': accuracy_score(x, y),
                     'BAC': balanced_accuracy_score(x, y),
-                    'F1': f1_score(x, y, average='macro')}
+                    'F1': f1_score(x, y, average='macro'),
+                    'MCC': matthews_corrcoef(x, y)}
 
     if task == 'R':
         score_df = pd.DataFrame(columns=['stat', 'R2', 'RMSE', 'MAE'])
     elif task == 'C':
-        score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1'])
+        score_df = pd.DataFrame(columns=['stat', 'ROC_AUC', 'ACC', 'BAC', 'F1', "MCC"])
     else:
         raise ValueError("Unknown task type")
 
     for c in obs.columns:
-        preds_partial = pred[[d for d in pred.columns if c+'.predicted' in d]]
+
+        preds_partial = pred[[d for d in pred.columns if c+'.predicted.' in d]]
         for p in preds_partial.columns:
             added_row = create_row(task, p, obs[c], preds_partial[p])
             score_df = pd.concat([pd.DataFrame(added_row, index=[0]), score_df.loc[:]]).reset_index(drop=True)
@@ -145,7 +152,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         
         desc = trial.suggest_categorical('desc_type', list(x_dict.keys()))
         scaling = trial.suggest_categorical('scaling', ['scaled', 'original'])
-        X = x_dict[desc].toarray()
+
+        X = x_dict[desc]
+        if issparse(X):
+            X = X.toarray()
 
         if scaling == 'scaled':
             mms = MinMaxScaler()
@@ -158,25 +168,31 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
         model = get_raw_model(method, params)
 
-        #if multi:
-        #    model = MultiOutputRegressor(model)
-        #    Y = y
-        #else:
         Y = np.array(y[y.columns[0]])
         if method.endswith('C'):
             LE = LabelEncoder()
             Y = LE.fit_transform(Y)
 
         for r in range(cv_repeats):
-            preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits, shuffle=True))
+            Y = pd.Series(Y)
+            X, Y = shuffle(X, Y)
+            shuffle_indices = Y.index
+
+            preds = cross_val_predict(model, X, Y, cv=KFold(cv_splits))
             #if len(y.columns)<2:
             if method.endswith('C'):
                 preds = LE.inverse_transform(preds)
-
-            preds = preds.reshape((-1, 1))
-            for i, c in enumerate(y.columns):
-                res_pd[c + '.observed'] = y[c]
-                res_pd[c + '.predicted.repeat'+str(r+1)] = preds[:, i]
+                preds_proba = cross_val_predict(model, X, Y, cv=KFold(cv_splits), method="predict_proba")
+                for i, c in enumerate(y.columns):
+                    res_pd[c + '.observed'] = y[c]
+                    res_pd[c + '.predicted.class.repeat'+str(r+1)] = pd.Series(preds, index=shuffle_indices).sort_index()
+                    for j in range(preds_proba.shape[1]):
+                        res_pd[c + '.predicted_prob.class_'+str(j)+'.repeat'+str(r+1)] = pd.Series(preds_proba[:,j], index=shuffle_indices).sort_index()
+            else:
+                #preds = preds.reshape((-1, 1))
+                for i, c in enumerate(y.columns):
+                    res_pd[c + '.observed'] = y[c]
+                    res_pd[c + '.predicted.repeat'+str(r+1)] = pd.Series(preds, index=shuffle_indices).sort_index()
 
         score_df = calculate_scores(method[-1], y, res_pd)
 
@@ -185,6 +201,15 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
                 float_format='%.3f', index=False)
             res_pd.to_csv(os.path.join(outdir,'trial.'+str(n),'predictions'), sep=' ', 
                 float_format='%.3f', index=False)
+            with open(os.path.join(outdir,'trial.'+str(n),'parameters.json'), 'w') as param_file:
+                param_output = copy.deepcopy(storage[n])
+                param_output["ntrials"] = ntrials
+                param_output["cv_splits"] = cv_splits
+                param_output["cv_repeats"] = cv_repeats
+                param_output["jobs"] = jobs
+                param_output["timeout"] = tmout
+                param_output["earlystop"] = earlystop
+                json.dump(param_output, param_file, indent=4)
         else:
             results_detailed[n] = {'score': score_df, 'predictions': res_pd}
 
@@ -224,63 +249,6 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
             results_pd.sort_values(by='score', ascending=False).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
     else:
         return results_pd, results_detailed
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='Optuna optimizer',
-        description='Optimizes the hyperparameters of ML method on given data, as well as selects the "best" descriptor space.')
-
-    parser.add_argument('-d', '--datadir', required=True,
-                        help='Path to the directory containing the descriptors files to run the optimisation on.')
-    parser.add_argument('-o', '--outdir', required=True,
-                        help='Path to the output directory where the results optimization will be saved.')
-    
-    parser.add_argument('--ntrials', type=int, default=100,
-                        help='Number of hyperparameter sets to explore. After exploring this number of sets, the optimization stops. Default = 100.')
-    parser.add_argument('--cv_splits', type=int, default=5,
-                        help='Number of folds for K-fold cross-validation. Default = 5.')
-    parser.add_argument('--cv_repeats', type=int, default=1,
-                        help='Number of times the cross-validation will be repeated with shuffling. Scores are reported as consensus between repeats. Default = 1.')
-    
-    parser.add_argument('--earlystop_patience', type=int, default=0,
-                        help='Number of optimization steps that the best N solutions must not change for the early stopping. By default early stopping is not triggered.')
-    parser.add_argument('--earlystop_leaders', type=int, default=1,
-                        help='Number N of best solutions that will be checked for the early stopping. Default = 1.')
-    parser.add_argument('--timeout', type=int, default=60,
-                        help='Timeout in sec. If a trial takes longer it will be killed. Default = 60.')
-    
-    parser.add_argument('-j', '--jobs', type=int, default=1,
-                        help='Number of processes that will be launched in parallel during the optimization. Default = 1.')
-    parser.add_argument('-m', '--method', type=str, default='SVR', choices=['SVR', 'SVC', 'RFR', 'RFC', 'XGBR', 'XGBC'],
-                        help='ML algorithm to be used for optimization. Only one can be used at a time.')
-    #parser.add_argument('--multi', action='store_true')
-    parser.add_argument('-f', '--format', type=str, default='svm', choices=['svm', 'csv'],
-                        help='Format of the input descriptor files. Default = svm.')
-    
-    args = parser.parse_args()
-    datadir = args.datadir
-    outdir = args.outdir
-    ntrials = args.ntrials
-    cv_splits = args.cv_splits
-    cv_repeats = args.cv_repeats
-    tmout = args.timeout
-    jobs = args.jobs
-    method = args.method
-    #multi = args.multi
-    fmt = args.format
-    earlystop = (args.earlystop_patience, args.earlystop_leaders)
-
-    if os.path.exists(outdir):
-        print('The output directory {} already exists. The data may be overwritten'.format(outdir))
-    else:
-        os.makedirs(outdir)
-        print('The output directory {} created'.format(outdir))
-
-    x_dict, y = collect_data(datadir, method, fmt)
-    
-    with contextlib.redirect_stdout(open(os.devnull, "w")):
-        launch_study(x_dict, y, outdir, method, ntrials, 
-                     cv_splits, cv_repeats, jobs, tmout, earlystop)
 
 
 __all__ = ['calculate_scores', 'collect_data', 'launch_study']

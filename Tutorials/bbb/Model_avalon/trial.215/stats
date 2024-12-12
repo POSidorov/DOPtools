@@ -1,0 +1,7 @@
+stat ROC_AUC ACC BAC F1 MCC
+Active.consensus 0.874 0.935 0.874 0.959 0.810
+Active.predicted.class.repeat5 0.875 0.937 0.875 0.960 0.817
+Active.predicted.class.repeat4 0.866 0.931 0.866 0.957 0.799
+Active.predicted.class.repeat3 0.866 0.931 0.866 0.956 0.797
+Active.predicted.class.repeat2 0.869 0.931 0.869 0.956 0.797
+Active.predicted.class.repeat1 0.858 0.925 0.858 0.953 0.779
