@@ -116,7 +116,10 @@ class ColorAtom:
                 atom_weights[mol[m]] = {i[0]:0 for i in mol[m].atoms()}
         else:
             atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
-        descriptor_vector = self.fragmentor.transform(mol)
+        if not isinstance(mol, Series):
+            descriptor_vector = self.fragmentor.transform([mol])
+        else:
+            descriptor_vector = self.fragmentor.transform(mol)
         if self.model_type=="R":
             true_prediction = self.model.predict(descriptor_vector)[0]
             for i, d in enumerate(self.descriptors):
