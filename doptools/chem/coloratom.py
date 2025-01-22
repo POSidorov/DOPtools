@@ -277,7 +277,7 @@ class ColorAtom:
             if colorbar:
                 w = float(ext_svg.split('"')[3][:-2])/8+1.01
                 h = float(ext_svg.split('"')[3][:-2])
-                cm_svg = self._colorbar_to_svg(min_value,max_value, w, h, model=self.model_type)
+                cm_svg = self._colorbar_to_svg(min_value,max_value, w, h)
                 return [ext_svg, cm_svg]
             return [ext_svg]
 
