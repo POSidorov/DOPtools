@@ -301,13 +301,13 @@ class ColorAtom:
                                         external_limits=[min_value, max_value], colorbar=True)
         return svgs
 
-    def _plot_to_svg() -> str:
+    def _plot_to_svg(self) -> str:
         s = StringIO()
         plt.savefig(s, format="svg")
         plt.close()  # https://stackoverflow.com/a/18718162/14851404
         return s.getvalue()
     
-    def _colorbar_to_svg(min_value, max_value, width, height):
+    def _colorbar_to_svg(self, min_value, max_value, width, height):
         cm = 1/2.54
         # Make a figure and axes with dimensions as desired.
         fig = plt.figure(figsize=(1, 8))
