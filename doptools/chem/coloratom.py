@@ -21,6 +21,7 @@ from chython import ReactionContainer, MoleculeContainer, CGRContainer, smiles
 import pandas as pd
 import numpy as np
 from sklearn.pipeline import Pipeline
+from sklearn import base
 from chython.algorithms import depict as DEPICT
 from IPython.display import HTML
 from matplotlib.cm import RdYlGn, PiYG, Blues
@@ -45,7 +46,7 @@ class ColorAtom:
     Current implementation is designed for regression tasks, for models built with Scikit-learn library and
     using CircuS fragments implemented in this library.
     """
-    def __init__(self, fragmentor=None, model=None, is_complex:bool=False, structure_cols:List=None):
+    def __init__(self, fragmentor=None, model=None, is_complex:bool=False, structure_cols:List=None, colormap=None):
         DEPICT.depict_settings(monochrome=True, aam=False)
         self.model = model
         self.pipeline = None
@@ -58,6 +59,7 @@ class ColorAtom:
         else:
             self.complex = is_complex
         self.structure_cols = structure_cols
+        self.colormap = colormap
     
     def set_pipeline(self, pipeline:Pipeline, fragmentor_pos_in_pipeline:int=0):
         """Sets the fragmentor and model of the ColorAtom class via sklearn Pipeline. The fragmentor of
@@ -86,6 +88,11 @@ class ColorAtom:
         self.model = Pipeline([p for i, p in enumerate(pipeline.steps) if i != fragmentor_pos_in_pipeline])
         if issubclass(self.pipeline[-1].__class__, base.ClassifierMixin):
             self.model_type = "C"
+            if self.colormap is None:
+                self.colormap = Blues
+        else:
+            if self.colormap is None:
+                self.colormap = PiYG
         
     def calculate_atom_contributions(self, mol):
         """Calculates the atom contribution with the partial derivative approach for the given molecule.
@@ -259,9 +266,9 @@ class ColorAtom:
                 if len(m.atom(k).atomic_symbol) >1:
                     x -= 0.1
                 if self.model_type=="R":
-                    color = rgb2hex(PiYG((c+max(np.abs([min_value, max_value])))/2./max(np.abs([min_value, max_value]))))
+                    color = rgb2hex(self.colormap((c+max(np.abs([min_value, max_value])))/2./max(np.abs([min_value, max_value]))))
                 elif self.model_type=="C":
-                    color = rgb2hex(Blues((c-min_value)/(max_value-min_value)))
+                    color = rgb2hex(self.colormap((c-min_value)/(max_value-min_value)))
                 ext_svg += '<circle cx="{}" cy="{}" r="0.33" stroke="{}" stroke-width="0.1" fill="none" />'.format(x, y, color)
             ext_svg += "</svg>"
             if colorbar:
@@ -304,17 +311,15 @@ class ColorAtom:
         ax = fig.add_axes([0.05, 0.15, 0.15, 0.80])
         
         if self.model_type=="C":
-            cmap = mpl.cm.Blues
             norm = mpl.colors.Normalize(vmin=min_value, vmax=max_value)
-            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
+            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=self.colormap,
                                         norm=norm,
                                         orientation='vertical',
                                         ticks=np.linspace(min_value, max_value, 5))
         else:
-            cmap = mpl.cm.PiYG
             norm = mpl.colors.Normalize(vmin=-max(np.abs(min_value), np.abs(max_value)), 
                                         vmax=max(np.abs(min_value), np.abs(max_value)))
-            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=cmap,
+            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=self.colormap,
                                         norm=norm,
                                         orientation='vertical',
                                         ticks=np.linspace(-max(np.abs(min_value), np.abs(max_value)),
