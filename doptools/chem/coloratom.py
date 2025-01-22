@@ -32,6 +32,7 @@ from doptools.chem.chem_features import ComplexFragmentor
 from typing import List
 from pandas import DataFrame, Series
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 
 class ColorAtom:
     """
