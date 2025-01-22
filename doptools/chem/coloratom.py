@@ -27,7 +27,7 @@ from matplotlib.cm import RdYlGn, PiYG, Blues
 from matplotlib.colors import rgb2hex
 import itertools
 from io import StringIO
-from doptools import ComplexFragmentor
+from doptools.chem.chem_features import ComplexFragmentor
 from typing import List
 from pandas import DataFrame
 
