@@ -30,7 +30,7 @@ import itertools
 from io import StringIO
 from doptools.chem.chem_features import ComplexFragmentor
 from typing import List
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 class ColorAtom:
     """
