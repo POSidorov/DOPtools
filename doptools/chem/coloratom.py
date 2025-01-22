@@ -277,7 +277,7 @@ class ColorAtom:
             if colorbar:
                 w = float(ext_svg.split('"')[3][:-2])/8+1.01
                 h = float(ext_svg.split('"')[3][:-2])
-                cm_svg = colorbar_to_svg(min_value,max_value, w, h, model=self.model_type)
+                cm_svg = self._colorbar_to_svg(min_value,max_value, w, h, model=self.model_type)
                 return [ext_svg, cm_svg]
             return [ext_svg]
 
@@ -332,7 +332,7 @@ class ColorAtom:
         cb1.ax.tick_params(labelsize="small")
         fig.set_size_inches(width*cm, height*cm/2)
     
-        return plot_to_svg()[156:]
+        return self._plot_to_svg()[156:]
         
     def _full_mapping_from_descriptor(self, mol, isida_fragment):
         subfragments = isida_fragment.split(",")
