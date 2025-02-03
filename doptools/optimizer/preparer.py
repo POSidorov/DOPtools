@@ -187,7 +187,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
                         calculators_dict[pt] = PassThrough(column_name=pt)
                         input_table = pd.concat([input_table, input_dict['passthrough'][pt]], axis=1)
 
-                calculator = ComplexFragmentor(associator=calculators_dict,
+                calculator = ComplexFragmentor(associator=list(calculators_dict.items()),
                                                structure_columns=[base_column])
                 desc = calculator.fit_transform(input_table.iloc[d['indices']])
 

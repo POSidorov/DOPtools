@@ -517,22 +517,22 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
 class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
     ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features 
-    according to specified associations. The most important argument is the "associator" - a dictionary
+    according to specified associations. The most important argument is the "associator" - a list of tuples
     that establishes the correspondence between a column in a data frame X and the transformer 
-    that is trained on it.
+    that is trained on it (similarly to how sklearn Pipeline works).
 
     For example, say you have a data frame with molecules/CGRs in one column ("molecules"), and 
     solvents in another ("solvent"). You want to generate a feture table that includes both structural 
-    and solvent descriptors. You would define a ComplexFragmentor class with associator as a dictionary,
-    where keys are column names, and value are the corresponding feature generators. In this case, e.g.,
+    and solvent descriptors. You would define a ComplexFragmentor class with associator as a list of tuples,
+    where each tuple is a pair of column names and the corresponding feature generators. In this case, e.g.,
 
-        associator = {"molecules": Augmentor(lower=a, upper=b),
-                      "solvent":SolventVectorizer()}  # see CIMTools library for solvent features
+        associator = [("molecules", Augmentor(lower=a, upper=b)),
+                      ("solvent":SolventVectorizer())]  # see CIMTools library for solvent features
 
     ComplexFragmentor assumes that one of the types of features will be structural, thus, 
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
-    def __init__(self, associator: Dict[str, object], structure_columns=None):
+    def __init__(self, associator: List[Tuple[str, object]], structure_columns=None):
         if structure_columns is None:
             structure_columns = []
         self.associator = associator
@@ -561,7 +561,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type y: None
         """
         self.feature_names = []
-        for k, v in self.associator.items():
+        for k, v in self.associator:
             v.fit(x[k])
             self.feature_names += [k+'::'+f for f in v.get_feature_names()]
         return self
@@ -582,7 +582,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type y: None
         """
         concat = []
-        for k, v in self.associator.items():
+        for k, v in self.associator:
             if len(x.shape) == 1:
                 concat.append(v.transform([x[k]]))
             else:
