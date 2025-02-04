@@ -297,6 +297,9 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
+            if isinstance(mol, ReactionContainer):
+                reac = mol
+                mol = reac.compose()
             output.append(mol.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
         self.feature_names = pd.DataFrame(output).columns
         return self
@@ -320,6 +323,9 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         for m in X:
             if self.fmt == "smiles":
                 m = smiles(m)
+            if isinstance(m, ReactionContainer):
+                reac = m
+                m = reac.compose()
             output.append(m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
         output = pd.DataFrame(output)
         output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
