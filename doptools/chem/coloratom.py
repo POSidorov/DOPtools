@@ -148,6 +148,8 @@ class ColorAtom:
                         d = self._aromatize(d)
                     if self.complex:
                         mol_name, frag_smiles = d.split("::")
+                        if mol_name not in self.structure_cols:
+                            continue
                         if isinstance(mol[mol_name], ReactionContainer):
                             react_cgr = mol[mol_name].compose()
                             frag_cgr = self._frag2cgr(frag_smiles)
@@ -219,6 +221,8 @@ class ColorAtom:
                         d = self._aromatize(d)
                     if self.complex:
                         mol_name, frag_smiles = d.split("::")
+                        if mol_name not in self.structure_cols:
+                            continue
                         if isinstance(mol[mol_name], ReactionContainer):
                             react_cgr = mol[mol_name].compose()
                             frag_cgr = self._frag2cgr(frag_smiles)
@@ -264,7 +268,7 @@ class ColorAtom:
         """
         
         svgs = []
-        if self.complex or self.reaction is not None:
+        if self.complex:
             svgs += self._draw_multiple_molecules(mol, colorbar=colorbar)         
         else:
             svgs += self._draw_one_molecule(mol, colorbar=colorbar)
@@ -301,7 +305,6 @@ class ColorAtom:
             ext_svg = m.depict()[:-6]
             ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
             for k, c in contr.items():
-                print(k,c)
                 x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
                 if len(m.atom(k).atomic_symbol) >1:
                     x -= 0.1
