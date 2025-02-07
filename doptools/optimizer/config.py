@@ -105,6 +105,10 @@ def suggest_params(trial, method):
             'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1),
             'min_child_weight': trial.suggest_int('min_child_weight', 0, 10),
             'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
+            'subsample': trial.suggest_float('subsample', 0.5, 1),
+            'sampling_method': trial.suggest_categorical('sampling_method', ['uniform']),
+            'booster': trial.suggest_categorical('booster', ['gbtree', 'gblinear', 'dart']),
+            'tree_method': trial.suggest_categorical('tree_method', ['auto', 'exact', 'approx', 'hist']) 
         }
     elif method == 'XGBC':
         params = {
@@ -116,6 +120,10 @@ def suggest_params(trial, method):
             'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1),
             'min_child_weight': trial.suggest_int('min_child_weight', 0, 10),
             'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
+            'subsample': trial.suggest_float('subsample', 0.5, 1),
+            'sampling_method': trial.suggest_categorical('sampling_method', ['uniform']),
+            'booster': trial.suggest_categorical('booster', ['gbtree', 'gblinear', 'dart']),
+            'tree_method': trial.suggest_categorical('tree_method', ['auto', 'exact', 'approx', 'hist'])
         }
     elif method == 'RFR':
         params = {
