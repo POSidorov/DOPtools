@@ -1,0 +1,18 @@
+{
+    "desc": "chyline_2_5",
+    "scaling": "scaled",
+    "method": "RFC",
+    "max_depth": 10,
+    "max_features": null,
+    "max_samples": 0.3,
+    "n_estimators": 200,
+    "ntrials": 500,
+    "cv_splits": 10,
+    "cv_repeats": 5,
+    "jobs": 10,
+    "timeout": 1200,
+    "earlystop": [
+        0,
+        1
+    ]
+}

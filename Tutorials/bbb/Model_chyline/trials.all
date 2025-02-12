@@ -1,0 +1,501 @@
+trial score desc scaling method max_depth max_features max_samples n_estimators
+499 0.5 chyline_2_7 original RFC 5 log2 1.0 50
+498 0.7342757081525239 chyline_2_5 original RFC 4 sqrt 0.3 100
+497 0.8135864810788805 chyline_2_6 scaled RFC 6  0.8 20
+496 0.6677609070357634 chyline_2_8 scaled RFC 8 log2 0.2 50
+495 0.7905179308174466 chyline_2_7 scaled RFC 7 sqrt 0.8 200
+494 0.7911487791568863 chyline_2_5 scaled RFC 3  0.8 200
+493  chyline_2_8 original RFC 4  0.8 100
+492 0.7831931608533342 chyline_2_8 scaled RFC 7 sqrt 0.7 100
+491 0.7967484604124622 chyline_2_8 scaled RFC 8 sqrt 0.8 50
+490  chyline_2_8 scaled RFC 6  0.2 200
+489 0.6459540534532089 chyline_2_6 scaled RFC 5 log2 0.8 200
+488 0.8352258783516524 chyline_2_7 scaled RFC 8  0.2 20
+487 0.8149766571678518 chyline_2_6 scaled RFC 5  0.7 100
+486 0.7831931608533342 chyline_2_8 original RFC 7 sqrt 0.7 200
+485 0.8431814966552045 chyline_2_5 original RFC 9  0.5 50
+484 0.5389408099688473 chyline_2_8 original RFC 3 log2 0.3 150
+483 0.6210319350731466 chyline_2_5 original RFC 4 log2 0.8 20
+482 0.8149766571678518 chyline_2_6 scaled RFC 4  0.3 200
+481 0.7671534448361381 chyline_2_7 original RFC 6 sqrt 0.5 50
+480 0.7749416068299076 chyline_2_7 original RFC 6 sqrt 0.8 100
+479 0.7098169818021186 chyline_2_6 original RFC 10 log2 0.3 200
+478 0.802348141668038 chyline_2_5 scaled RFC 7 sqrt 0.7 200
+477 0.7425272621759503 chyline_2_5 original RFC 9 log2 0.8 200
+476 0.7961176120730225 chyline_2_5 original RFC 7 sqrt 0.7 150
+475 0.7800778960558264 chyline_2_8 original RFC 8 sqrt 0.3 50
+474 0.8227648191616213 chyline_2_6 scaled RFC 7  0.7 100
+473 0.8107671520012472 chyline_2_8 original RFC 10 sqrt 0.7 50
+472 0.6880101282195641 chyline_2_7 scaled RFC 8 log2 0.5 150
+471 0.5716510903426791 chyline_2_6 original RFC 3 log2 0.8 100
+470 0.8191861623344564 chyline_2_6 original RFC 6  0.7 100
+469 0.7498520321400628 chyline_2_7 scaled RFC 5 sqrt 0.2 150
+468 0.6506269506494706 chyline_2_5 scaled RFC 5 log2 0.8 150
+467 0.5 chyline_2_8 scaled RFC 4 sqrt 1.0 100
+466 0.7905179308174466 chyline_2_7 original RFC 9 sqrt 0.2 50
+465 0.5 chyline_2_6 original RFC 3 log2 1.0 50
+464 0.6957982902133335 chyline_2_7 original RFC 10 log2 0.2 50
+463 0.659972745041994 chyline_2_6 scaled RFC 7 log2 0.3 150
+462 0.5 chyline_2_7 original RFC 7 log2 1.0 20
+461 0.5 chyline_2_7 original RFC 9 sqrt 1.0 50
+460 0.5451713395638629 chyline_2_7 scaled RFC 3 log2 0.2 100
+459 0.6662032746370096 chyline_2_6 scaled RFC 7 log2 0.5 150
+458  chyline_2_8 scaled RFC 10  0.8 150
+457  chyline_2_6 original RFC 10  0.5 150
+456 0.5 chyline_2_6 scaled RFC 6 log2 1.0 150
+455 0.5 chyline_2_6 scaled RFC 6  1.0 150
+454 0.8307204374651733 chyline_2_7 original RFC 10  0.7 20
+453 0.5805334927055453 chyline_2_6 scaled RFC 4 log2 0.5 200
+452 0.7743107584904679 chyline_2_8 original RFC 7 sqrt 0.3 100
+451 0.8174610736259199 chyline_2_5 original RFC 10 sqrt 0.5 200
+450 0.5 chyline_2_5 original RFC 10 sqrt 1.0 20
+449 0.5929945518955765 chyline_2_8 scaled RFC 5 log2 0.8 100
+448 0.7420638701462933 chyline_2_8 original RFC 4 sqrt 0.3 50
+447 0.8420872562861077 chyline_2_7 scaled RFC 9  0.2 20
+446  chyline_2_7 original RFC 9  0.5 100
+445  chyline_2_7 original RFC 10  0.5 150
+444 0.6693185394345174 chyline_2_6 scaled RFC 7 log2 0.8 200
+443 0.600782713889346 chyline_2_7 scaled RFC 5 log2 0.8 100
+442 0.8103037599715901 chyline_2_6 original RFC 4  0.2 20
+441  chyline_2_6 original RFC 8  0.8 100
+440  chyline_2_8 scaled RFC 4  0.7 50
+439 0.5 chyline_2_7 scaled RFC 5 sqrt 1.0 100
+438 0.6833372310233023 chyline_2_7 scaled RFC 8 log2 0.3 200
+437 0.6817795986245485 chyline_2_8 original RFC 3 sqrt 0.5 100
+436 0.717605143795888 chyline_2_6 scaled RFC 10 log2 0.5 150
+435 0.7405062377475394 chyline_2_5 scaled RFC 4 sqrt 0.8 100
+434 0.7362967325809348 chyline_2_5 scaled RFC 9 log2 0.7 100
+433 0.5 chyline_2_8 scaled RFC 7  1.0 100
+432  chyline_2_8 original RFC 7  0.8 150
+431 0.8207437947332104 chyline_2_5 original RFC 6  0.5 50
+430 0.7264875461587543 chyline_2_5 original RFC 4 sqrt 0.3 150
+429 0.5 chyline_2_8 original RFC 3 sqrt 1.0 150
+428 0.8289953487566368 chyline_2_8 scaled RFC 8  0.5 20
+427 0.8029789900074777 chyline_2_7 scaled RFC 8 sqrt 0.8 50
+426 0.8252492356196894 chyline_2_5 scaled RFC 10 sqrt 0.7 150
+425 0.7825623125138945 chyline_2_5 original RFC 6 sqrt 0.5 50
+424 0.5 chyline_2_6 original RFC 9 sqrt 1.0 200
+423 0.6895677606183179 chyline_2_6 scaled RFC 8 log2 0.8 50
+422 0.6521845830482245 chyline_2_6 original RFC 6 log2 0.7 50
+421 0.79986372520997 chyline_2_5 original RFC 7 sqrt 0.8 20
+420 0.7654283561276016 chyline_2_6 original RFC 5 sqrt 0.5 20
+419 0.5 chyline_2_5 scaled RFC 8 sqrt 1.0 200
+418 0.5 chyline_2_6 scaled RFC 5 sqrt 1.0 200
+417 0.5 chyline_2_8 scaled RFC 10 log2 1.0 20
+416 0.5 chyline_2_5 original RFC 9 sqrt 1.0 50
+415 0.6911253930170719 chyline_2_7 scaled RFC 3 sqrt 0.5 20
+414 0.8394353835182571 chyline_2_5 scaled RFC 9  0.2 50
+413 0.8123247844000011 chyline_2_5 scaled RFC 10 sqrt 0.2 150
+412 0.8352258783516524 chyline_2_5 original RFC 6  0.2 100
+411 0.5763239875389408 chyline_2_5 original RFC 3 log2 0.5 20
+410 0.5 chyline_2_5 original RFC 4  1.0 200
+409 0.6428387886557011 chyline_2_7 original RFC 6 log2 0.2 150
+408 0.8367835107504064 chyline_2_8 original RFC 9  0.5 20
+407 0.8201129463937706 chyline_2_5 original RFC 10 sqrt 0.5 20
+406 0.6537422154469784 chyline_2_6 original RFC 7 log2 0.2 200
+405 0.5 chyline_2_8 original RFC 4  1.0 20
+404 0.5529595015576324 chyline_2_6 scaled RFC 3 log2 0.3 50
+403 0.7920755632162004 chyline_2_6 scaled RFC 8 sqrt 0.3 100
+402 0.8383411431491603 chyline_2_5 original RFC 8  0.2 150
+401 0.8285319567269798 chyline_2_5 original RFC 6  0.3 200
+400 0.5 chyline_2_5 original RFC 9 sqrt 1.0 100
+399 0.5794392523364486 chyline_2_5 original RFC 3 log2 0.7 200
+398 0.7654283561276016 chyline_2_6 scaled RFC 5 sqrt 0.7 200
+397 0.7743107584904679 chyline_2_8 original RFC 7 sqrt 0.3 100
+396 0.5887850467289719 chyline_2_8 scaled RFC 5 log2 0.7 150
+395 0.7327180757537699 chyline_2_7 scaled RFC 4 sqrt 0.2 150
+394 0.5778816199376947 chyline_2_8 scaled RFC 5 log2 0.2 200
+393 0.6693185394345174 chyline_2_8 scaled RFC 3 sqrt 0.2 50
+392 0.5 chyline_2_6 original RFC 8  1.0 100
+391 0.6350506266619317 chyline_2_8 scaled RFC 6 log2 0.3 100
+390 0.8286994130367624 chyline_2_5 original RFC 9  0.8 20
+389 0.7540615373066673 chyline_2_7 scaled RFC 5 sqrt 0.7 20
+388 0.8123247844000011 chyline_2_6 scaled RFC 9 sqrt 0.5 50
+387 0.8223014271319642 chyline_2_5 original RFC 6  0.5 20
+386 0.5 chyline_2_5 original RFC 9  1.0 50
+385 0.7894236904483498 chyline_2_6 scaled RFC 9 sqrt 0.2 200
+384 0.7931698035852973 chyline_2_5 original RFC 3  0.7 100
+383 0.827437716357883 chyline_2_6 scaled RFC 6  0.2 50
+382 0.5 chyline_2_7 scaled RFC 7  1.0 100
+381 0.8321106135541447 chyline_2_6 original RFC 7  0.2 200
+380 0.827437716357883 chyline_2_6 scaled RFC 8  0.3 50
+379 0.5 chyline_2_6 scaled RFC 9 sqrt 1.0 20
+378 0.815903441227166 chyline_2_6 scaled RFC 9 sqrt 0.7 150
+377 0.7520405128782564 chyline_2_8 scaled RFC 5 sqrt 0.5 20
+376 0.7405062377475394 chyline_2_7 scaled RFC 4 sqrt 0.3 20
+375 0.8265109322985689 chyline_2_5 original RFC 7  0.5 200
+374 0.8310163731850478 chyline_2_6 original RFC 6  0.2 150
+373 0.5 chyline_2_8 scaled RFC 7 sqrt 1.0 50
+372 0.786308425650842 chyline_2_7 scaled RFC 7 sqrt 0.3 20
+371 0.5 chyline_2_7 scaled RFC 7  1.0 100
+370 0.809840367941933 chyline_2_8 original RFC 4  0.3 50
+369 0.6724338042320251 chyline_2_8 original RFC 7 log2 0.7 20
+368 0.6895677606183179 chyline_2_7 scaled RFC 9 log2 0.3 50
+367 0.8352258783516524 chyline_2_7 original RFC 8  0.2 200
+366 0.5716510903426791 chyline_2_6 original RFC 3 log2 0.3 150
+365 0.801884749638381 chyline_2_5 scaled RFC 7 sqrt 0.8 150
+364 0.7911487791568863 chyline_2_7 original RFC 3  0.3 50
+363 0.7660592044670413 chyline_2_5 scaled RFC 6 sqrt 0.3 20
+362 0.8441082807145187 chyline_2_5 scaled RFC 10  0.2 200
+361 0.6506269506494706 chyline_2_7 scaled RFC 7 log2 0.2 150
+360 0.7951908280137083 chyline_2_7 original RFC 8 sqrt 0.5 200
+359 0.8352258783516524 chyline_2_5 original RFC 7  0.2 200
+358 0.659972745041994 chyline_2_5 original RFC 6 log2 0.5 20
+357 0.8216705787925245 chyline_2_5 scaled RFC 10 sqrt 0.8 20
+356  chyline_2_6 scaled RFC 4  0.8 150
+355 0.8212071867628674 chyline_2_5 original RFC 5  0.7 50
+354 0.5825545171339563 chyline_2_8 scaled RFC 5 log2 0.5 200
+353 0.5 chyline_2_6 scaled RFC 6 log2 1.0 20
+352 0.8341316379825556 chyline_2_5 scaled RFC 6  0.2 200
+351 0.7967484604124622 chyline_2_7 scaled RFC 8 sqrt 0.5 50
+350 0.815903441227166 chyline_2_6 scaled RFC 9 sqrt 0.8 100
+349 0.8092095196024933 chyline_2_8 scaled RFC 8 sqrt 0.8 20
+348 0.6475116858519628 chyline_2_8 scaled RFC 6 log2 0.8 150
+347 0.8087461275728363 chyline_2_6 original RFC 4  0.5 20
+346 0.5778816199376947 chyline_2_8 scaled RFC 5 log2 0.2 200
+345 0.5716510903426791 chyline_2_8 original RFC 4 log2 0.3 100
+344 0.7831931608533342 chyline_2_6 original RFC 8 sqrt 0.2 150
+343 0.8187227703047993 chyline_2_5 scaled RFC 5  0.8 150
+342 0.5 chyline_2_5 scaled RFC 5 sqrt 1.0 100
+341 0.8441082807145187 chyline_2_5 scaled RFC 9  0.2 20
+340 0.8182593782751422 chyline_2_5 original RFC 6  0.7 200
+339  chyline_2_7 scaled RFC 10  0.3 150
+338 0.6771067014282868 chyline_2_8 scaled RFC 3 sqrt 0.3 150
+337 0.8185553139950167 chyline_2_5 original RFC 9 sqrt 0.5 50
+336 0.5836487575030531 chyline_2_6 scaled RFC 4 log2 0.2 50
+335 0.5 chyline_2_7 original RFC 3 log2 1.0 50
+334  chyline_2_8 scaled RFC 5  0.8 200
+333 0.7927064115556401 chyline_2_6 scaled RFC 3  0.8 150
+332 0.8092095196024933 chyline_2_6 scaled RFC 8 sqrt 0.7 100
+331 0.8154400491975089 chyline_2_6 original RFC 5  0.8 100
+330 0.76075545893134 chyline_2_7 original RFC 5 sqrt 0.8 200
+329 0.8205763384234277 chyline_2_5 original RFC 9 sqrt 0.7 50
+328 0.8212071867628674 chyline_2_8 scaled RFC 4  0.2 50
+327 0.7774260232879757 chyline_2_8 original RFC 7 sqrt 0.5 150
+326 0.7987694848408732 chyline_2_8 original RFC 3  0.2 20
+325 0.5 chyline_2_5 scaled RFC 3 sqrt 1.0 100
+324 0.6475116858519628 chyline_2_7 original RFC 6 log2 0.8 20
+323 0.7774260232879757 chyline_2_7 scaled RFC 6 sqrt 0.8 200
+322  chyline_2_8 scaled RFC 8  0.3 150
+321 0.780245352365609 chyline_2_5 original RFC 3  0.2 20
+320 0.733181467783427 chyline_2_5 original RFC 9 log2 0.5 150
+319 0.7451791349438011 chyline_2_7 original RFC 5 sqrt 0.2 20
+318 0.5373831775700935 chyline_2_8 original RFC 3 log2 0.5 100
+317  chyline_2_8 scaled RFC 10  0.8 50
+316 0.8169976815962627 chyline_2_7 original RFC 10 sqrt 0.7 50
+315 0.7576401941338322 chyline_2_7 original RFC 5 sqrt 0.5 100
+314  chyline_2_7 scaled RFC 7  0.7 100
+313 0.798306092811216 chyline_2_7 scaled RFC 3  0.2 100
+312 0.5 chyline_2_6 original RFC 8 log2 1.0 50
+311 0.823859059530718 chyline_2_6 scaled RFC 7  0.3 200
+310 0.5 chyline_2_6 scaled RFC 3  1.0 200
+309 0.8258800839591292 chyline_2_8 original RFC 5  0.2 50
+308 0.8123247844000011 chyline_2_6 original RFC 4  0.7 100
+307 0.795358284323491 chyline_2_7 original RFC 3  0.8 20
+306 0.6677609070357634 chyline_2_7 scaled RFC 7 log2 0.5 200
+305 0.8363201187207492 chyline_2_5 original RFC 6  0.2 50
+304 0.7358333405512777 chyline_2_5 original RFC 4 sqrt 0.5 50
+303 0.8156075055072916 chyline_2_7 original RFC 6  0.7 20
+302 0.827437716357883 chyline_2_6 original RFC 8  0.7 50
+301 0.5498442367601246 chyline_2_7 scaled RFC 3 log2 0.5 200
+300  chyline_2_7 original RFC 10  0.3 150
+299 0.8154400491975089 chyline_2_6 scaled RFC 9 sqrt 0.8 150
+298 0.8364875750305318 chyline_2_6 original RFC 10  0.7 20
+297 0.7669859885263556 chyline_2_6 scaled RFC 5 sqrt 0.8 200
+296 0.8430140403454219 chyline_2_5 original RFC 10  0.2 150
+295 0.8107671520012472 chyline_2_8 scaled RFC 10 sqrt 0.8 150
+294  chyline_2_8 scaled RFC 10  0.7 200
+293 0.8107671520012472 chyline_2_6 original RFC 8 sqrt 0.8 200
+292 0.6662032746370096 chyline_2_6 original RFC 7 log2 0.5 150
+291 0.8180919219653596 chyline_2_8 original RFC 5  0.5 20
+290 0.8223014271319642 chyline_2_8 scaled RFC 7  0.3 50
+289 0.5 chyline_2_8 original RFC 3 log2 1.0 50
+288 0.76075545893134 chyline_2_7 original RFC 5 sqrt 0.7 150
+287 0.6989135550108413 chyline_2_7 original RFC 9 log2 0.8 100
+286 0.5763239875389408 chyline_2_5 original RFC 3 log2 0.7 20
+285 0.7420638701462933 chyline_2_5 original RFC 4 sqrt 0.8 20
+284 0.7264875461587543 chyline_2_5 scaled RFC 4 sqrt 0.3 150
+283 0.6506269506494706 chyline_2_5 scaled RFC 5 log2 0.7 200
+282 0.7389486053487855 chyline_2_8 original RFC 4 sqrt 0.5 50
+281 0.7831931608533342 chyline_2_8 original RFC 7 sqrt 0.7 200
+280 0.6381658914594395 chyline_2_8 scaled RFC 6 log2 0.8 200
+279 0.5 chyline_2_6 original RFC 9  1.0 100
+278 0.5778816199376947 chyline_2_7 original RFC 4 log2 0.5 200
+277 0.6802219662257946 chyline_2_8 scaled RFC 8 log2 0.5 50
+276 0.7951908280137083 chyline_2_8 original RFC 8 sqrt 0.5 150
+275  chyline_2_8 original RFC 6  0.3 100
+274 0.5763239875389408 chyline_2_8 scaled RFC 4 log2 0.8 20
+273 0.5 chyline_2_6 original RFC 9 sqrt 1.0 20
+272 0.5716510903426791 chyline_2_8 original RFC 4 log2 0.3 100
+271 0.5 chyline_2_5 scaled RFC 5 sqrt 1.0 200
+270 0.7269509381884114 chyline_2_6 scaled RFC 4 sqrt 0.2 200
+269 0.5700934579439252 chyline_2_6 scaled RFC 3 log2 0.7 150
+268 0.687546736189907 chyline_2_5 scaled RFC 8 log2 0.2 100
+267  chyline_2_8 scaled RFC 6  0.8 50
+266 0.6334929942631777 chyline_2_8 original RFC 6 log2 0.3 100
+265 0.5 chyline_2_7 original RFC 6 sqrt 1.0 100
+264 0.8143458088284121 chyline_2_6 scaled RFC 9 sqrt 0.7 50
+263 0.8034423820371348 chyline_2_5 original RFC 8 sqrt 0.3 200
+262 0.8129556327394408 chyline_2_7 scaled RFC 5  0.5 50
+261 0.8180919219653596 chyline_2_8 scaled RFC 5  0.5 20
+260 0.6630880098395018 chyline_2_6 original RFC 3 sqrt 0.2 20
+259 0.6397235238581933 chyline_2_6 scaled RFC 5 log2 0.3 150
+258 0.8342990942923383 chyline_2_5 scaled RFC 10  0.8 100
+257 0.8385085994589428 chyline_2_5 scaled RFC 10  0.2 50
+256 0.5 chyline_2_6 scaled RFC 9 log2 1.0 100
+255  chyline_2_8 scaled RFC 6  0.7 150
+254  chyline_2_8 scaled RFC 8  0.5 100
+253 0.644396421054455 chyline_2_7 original RFC 6 log2 0.3 100
+252 0.5 chyline_2_5 original RFC 7 sqrt 1.0 200
+251 0.5467289719626168 chyline_2_8 original RFC 3 log2 0.7 150
+250 0.787866058049596 chyline_2_7 original RFC 8 sqrt 0.3 50
+249 0.5 chyline_2_8 original RFC 3 sqrt 1.0 100
+248 0.7451791349438011 chyline_2_7 original RFC 4 sqrt 0.8 100
+247  chyline_2_7 original RFC 5  0.8 100
+246 0.5 chyline_2_5 scaled RFC 4  1.0 150
+245 0.5700934579439252 chyline_2_6 scaled RFC 3 log2 0.3 100
+244 0.5919003115264797 chyline_2_6 original RFC 4 log2 0.7 20
+243 0.5 chyline_2_6 scaled RFC 8  1.0 200
+242 0.8462967614527124 chyline_2_5 original RFC 10  0.3 150
+241 0.659972745041994 chyline_2_7 original RFC 7 log2 0.3 200
+240 0.6381658914594395 chyline_2_6 scaled RFC 5 log2 0.2 150
+239  chyline_2_8 scaled RFC 3  0.5 200
+238 0.5 chyline_2_6 scaled RFC 3 sqrt 1.0 150
+237 0.798306092811216 chyline_2_8 original RFC 10 sqrt 0.3 20
+236 0.759197826532586 chyline_2_7 scaled RFC 5 sqrt 0.5 100
+235 0.5919003115264797 chyline_2_6 original RFC 4 log2 0.7 100
+234 0.7805412880854835 chyline_2_8 scaled RFC 8 sqrt 0.3 100
+233 0.5 chyline_2_5 original RFC 5 log2 1.0 20
+232 0.5685358255451713 chyline_2_6 original RFC 3 log2 0.2 100
+231 0.6506269506494706 chyline_2_6 scaled RFC 6 log2 0.7 200
+230 0.6552998478457323 chyline_2_6 scaled RFC 6 log2 0.7 20
+229 0.832908918203367 chyline_2_5 original RFC 10  0.8 20
+228 0.5 chyline_2_6 scaled RFC 10 log2 1.0 100
+227 0.7749416068299076 chyline_2_7 original RFC 6 sqrt 0.8 100
+226 0.6646456422382556 chyline_2_5 scaled RFC 3 sqrt 0.2 50
+225 0.6755490690295329 chyline_2_7 scaled RFC 7 log2 0.7 200
+224 0.5 chyline_2_7 original RFC 9 sqrt 1.0 200
+223 0.5 chyline_2_6 original RFC 8 sqrt 1.0 100
+222 0.5 chyline_2_7 original RFC 6 log2 1.0 150
+221 0.7482943997413088 chyline_2_6 original RFC 4 sqrt 0.8 200
+220 0.8045366224062316 chyline_2_8 original RFC 9 sqrt 0.7 20
+219 0.6210319350731466 chyline_2_5 scaled RFC 4 log2 0.8 20
+218 0.5 chyline_2_5 original RFC 10 sqrt 1.0 20
+217 0.8127881764296583 chyline_2_5 scaled RFC 8 sqrt 0.8 200
+216 0.5451713395638629 chyline_2_7 scaled RFC 3 log2 0.3 200
+215 0.5 chyline_2_8 original RFC 4  1.0 150
+214 0.7722897340620569 chyline_2_6 scaled RFC 7 sqrt 0.2 150
+213 0.5669781931464174 chyline_2_8 original RFC 4 log2 0.3 20
+212  chyline_2_7 original RFC 6  0.8 150
+211 0.7816355284545804 chyline_2_6 scaled RFC 7 sqrt 0.2 50
+210 0.823859059530718 chyline_2_5 scaled RFC 6  0.8 50
+209 0.659972745041994 chyline_2_5 original RFC 6 log2 0.5 20
+208 0.8321106135541447 chyline_2_7 original RFC 9  0.2 150
+207 0.7920755632162004 chyline_2_5 scaled RFC 3  0.3 100
+206 0.8258800839591292 chyline_2_8 original RFC 5  0.2 100
+205 0.8227648191616213 chyline_2_5 scaled RFC 5  0.3 200
+204 0.8289953487566368 chyline_2_7 scaled RFC 6  0.2 200
+203 0.8305529811553908 chyline_2_7 original RFC 6  0.2 20
+202 0.8187227703047993 chyline_2_6 original RFC 4  0.3 20
+201 0.832908918203367 chyline_2_5 original RFC 10  0.7 150
+200 0.6526479750778816 chyline_2_7 scaled RFC 7 log2 0.2 20
+199 0.5 chyline_2_8 scaled RFC 7  1.0 100
+198 0.8143458088284121 chyline_2_5 scaled RFC 10 sqrt 0.2 20
+197 0.6708761718332712 chyline_2_8 original RFC 7 log2 0.5 50
+196  chyline_2_6 original RFC 10  0.8 150
+195 0.5529595015576324 chyline_2_7 scaled RFC 3 log2 0.7 50
+194 0.6693185394345174 chyline_2_5 scaled RFC 3 sqrt 0.5 150
+193 0.8145132651381948 chyline_2_6 original RFC 5  0.8 50
+192 0.6880101282195641 chyline_2_8 scaled RFC 9 log2 0.3 200
+191 0.6786643338270407 chyline_2_8 original RFC 8 log2 0.5 20
+190 0.8029789900074777 chyline_2_8 scaled RFC 9 sqrt 0.5 50
+189 0.8149766571678518 chyline_2_6 original RFC 4  0.5 150
+188 0.6552998478457323 chyline_2_7 scaled RFC 7 log2 0.2 50
+187 0.7556191697054212 chyline_2_8 original RFC 5 sqrt 0.8 200
+186 0.7098169818021186 chyline_2_7 scaled RFC 10 log2 0.7 200
+185  chyline_2_8 scaled RFC 10  0.5 50
+184 0.7707321016633031 chyline_2_8 original RFC 7 sqrt 0.3 50
+183 0.7796145040261693 chyline_2_7 original RFC 7 sqrt 0.5 50
+182 0.7976752444717763 chyline_2_5 scaled RFC 7 sqrt 0.8 50
+181 0.8201129463937706 chyline_2_5 scaled RFC 4  0.2 100
+180 0.7707321016633031 chyline_2_8 original RFC 7 sqrt 0.3 200
+179 0.6506269506494706 chyline_2_5 scaled RFC 5 log2 0.3 100
+178 0.5763239875389408 chyline_2_8 original RFC 4 log2 0.8 20
+177 0.7884969063890357 chyline_2_6 scaled RFC 3  0.7 50
+176 0.6677609070357634 chyline_2_8 original RFC 7 log2 0.8 20
+175 0.5 chyline_2_5 scaled RFC 10 log2 1.0 50
+174 0.5 chyline_2_7 original RFC 4  1.0 200
+173 0.7936331956149544 chyline_2_6 original RFC 3  0.7 20
+172 0.8467601534823694 chyline_2_5 scaled RFC 10  0.3 200
+171 0.8340031585724639 chyline_2_5 original RFC 10  0.7 200
+170 0.7914447148767607 chyline_2_5 scaled RFC 6 sqrt 0.8 150
+169 0.7565459537647354 chyline_2_5 original RFC 10 log2 0.5 200
+168 0.6942406578145797 chyline_2_6 original RFC 3 sqrt 0.8 20
+167 0.7905179308174466 chyline_2_5 original RFC 3  0.3 50
+166  chyline_2_6 original RFC 7  0.8 200
+165 0.6833372310233023 chyline_2_8 original RFC 9 log2 0.2 100
+164 0.6521845830482245 chyline_2_8 scaled RFC 7 log2 0.2 100
+163 0.8332048539232415 chyline_2_7 scaled RFC 9  0.3 100
+162 0.573208722741433 chyline_2_5 scaled RFC 3 log2 0.2 100
+161 0.5 chyline_2_6 scaled RFC 7 log2 1.0 100
+160 0.7456425269734581 chyline_2_5 scaled RFC 10 log2 0.3 200
+159 0.8196495543641136 chyline_2_6 original RFC 7  0.7 50
+158 0.6771067014282868 chyline_2_7 original RFC 3 sqrt 0.3 20
+157 0.8374143590898461 chyline_2_8 original RFC 9  0.2 20
+156 0.6662032746370096 chyline_2_5 scaled RFC 3 sqrt 0.3 150
+155 0.6085708758831154 chyline_2_5 scaled RFC 4 log2 0.7 150
+154 0.7989369411506557 chyline_2_7 scaled RFC 3  0.8 50
+153 0.5 chyline_2_6 original RFC 6  1.0 200
+152 0.8034423820371348 chyline_2_5 original RFC 9 sqrt 0.2 150
+151 0.5778816199376947 chyline_2_5 original RFC 3 log2 0.8 150
+150 0.8045366224062316 chyline_2_6 original RFC 10 sqrt 0.2 100
+149 0.7405062377475394 chyline_2_7 scaled RFC 4 sqrt 0.3 20
+148 0.63037772946567 chyline_2_8 original RFC 6 log2 0.5 150
+147  chyline_2_8 original RFC 9  0.3 200
+146 0.573208722741433 chyline_2_7 original RFC 4 log2 0.2 100
+145  chyline_2_8 scaled RFC 4  0.8 50
+144 0.6506269506494706 chyline_2_7 scaled RFC 6 log2 0.5 150
+143 0.7638707237288478 chyline_2_5 original RFC 5 sqrt 0.7 20
+142 0.7389486053487855 chyline_2_5 scaled RFC 4 sqrt 0.7 200
+141 0.5467289719626168 chyline_2_7 scaled RFC 3 log2 0.2 150
+140 0.7967484604124622 chyline_2_7 scaled RFC 3  0.2 200
+139 0.8436448886848616 chyline_2_6 original RFC 10  0.2 20
+138 0.8333723102330242 chyline_2_5 original RFC 10  0.8 50
+137  chyline_2_7 original RFC 9  0.8 150
+136 0.5965732087227414 chyline_2_6 scaled RFC 4 log2 0.5 20
+135 0.8307204374651733 chyline_2_5 scaled RFC 7  0.2 20
+134 0.8305529811553908 chyline_2_8 scaled RFC 6  0.2 20
+133 0.784287401222431 chyline_2_7 original RFC 8 sqrt 0.2 50
+132 0.5 chyline_2_7 original RFC 7 sqrt 1.0 150
+131 0.5 chyline_2_8 original RFC 7 log2 1.0 150
+130  chyline_2_8 original RFC 9  0.3 150
+129 0.7930023472755147 chyline_2_6 original RFC 7 sqrt 0.5 50
+128  chyline_2_7 scaled RFC 10  0.7 50
+127 0.6833372310233023 chyline_2_6 scaled RFC 8 log2 0.3 200
+126 0.6771067014282868 chyline_2_6 original RFC 7 log2 0.5 100
+125 0.5763239875389408 chyline_2_7 original RFC 4 log2 0.8 200
+124 0.8202804027035533 chyline_2_6 scaled RFC 5  0.3 20
+123 0.8321106135541447 chyline_2_6 original RFC 8  0.3 100
+122 0.7669859885263556 chyline_2_5 scaled RFC 5 sqrt 0.5 50
+121 0.5700934579439252 chyline_2_6 original RFC 3 log2 0.5 20
+120 0.5 chyline_2_7 original RFC 9 sqrt 1.0 50
+119 0.801884749638381 chyline_2_5 scaled RFC 7 sqrt 0.8 150
+118 0.5 chyline_2_7 original RFC 10  1.0 20
+117 0.8246573641799404 chyline_2_8 original RFC 9  0.8 20
+116 0.8196495543641136 chyline_2_8 original RFC 5  0.3 20
+115 0.6693185394345174 chyline_2_8 scaled RFC 7 log2 0.8 50
+114 0.8202804027035533 chyline_2_8 original RFC 6  0.7 20
+113 0.6646456422382556 chyline_2_6 scaled RFC 7 log2 0.3 200
+112 0.5887850467289719 chyline_2_8 scaled RFC 5 log2 0.3 50
+111 0.8305529811553908 chyline_2_8 original RFC 7  0.5 20
+110 0.659972745041994 chyline_2_6 scaled RFC 7 log2 0.3 150
+109  chyline_2_8 scaled RFC 5  0.7 100
+108 0.8205763384234277 chyline_2_6 scaled RFC 10 sqrt 0.8 100
+107 0.5 chyline_2_5 scaled RFC 5 sqrt 1.0 200
+106 0.7940965876446116 chyline_2_6 scaled RFC 3  0.5 50
+105 0.801884749638381 chyline_2_5 scaled RFC 7 sqrt 0.8 100
+104 0.8154400491975089 chyline_2_7 scaled RFC 4  0.3 20
+103  chyline_2_7 original RFC 8  0.7 200
+102 0.6771067014282868 chyline_2_6 scaled RFC 7 log2 0.7 50
+101 0.7264875461587543 chyline_2_5 scaled RFC 4 sqrt 0.3 150
+100 0.6693185394345174 chyline_2_8 scaled RFC 8 log2 0.3 20
+99 0.6895677606183179 chyline_2_8 scaled RFC 8 log2 0.7 150
+98  chyline_2_7 original RFC 8  0.5 200
+97 0.7082593494033647 chyline_2_5 scaled RFC 8 log2 0.8 200
+96 0.6802219662257946 chyline_2_8 original RFC 9 log2 0.2 20
+95 0.5 chyline_2_7 scaled RFC 7  1.0 200
+94 0.5 chyline_2_5 scaled RFC 5 log2 1.0 100
+93 0.5 chyline_2_5 scaled RFC 4  1.0 100
+92  chyline_2_6 scaled RFC 10  0.8 150
+91 0.5 chyline_2_7 original RFC 7 log2 1.0 100
+90 0.6693185394345174 chyline_2_6 scaled RFC 7 log2 0.5 200
+89 0.5 chyline_2_5 original RFC 10  1.0 200
+88 0.5 chyline_2_5 original RFC 5 log2 1.0 100
+87 0.6074766355140186 chyline_2_7 scaled RFC 5 log2 0.8 200
+86 0.673991436630779 chyline_2_5 original RFC 7 log2 0.7 150
+85 0.6880101282195641 chyline_2_6 scaled RFC 8 log2 0.5 200
+84 0.7945599796742686 chyline_2_7 scaled RFC 8 sqrt 0.3 20
+83 0.6552998478457323 chyline_2_6 original RFC 6 log2 0.7 20
+82 0.8380452074292858 chyline_2_6 scaled RFC 10  0.5 50
+81 0.8193536186442391 chyline_2_6 original RFC 7  0.8 20
+80 0.5 chyline_2_6 original RFC 4 log2 1.0 200
+79 0.7855490979013104 chyline_2_6 original RFC 3  0.8 20
+78 0.7222780409921498 chyline_2_5 original RFC 9 log2 0.3 200
+77 0.5700934579439252 chyline_2_6 scaled RFC 3 log2 0.7 150
+76 0.6786643338270407 chyline_2_7 scaled RFC 8 log2 0.3 100
+75 0.602803738317757 chyline_2_5 scaled RFC 4 log2 0.2 50
+74 0.8244899078701577 chyline_2_7 scaled RFC 9  0.5 50
+73  chyline_2_8 scaled RFC 10  0.3 150
+72 0.8255841482392546 chyline_2_5 original RFC 7  0.7 200
+71 0.6552998478457323 chyline_2_6 original RFC 6 log2 0.7 20
+70 0.5 chyline_2_6 original RFC 6 log2 1.0 200
+69  chyline_2_8 original RFC 5  0.8 200
+68 0.6724338042320251 chyline_2_6 scaled RFC 3 sqrt 0.8 200
+67 0.7389486053487855 chyline_2_5 original RFC 4 sqrt 0.7 150
+66 0.6381658914594395 chyline_2_6 scaled RFC 5 log2 0.2 200
+65 0.6319353618644239 chyline_2_5 original RFC 5 log2 0.2 20
+64 0.5669781931464174 chyline_2_6 original RFC 3 log2 0.5 150
+63 0.6786643338270407 chyline_2_6 original RFC 8 log2 0.2 20
+62 0.7082593494033647 chyline_2_7 scaled RFC 10 log2 0.7 150
+61 0.5981308411214953 chyline_2_7 scaled RFC 5 log2 0.3 20
+60 0.5996884735202492 chyline_2_7 original RFC 5 log2 0.2 150
+59 0.8461293051429297 chyline_2_5 scaled RFC 10  0.2 100
+58 0.811861392370344 chyline_2_5 scaled RFC 4  0.7 100
+57 0.5 chyline_2_5 scaled RFC 10 sqrt 1.0 20
+56 0.5700934579439252 chyline_2_6 original RFC 3 log2 0.5 50
+55 0.8427181046255474 chyline_2_6 original RFC 10  0.3 20
+54 0.5 chyline_2_7 original RFC 3 sqrt 1.0 150
+53 0.7020288198083491 chyline_2_6 scaled RFC 10 log2 0.2 20
+52 0.5 chyline_2_5 original RFC 6 log2 1.0 20
+51 0.8123247844000011 chyline_2_7 scaled RFC 8 sqrt 0.8 20
+50 0.703586452207103 chyline_2_7 scaled RFC 10 log2 0.7 50
+49 0.801884749638381 chyline_2_6 scaled RFC 8 sqrt 0.8 20
+48 0.5498442367601246 chyline_2_8 scaled RFC 3 log2 0.5 50
+47 0.8078193435135221 chyline_2_8 scaled RFC 4  0.5 50
+46 0.7956542200433654 chyline_2_5 original RFC 8 sqrt 0.3 20
+45 0.5 chyline_2_8 original RFC 10  1.0 50
+44 0.8060942548049855 chyline_2_6 scaled RFC 8 sqrt 0.7 200
+43 0.5389408099688473 chyline_2_8 scaled RFC 3 log2 0.3 150
+42 0.6459540534532089 chyline_2_7 original RFC 6 log2 0.5 200
+41 0.8191861623344564 chyline_2_6 original RFC 7  0.8 50
+40 0.5 chyline_2_6 scaled RFC 10  1.0 200
+39 0.6708761718332712 chyline_2_5 scaled RFC 3 sqrt 0.2 20
+38 0.798306092811216 chyline_2_7 scaled RFC 8 sqrt 0.5 20
+37 0.762313091330094 chyline_2_5 scaled RFC 5 sqrt 0.3 150
+36 0.7342757081525239 chyline_2_5 original RFC 10 log2 0.2 100
+35 0.8082827355431792 chyline_2_7 scaled RFC 4  0.5 50
+34 0.8154400491975089 chyline_2_8 scaled RFC 4  0.2 20
+33 0.8177959862454851 chyline_2_8 original RFC 7  0.8 20
+32  chyline_2_8 original RFC 9  0.3 200
+31 0.6506269506494706 chyline_2_5 scaled RFC 5 log2 0.7 150
+30 0.6926830254158257 chyline_2_8 scaled RFC 10 log2 0.3 100
+29 0.815903441227166 chyline_2_5 original RFC 9 sqrt 0.5 150
+28  chyline_2_7 scaled RFC 7  0.7 150
+27 0.6771067014282868 chyline_2_5 original RFC 3 sqrt 0.8 200
+26 0.6880101282195641 chyline_2_7 scaled RFC 8 log2 0.5 200
+25 0.7451791349438011 chyline_2_6 original RFC 4 sqrt 0.5 100
+24 0.7956542200433654 chyline_2_6 scaled RFC 8 sqrt 0.3 20
+23 0.7082593494033647 chyline_2_5 scaled RFC 8 log2 0.8 200
+22 0.5934579439252337 chyline_2_6 scaled RFC 4 log2 0.7 50
+21 0.7529672969375705 chyline_2_6 original RFC 5 sqrt 0.3 50
+20 0.8003271172396271 chyline_2_5 original RFC 7 sqrt 0.8 200
+19  chyline_2_8 scaled RFC 6  0.7 150
+18 0.6210319350731466 chyline_2_5 scaled RFC 4 log2 0.8 20
+17 0.6552998478457323 chyline_2_6 original RFC 6 log2 0.7 20
+16 0.8342990942923383 chyline_2_7 scaled RFC 10  0.3 50
+15 0.6968925305824304 chyline_2_8 scaled RFC 10 log2 0.5 20
+14 0.7754049988595648 chyline_2_8 original RFC 6 sqrt 0.8 100
+13 0.825416691929472 chyline_2_5 original RFC 7  0.7 20
+12 0.7754049988595648 chyline_2_5 original RFC 7 sqrt 0.2 20
+11 0.8191861623344564 chyline_2_6 original RFC 6  0.7 100
+10 0.7696378612942063 chyline_2_8 original RFC 7 sqrt 0.2 150
+9 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+8 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+7 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+6 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+5 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+4 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+3 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+2 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+1 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
+0 0.827437716357883 chyline_2_5 original RFC 6  0.5 100
