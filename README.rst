@@ -42,9 +42,9 @@ ComplexFragmentor
 
 ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features according to specified associations. The most important argument is the *associator* - a dictionary that establishes the correspondence between a column in a data frame X and the transformer that is trained on it.
 
-For example, say you have a data frame with molecules/CGRs in one column ("molecules"), and solvents in another ("solvent"). You want to generate a feture table that includes both structural and solvent descriptors. You would define a ComplexFragmentor class with associator as a dictionary, where keys are column names, and value are the corresponding feature generators. In this case, e.g.,
+For example, say you have a data frame with molecules/CGRs in one column ("molecules"), and solvents in another ("solvent"). You want to generate a feture table that includes both structural and solvent descriptors. You would define a ComplexFragmentor class with associator as list of tuples which contain column names and the corresponding feature generators. In this case, e.g.,
 
-    associator = {"molecules": ChythonCircus(lower=a, upper=b), "solvent":SolventVectorizer()}  
+    associator = [("molecules", ChythonCircus(lower=a, upper=b)), ("solvent", SolventVectorizer())] 
 
 
 ComplexFragmentor assumes that at least one of the types of features will be structural, thus, *structure_columns* parameter defines the columns of the data frame where structures are found.
@@ -60,11 +60,12 @@ The approach is developed and reported in
  Interpretability of SAR/QSAR models of any complexity by atomic contributions
  Mol. Inf., 2012, 31(9), 639-642, 2012
 
-Current implementation is designed for regression tasks, for models built with Scikit-learn library and using ISIDA fragments implemented in CIMtools or CircuS fragments implemented in chem_features module of this library. 
+Current implementation is designed for both regression and classification tasks, for models built with Scikit-learn library and CircuS or ChyLine fragments implemented in chem_features module of this library. 
 
-The application of the ColorAtom requires a trained pipeline containing a fragmentor (CircuS are supported), features preprocessing and a model. *calculate_atom_contributions* calculates the contributions of each atom for a given molecule and returns them numerically as a dictionary. Otherwise, they can visualized directly in Jupyter Notebook via *output_html* function that returns an HTML table containing an SVG for each structure in the molecule. Since complexFragmentor is also supported, several structures in one data point can be processed simultaneously. 
+The application of the ColorAtom requires a trained pipeline containing a fragmentor (CircuS and ChyLine are supported), features preprocessing and a model. *calculate_atom_contributions* calculates the contributions of each atom for a given molecule and returns them numerically as a dictionary. Otherwise, they can visualized directly in Jupyter Notebook via *output_html* function that returns an HTML table containing an SVG for each structure in the molecule. Since complexFragmentor is also supported, several structures in one data point can be processed simultaneously. 
 
-The coloring is done with matplotlib library. The atom contributions are normalized between 0 and 1 according to the maximum absolute value of the contribution. Therefore, if several structures are present, they will all have their colors normalized by the maximum value amond all contributions. The default colormap is PiYG. The "lower" (more negative) contributions are shown by red color, the "upper" (more positive) - by green. An example can be seen below:
+The coloring is done with matplotlib library. The atom contributions are normalized between 0 and 1 according to the maximum absolute value of the contribution. Therefore, if several structures are present, they will all have their colors normalized by the maximum value amond all contributions. The default colormap is PiYG. The "lower" (more negative) contributions are shown by red color, the "upper" (more positive) - by green.
+For classification models, the coloring in monochromatic (blue), and the intensity reflects the importance of the atom (the more intense the color, the more it would affect the change in prediction if changed). An example can be seen below:
 
 .. image:: docs/img/coloratom-demo1.png
 
