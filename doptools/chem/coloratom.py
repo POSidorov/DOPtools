@@ -48,7 +48,8 @@ class ColorAtom:
     Current implementation is designed for regression tasks, for models built with Scikit-learn library and
     using CircuS fragments implemented in this library.
     """
-    def __init__(self, fragmentor=None, model=None, is_complex:bool=False, structure_cols:List=None, colormap=None):
+    def __init__(self, fragmentor=None, model=None, is_complex:bool=False, structure_cols:List=None, 
+                 colormap=None, reaction=None):
         DEPICT.depict_settings(monochrome=True, aam=False)
         self.model = model
         self.pipeline = None
@@ -60,6 +61,7 @@ class ColorAtom:
             self.complex = True
         else:
             self.complex = is_complex
+        self.reaction = reaction
         self.structure_cols = structure_cols
         self.colormap = colormap
     
@@ -115,9 +117,15 @@ class ColorAtom:
         if self.complex:
             atom_weights = {}
             for m in self.structure_cols:
-                atom_weights[mol[m]] = {i[0]:0 for i in mol[m].atoms()}
+                if isinstance(mol[m], ReactionContainer):
+                    atom_weights[mol[m]] = {i[0]:0 for react in mol[m].molecules() for i in react.atoms()}
+                else:
+                    atom_weights[mol[m]] = {i[0]:0 for i in mol[m].atoms()}
         else:
-            atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
+            if isinstance(mol, ReactionContainer):
+                atom_weights[mol] = {i[0]:0 for react in mol.molecules() for i in react.atoms()}
+            else:
+                atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
         if not isinstance(mol, Series):
             descriptor_vector = self.fragmentor.transform([mol])
         else:
@@ -140,12 +148,24 @@ class ColorAtom:
                         d = self._aromatize(d)
                     if self.complex:
                         mol_name, frag_smiles = d.split("::")
-                        participating_atoms = [list(i.values()) for i in smiles(frag_smiles).get_mapping(mol[mol_name])]
+                        if mol_name not in self.structure_cols:
+                            continue
+                        if isinstance(mol[mol_name], ReactionContainer):
+                            react_cgr = mol[mol_name].compose()
+                            frag_cgr = self._frag2cgr(frag_smiles)
+                            participating_atoms = [list(i.values()) for i in frag_cgr.get_mapping(react_cgr)]
+                        else:
+                            participating_atoms = [list(i.values()) for i in smiles(frag_smiles).get_mapping(mol[mol_name])]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                         for a in participating_atoms:
                             atom_weights[mol[mol_name]][a] += w
                     else:
-                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
+                        if isinstance(mol, ReactionContainer):
+                            react_cgr = mol.compose()
+                            frag_cgr = self._frag2cgr(d)
+                            participating_atoms = [list(i.values()) for  i in frag_cgr.get_mapping(react_cgr)]
+                        else:
+                            participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                         for a in participating_atoms:
                             atom_weights[mol][a] += w
@@ -201,12 +221,24 @@ class ColorAtom:
                         d = self._aromatize(d)
                     if self.complex:
                         mol_name, frag_smiles = d.split("::")
-                        participating_atoms = [list(i.values()) for i in smiles(frag_smiles).get_mapping(mol[mol_name])]
+                        if mol_name not in self.structure_cols:
+                            continue
+                        if isinstance(mol[mol_name], ReactionContainer):
+                            react_cgr = mol[mol_name].compose()
+                            frag_cgr = self._frag2cgr(frag_smiles)
+                            participating_atoms = [list(i.values()) for i in frag_cgr.get_mapping(react_cgr)]
+                        else:
+                            participating_atoms = [list(i.values()) for i in smiles(frag_smiles).get_mapping(mol[mol_name])]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                         for a in participating_atoms:
                             atom_weights[mol[mol_name]][a] += w
                     else:
-                        participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
+                        if isinstance(mol, ReactionContainer):
+                            react_cgr = mol.compose()
+                            frag_cgr = self._frag2cgr(d)
+                            participating_atoms = [list(i.values()) for  i in frag_cgr.get_mapping(react_cgr)]
+                        else:
+                            participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
                         participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
                         for a in participating_atoms:
                             atom_weights[mol][a] += w
@@ -264,9 +296,15 @@ class ColorAtom:
             print("Min value:", min_value, ", max value:", max_value)
             
         for m in contributions.keys():
+            contr = contributions[m]
+            if isinstance(m, ReactionContainer):
+                if self.reaction=="reactants":
+                    m = self._unite_mol_list(m.reactants)
+                elif self.reaction=="products":
+                    m = self._unite_mol_list(m.products)
             ext_svg = m.depict()[:-6]
             ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
-            for k, c in contributions[m].items():
+            for k, c in contr.items():
                 x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
                 if len(m.atom(k).atomic_symbol) >1:
                     x -= 0.1
@@ -283,6 +321,7 @@ class ColorAtom:
                 return [ext_svg, cm_svg]
             return [ext_svg]
 
+    
     def _draw_multiple_molecules(self, mol:DataFrame, limits:bool = False, colorbar:bool=False, 
                            external_limits:List = None):
         contributions = self.calculate_atom_contributions(mol)
@@ -297,9 +336,10 @@ class ColorAtom:
         else:
             min_value, max_value = external_limits
         svgs = []
-        for m in list(mol)[:-1]:
-            svgs += self._draw_one_molecule(m, contributions={m:contributions[m]}, external_limits=[min_value, max_value])
-        svgs += self._draw_one_molecule(list(mol)[-1], contributions={list(mol)[-1]:contributions[list(mol)[-1]]}, 
+        for m in self.structure_cols[:-1]:
+            svgs += self._draw_one_molecule(mol[m], contributions={mol[m]:contributions[mol[m]]}, external_limits=[min_value, max_value])
+        svgs += self._draw_one_molecule(mol[self.structure_cols][-1], 
+                                        contributions={mol[self.structure_cols][-1]:contributions[mol[self.structure_cols][-1]]}, 
                                         external_limits=[min_value, max_value], colorbar=True)
         return svgs
 
@@ -394,5 +434,32 @@ class ColorAtom:
         text = text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
         return text
 
+    def _frag2cgr(self, frag_smiles):
+        if ">" in frag_smiles:
+            frag1 = frag_smiles
+            while frag1.find(">")>0:
+                dyn_bond = frag1[frag1.index(">")-2:frag1.index(">")+3]
+                frag1 = frag1.replace(dyn_bond, dyn_bond[1], 1)
+            frag2 = frag_smiles
+            while frag2.find(">")>0:
+                dyn_bond = frag2[frag2.index(">")-2:frag2.index(">")+3]
+                frag2 = frag2.replace(dyn_bond, dyn_bond[-2], 1)
+            frag_cgr = ReactionContainer(reactants=[smiles(frag1)], products=[smiles(frag2)]).compose()
+        else:
+            frag_cgr = ReactionContainer(reactants=[smiles(frag_smiles)], products=[smiles(frag_smiles)]).compose()
 
+        return frag_cgr
+
+    def _unite_mol_list(self, mols):
+        if len(mols)==1:
+            return mols[0]
+        elif len(mols)==2:
+            return mols[0].union(mols[1], remap=True)
+        else:
+            uni = mols[0].union(mols[1], remap=True)
+            for i in range(2, len(mols)):
+                uni = uni.union(mols[i], remap=True)
+            return uni
+
+            
 __all__ = ['ColorAtom']
