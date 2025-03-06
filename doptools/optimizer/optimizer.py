@@ -16,8 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import argparse
-import contextlib
 import glob
 import os
 import warnings
@@ -28,8 +26,8 @@ from multiprocessing import Manager
 from scipy.sparse import issparse
 
 import numpy as np
-import optuna
 import pandas as pd
+import optuna
 from optuna.study import StudyDirection
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_selection import VarianceThreshold
@@ -37,12 +35,10 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, r
 from sklearn.metrics import matthews_corrcoef
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.model_selection import KFold, cross_val_predict
-#from sklearn.multioutput import MultiOutputRegressor
-from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder, MinMaxScaler
+from sklearn.utils import shuffle
 from timeout_decorator import TimeoutError
 from timeout_decorator import timeout_decorator
-from sklearn.utils import shuffle
 
 from doptools.optimizer.config import get_raw_model, suggest_params
 from doptools.optimizer.utils import r2, rmse
@@ -122,7 +118,6 @@ def calculate_scores(task, obs, pred):
         raise ValueError("Unknown task type")
 
     for c in obs.columns:
-
         preds_partial = pred[[d for d in pred.columns if c+'.predicted.' in d]]
         for p in preds_partial.columns:
             added_row = create_row(task, p, obs[c], preds_partial[p])
@@ -226,13 +221,10 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
     results_detailed = manager.dict()
 
     study = optuna.create_study(direction="maximize", sampler=optuna.samplers.TPESampler())
-    if earlystop[0] > 0:
-        study.optimize(partial(run_objective_study_with_timeout, results_dict, results_detailed, x_dict, y, outdir, method, ntrials,
-                               cv_splits, cv_repeats, jobs, tmout, earlystop, write_output), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,),
-                       callbacks=[TopNPatienceCallback(earlystop[0], earlystop[1])])
-    else:
-        study.optimize(partial(run_objective_study_with_timeout, results_dict, results_detailed, x_dict, y, outdir, method, ntrials,
-                               cv_splits, cv_repeats, jobs, tmout, earlystop, write_output), n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,))
+    kwargs_opt = {'callbacks':[TopNPatienceCallback(earlystop[0], earlystop[1])]} if earlystop[0] > 0 else {}
+    study.optimize(partial(run_objective_study_with_timeout, results_dict, results_detailed, x_dict, y, outdir, method, ntrials,
+                           cv_splits, cv_repeats, jobs, tmout, earlystop, write_output),
+                   n_trials=ntrials, n_jobs=jobs, catch=(TimeoutError,), **kwargs_opt)
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
@@ -251,10 +243,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
     
     if write_output:
         results_pd.to_csv(os.path.join(outdir,'trials.all'), sep=' ', index=False)
-        if ntrials>50:
-            results_pd.sort_values(by='score', ascending=False).head(50).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
-        else:
-            results_pd.sort_values(by='score', ascending=False).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
+        results_pd.sort_values(by='score', ascending=False).head(50).to_csv(os.path.join(outdir,'trials.best'), sep=' ', index=False)
     else:
         return results_pd, results_detailed
 
