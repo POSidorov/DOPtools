@@ -651,9 +651,9 @@ class PassThrough(BaseEstimator, TransformerMixin):
     passthrough function. Needed to be compatible with
     ComplexFragmentor.
     """
-    def __init__(self, column_name: str):
-        self.column_name = column_name
-        self.feature_names = [self.column_name]
+    def __init__(self, column_names: List[str]):
+        self.column_names = column_names
+        self.feature_names = self.column_names
     
     def fit(self, x: DataFrame, y=None):
         """
@@ -672,7 +672,7 @@ class PassThrough(BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
-        return pd.Series(x[self.column_name], name=self.column_name)
+        return pd.DataFrame(x[self.column_names], columns=self.column_names)
 
     def get_feature_names(self):
         return self.feature_names
