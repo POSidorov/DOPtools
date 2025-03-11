@@ -672,7 +672,7 @@ class PassThrough(BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
-        return pd.Series(x, name=self.column_name)
+        return pd.Series(x[self.column_name], name=self.column_name)
 
     def get_feature_names(self):
         return self.feature_names
