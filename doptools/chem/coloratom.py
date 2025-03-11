@@ -305,7 +305,7 @@ class ColorAtom:
             ext_svg = m.depict()[:-6]
             ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
             for k, c in contr.items():
-                x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
+                x, y = m.atom(k).xy.x, -m.atom(k).xy.y
                 if len(m.atom(k).atomic_symbol) >1:
                     x -= 0.1
                 if self.model_type=="R":
