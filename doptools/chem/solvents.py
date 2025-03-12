@@ -19,9 +19,9 @@
 from itertools import compress
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, TransformerMixin
+from doptools.chem.chem_features import DescriptorCalculator
 
-
-class SolventVectorizer(BaseEstimator, TransformerMixin):
+class SolventVectorizer(DescriptorCalculator, BaseEstimator, TransformerMixin):
     def __init__(self, sp: bool = True, sdp: bool = True, sa: bool = True, sb: bool = True): 
         self.sp = sp
         self.sdp = sdp
@@ -51,6 +51,9 @@ class SolventVectorizer(BaseEstimator, TransformerMixin):
             index.append(False)
         self.__header = header
         self.__index = index
+        self._name = "SolventVectorizer"
+        self._short_name = "SV"
+        self._size = ()
         
     def get_feature_names(self):
         return self.__header

@@ -573,6 +573,8 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.structure_columns = structure_columns
         #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
+        self._name = "ComplexFragmentor"
+        self._short_name = ".".join([c.short_name for c in associator.values()])
     
     # CURRENTLY NOT IMPLEMENTED
     #def get_structural_feature_names(self) -> List[str]:
@@ -681,7 +683,7 @@ class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin)
         return matrix[self.feature_names]
         
 
-class PassThrough(BaseEstimator, TransformerMixin):
+class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
     PassThrough is a sklearn-compatible transformer that passes a column
     from a Dataframe into the feature Dataframe without any changes. It
@@ -694,6 +696,7 @@ class PassThrough(BaseEstimator, TransformerMixin):
         self.feature_names = self.column_names
         self._name = "numerical"
         self._short_name = "N"
+        self._size = ()
     
     def fit(self, x: DataFrame, y=None):
         """
