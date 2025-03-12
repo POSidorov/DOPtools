@@ -574,7 +574,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
         self._name = "ComplexFragmentor"
-        self._short_name = ".".join([c.short_name for c in associator.values()])
+        self._short_name = ".".join([c[1].short_name for c in associator])
     
     # CURRENTLY NOT IMPLEMENTED
     #def get_structural_feature_names(self) -> List[str]:
