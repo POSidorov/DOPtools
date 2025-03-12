@@ -47,6 +47,7 @@ class DescriptorCalculator:
     def __init__(self, name: str, size: Tuple[int]):
         self._name = name
         self._size = size
+        self._short_name = name
         self.feature_names = []
 
     @property
@@ -63,6 +64,11 @@ class DescriptorCalculator:
         Returns the name of the calculator as string.
         """
         return self._name
+
+    @property
+    def short_name(self):
+        return self._short_name
+    
 
     def get_feature_names(self) -> List[str]:
         """
@@ -133,6 +139,16 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self._name = "circus"
         self._size = (lower, upper)
         self.keep_stereo = keep_stereo
+        all_params = ["C", str(lower), str(upper)]
+        if on_bond:
+            all_params += ["B"]
+        if only_dynamic:
+            all_params += ["D"]
+        if keep_stereo == "yes":
+            all_params += ["KS"]
+        elif keep_stereo == "both":
+            all_params += ["BS"]
+        self._short_name = "-".join(all_params)
     
     def fit(self, X: DataFrame, y: Optional[List] = None):
         """
@@ -278,6 +294,10 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.fmt = fmt
         self._name = "chyline"
         self._size = (lower, upper)
+        all_params = ["H", str(lower), str(upper)]
+        if only_dynamic:
+            all_params += ["D"]
+        self._short_name = "-".join(all_params)
 
     def fit(self, X: DataFrame, y: Optional[List] = None):
         """
@@ -363,12 +383,20 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
         self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
-        if fp_type == "morgan" and 'useFeatures' in params.keys():
+        if fp_type == "morgan" and 'useFeatures' in params.keys() and params["useFeatures"]==True:
             self._name = "morganfeatures"
-        elif fp_type == "rdkfp" and 'branchedPaths' in params.keys():
+            self._short_name = "-".join(["MF", str(nBits), str(radius)])
+        elif fp_type == "rdkfp" and 'branchedPaths' in params.keys() and params["branchedPaths"]==False:
             self._name = "rdkfplinear"
+            self._short_name = "-".join(["RL", str(nBits), str(radius)])
         else:
             self._name = fp_type
+            sh_name = {"atompairs":"AP", "avalon": "V", "morgan":"M",
+                       "layered":"L", "torsion":"T", "rdkfp":"R"}
+            all_params = [sh_name[fp_type], str(nBits)]
+            if radius is not None:
+                all_params.append(str(radius))
+            self._short_name = "-".join(all_params)
         
     def fit(self, X: DataFrame, y=None):
         """
@@ -616,6 +644,7 @@ class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin)
         self._size = ()
         self._name = "mordred2D"
         self.calculator = None
+        self._short_name = "M2"
 
     def fit(self, X, y=None):
         """
@@ -663,6 +692,8 @@ class PassThrough(BaseEstimator, TransformerMixin):
     def __init__(self, column_names: List[str]):
         self.column_names = column_names
         self.feature_names = self.column_names
+        self._name = "numerical"
+        self._short_name = "N"
     
     def fit(self, x: DataFrame, y=None):
         """
