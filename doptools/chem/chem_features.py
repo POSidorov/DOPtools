@@ -568,7 +568,10 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         self.feature_names = []
         for k, v in self.associator:
-            v.fit(x[k])
+            if k == "numerical":
+                v.fit(x)
+            else:
+                v.fit(x[k])
             self.feature_names += [k+'::'+f for f in v.get_feature_names()]
         return self
     
@@ -590,9 +593,15 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         concat = []
         for k, v in self.associator:
             if len(x.shape) == 1:
-                concat.append(v.transform([x[k]]))
+                if k == "numerical":
+                    concat.append(v.transform(x.iloc[:1]))
+                else:
+                    concat.append(v.transform(x.iloc[:1][k]))
             else:
-                concat.append(v.transform(x[k]))
+                if k == "numerical":
+                    concat.append(v.transform(x))
+                else:
+                    concat.append(v.transform(x[k]))
         res = pd.concat(concat, axis=1, sort=False)
         res.columns = self.feature_names
         return res
