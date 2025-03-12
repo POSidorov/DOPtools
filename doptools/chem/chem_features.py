@@ -369,11 +369,12 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     FP), and any addiitonal parameters that the RDkit FP type can
     take.
     """
-    def __init__(self, fp_type, nBits: int = 1024, radius=None, params=None):
+    def __init__(self, fp_type, nBits: int = 1024, radius=None, params=None, fmt="mol"):
         if params is None:
             params = {}
         self.fp_type = fp_type
         self.nBits = nBits
+        self.fmt = fmt
         if radius is None:
             self._size = (nBits,)
         else:
@@ -413,7 +414,10 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             self.feature_names = dict([(i, []) for i in range(self.nBits)])
             for x in X:
                 temp = {}
-                m = Chem.MolFromSmiles(str(x))
+                if self.fmt == "smiles":
+                    m = Chem.MolFromSmiles(x)
+                else:
+                    m = Chem.MolFromSmiles(str(x))
                 AllChem.GetMorganFingerprintAsBitVect(m, 
                                                       nBits=self.nBits, 
                                                       radius=self.size[0], 
@@ -448,7 +452,10 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             self.feature_names = dict([(i, []) for i in range(self.nBits)])
             for x in X:
                 temp = {}
-                m = Chem.MolFromSmiles(str(x))
+                if self.fmt == "smiles":
+                    m = Chem.MolFromSmiles(x)
+                else:
+                    m = Chem.MolFromSmiles(str(x))
                 Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
                                     maxPath=self.size[0], bitInfo=temp, **self.params)
                 self.info.update(temp)
@@ -469,7 +476,10 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
         features = dict([(i, []) for i in range(self.nBits)])
         if self.fp_type == 'morgan':
-            m = Chem.MolFromSmiles(str(x))
+            if self.fmt == "smiles":
+                m = Chem.MolFromSmiles(x)
+            else:
+                m = Chem.MolFromSmiles(str(x))
             temp = {} 
             AllChem.GetMorganFingerprintAsBitVect(m,
                                                   nBits=self.nBits,
@@ -484,7 +494,10 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 features[k] = set(vt)
         elif self.fp_type == 'rdkfp':
             temp = {}
-            m = Chem.MolFromSmiles(str(x))
+            if self.fmt == "smiles":
+                m = Chem.MolFromSmiles(x)
+            else:
+                m = Chem.MolFromSmiles(str(x))
             Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
                                 maxPath=self.size[0], bitInfo=temp, **self.params)
             for k, v in temp.items():
@@ -524,7 +537,10 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         res = []
         for x in X:
-            m = Chem.MolFromSmiles(str(x))
+            if self.fmt == "smiles":
+                m = Chem.MolFromSmiles(x)
+            else:
+                m = Chem.MolFromSmiles(str(x))
             if self.fp_type == 'morgan':
                 res.append(AllChem.GetMorganFingerprintAsBitVect(m, 
                                                                  nBits=self.nBits, 
