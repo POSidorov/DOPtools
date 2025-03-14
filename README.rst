@@ -72,7 +72,7 @@ For classification models, the coloring in monochromatic (blue), and the intensi
 
 Copyright
 ============
-2023-2024 Pavel Sidorov pavel.o.sidorov@gmail.com main developer
+2023-2025 Pavel Sidorov pavel.o.sidorov@gmail.com main developer
 
 Contributors
 ============

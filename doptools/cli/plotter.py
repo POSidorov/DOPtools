@@ -69,6 +69,8 @@ def make_classification_plot(predictions, class_number, **params):
 
     a = cv_res[prop_name+".observed"]
     b = cv_res[[c for c in cv_res.columns if c.startswith(prop_name+'.predicted_prob.class_'+str(class_number))]]
+    if not b:
+        raise ValueError("No property label corresponding to the given --pos_class argument")
     mean_fpr = np.linspace(0, 1, 100)
     tprs = []
     aucs = []
@@ -143,6 +145,8 @@ if __name__ == '__main__':
     if args.task == "R":
         fig, ax = make_regression_plot(datadir+'/predictions', errorbar=errorbar, stats=stats, title=title)
     elif args.task == "C":
+        if not args.pos_class:
+            raise ValueError("Positive class label should be given using --pos_class argument")
         fig, ax = make_classification_plot(datadir+'/predictions', pos_class)
     plt.tight_layout(pad=2)
     if args.outfile:
