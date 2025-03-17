@@ -278,11 +278,6 @@ if __name__ == '__main__':
     inpt = create_input(input_params)
 
     descriptor_dictionary = _enumerate_parameters(args)
-<<<<<<< HEAD
-    mp.set_start_method('fork')
-=======
-
->>>>>>> parent of eacf154 (Some prints)
     # Create a multiprocessing pool (excluding mordred) with the specified number of processes
     # If args.parallel is 0 or negative, use the default number of processes
     pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
