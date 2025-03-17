@@ -276,11 +276,9 @@ if __name__ == '__main__':
     create_output_dir(output_params['output'])
 
     inpt = create_input(input_params)
-    print(inpt)
 
     descriptor_dictionary = _enumerate_parameters(args)
-    print(descriptor_dictionary)
-
+    mp.set_start_method('fork')
     # Create a multiprocessing pool (excluding mordred) with the specified number of processes
     # If args.parallel is 0 or negative, use the default number of processes
     pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
