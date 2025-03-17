@@ -232,6 +232,7 @@ def output_descriptors(calculated_result, output_params):
 def calculate_and_output(input_args):
     inpt, desc, descriptor_params, output_params = input_args
     result = calculate_descriptor_table(inpt, desc, descriptor_params)
+    print(result)
     output_descriptors(result, output_params)
 
 
