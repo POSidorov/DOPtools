@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error as mae
-from sklearn.metrics import RocCurveDisplay, auc
+from sklearn.metrics import auc, roc_curve
 import argparse
 from doptools.optimizer.utils import rmse, r2
 
@@ -61,65 +61,62 @@ def make_regression_plot(predictions, errorbar=False, stats=False, title=""):
     return fig, ax
 
 
+def prepare_classification_plot(cv_res, pos_class = 1):
+    prop_name = cv_res.columns[1].split('.')[0]
+    true_val = cv_res[prop_name+".observed"].values
+    pos_label = [c for c in cv_res.columns if c.startswith(prop_name+'.predicted_prob.class_'+str(pos_class))]
+    if not pos_label:
+        raise ValueError("No property label corresponding to the given --pos_class argument")
+    pos_probas = cv_res[pos_label]
+
+    roc_repeats = {}
+    for col in pos_probas.columns:
+        repeat = col.split("repeat")[-1]
+        fpr, tpr, _ = roc_curve(true_val, pos_probas[col].values, pos_label=pos_class)
+        roc_repeats[repeat] = {'fpr': fpr, 'tpr': tpr, 'auc': auc(fpr, tpr)}
+
+    mean_fpr = np.linspace(0, 1, 100)
+    interp_tpr = [np.interp(mean_fpr, roc_repeats[x]['fpr'], roc_repeats[x]['tpr']) for x in roc_repeats]
+    mean_tpr = np.mean(interp_tpr, axis=0)
+    mean_tpr[0] = 0
+    mean_tpr[-1] = 1.0
+    std_tpr = np.std(interp_tpr, axis=0)
+    roc_mean = {
+        'fpr': mean_fpr,
+        'tpr': mean_tpr,
+        'std_tpr': std_tpr,
+        'tpr_upper': np.minimum(mean_tpr + std_tpr, 1),
+        'tpr_lower': np.maximum(mean_tpr - std_tpr, 0),
+        'auc': auc(mean_fpr, mean_tpr),
+        'std_auc': np.std([roc_repeats[x]['auc'] for x in roc_repeats])
+    }
+
+    return roc_repeats, roc_mean
+
+
 def make_classification_plot(predictions, class_number, **params):
+    cv_res = pd.read_table(predictions, sep=' ')
+    roc_repeats, roc_mean = prepare_classification_plot(cv_res, class_number)
     fig, ax = plt.subplots(figsize=(5, 5), dpi=300, facecolor="w")
 
-    cv_res = pd.read_table(predictions, sep=' ')
-    prop_name = cv_res.columns[1].split('.')[0]
+    for rpt in roc_repeats:
+        ax.plot(roc_repeats[rpt]['fpr'], roc_repeats[rpt]['tpr'],
+                label=r"ROC repeat %.0f (AUC = %0.2f)" % (int(rpt), roc_repeats[rpt]['auc']),
+                alpha=0.3, lw=1, )
 
-    a = cv_res[prop_name+".observed"]
-    b = cv_res[[c for c in cv_res.columns if c.startswith(prop_name+'.predicted_prob.class_'+str(class_number))]]
-    if not b:
-        raise ValueError("No property label corresponding to the given --pos_class argument")
-    mean_fpr = np.linspace(0, 1, 100)
-    tprs = []
-    aucs = []
-    for column in b.columns:
-        repeat = column.split("repeat")[-1]
-        viz = RocCurveDisplay.from_predictions(
-            a,
-            cv_res[column],
-            name=f"ROC repeat {repeat}",
-            alpha=0.3,
-            lw=1,
-            ax=ax,
-        )
-        interp_tpr = np.interp(mean_fpr, viz.fpr, viz.tpr)
-        interp_tpr[0] = 0.0
-        tprs.append(interp_tpr)
-        aucs.append(viz.roc_auc)
+    ax.plot(roc_mean['fpr'], roc_mean['tpr'],
+            label=r"Mean ROC (AUC = %0.2f $\pm$ %0.2f)" % (roc_mean['auc'], roc_mean['std_auc']),
+            color="k", lw=2, alpha=0.8, )
+    ax.fill_between(roc_mean['fpr'], roc_mean['tpr_lower'], roc_mean['tpr_upper'],
+                    color="grey", alpha=0.2, label=r"$\pm$ 1 std. dev.", )
 
-    mean_tpr = np.mean(tprs, axis=0)
-    mean_tpr[-1] = 1.0
-    mean_auc = auc(mean_fpr, mean_tpr)
-    std_auc = np.std(aucs)
-    ax.plot(
-        mean_fpr,
-        mean_tpr,
-        color="k",
-        label=r"Mean ROC (AUC = %0.2f $\pm$ %0.2f)" % (mean_auc, std_auc),
-        lw=2,
-        alpha=0.8,
-    )
-
-    std_tpr = np.std(tprs, axis=0)
-    tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
-    tprs_lower = np.maximum(mean_tpr - std_tpr, 0)
-    ax.fill_between(
-        mean_fpr,
-        tprs_lower,
-        tprs_upper,
-        color="grey",
-        alpha=0.2,
-        label=r"$\pm$ 1 std. dev.",
-    )
-
-    ax.set(
-        xlabel="False Positive Rate",
-        ylabel="True Positive Rate",
-        title=f"Mean ROC curve with variability\n(Positive label '{class_number}')",
-    )
+    ax.set(xlabel="False Positive Rate",
+           ylabel="True Positive Rate",
+           title=f"Mean ROC curve with variability\n(Positive label '{class_number}')", )
     ax.legend(loc="lower right", fontsize=9)
+    ax.set_xlim([0, 1])
+    ax.set_ylim([0, 1.05])
+
     return fig, ax
 
 
@@ -157,4 +154,4 @@ if __name__ == '__main__':
         plt.show()
 
 
-__all__ = ['make_regression_plot', 'make_classification_plot']
+__all__ = ['make_regression_plot', 'make_classification_plot', 'prepare_classification_plot']
