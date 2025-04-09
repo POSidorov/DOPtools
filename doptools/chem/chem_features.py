@@ -227,6 +227,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
+            visited_substructures = []
             reac = None
             if self.fmt == "smiles":
                 mol = smiles(mol)
@@ -239,10 +240,12 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                     for atom in mol._atoms:
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([atom], deep=length)
+                        sub_set = set([a[0] for a in mols[0].augmented_substructure([1], deep=1).atoms()])
                         sub_smiles = str(sub)
                         if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
-                        if sub_smiles in self.feature_names:
+                        if sub_smiles in self.feature_names and sub_set not in visited_substructures:
+                            visited_substructures.append(sub_set)
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
                         if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
@@ -253,10 +256,12 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                     for bond in mol.bonds():
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
+                        sub_set = set([a[0] for a in mols[0].augmented_substructure([1], deep=1).atoms()])
                         sub_smiles = str(sub)
                         if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
-                        if sub_smiles in self.feature_names:
+                        if sub_smiles in self.feature_names and sub_set not in visited_substructures:
+                            visited_substructures.append(sub_set)
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
                         if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
