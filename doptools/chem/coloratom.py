@@ -114,8 +114,8 @@ class ColorAtom:
         atom_weights: Dict[MoleculeContainer: Dict[int:float]]
             dictionary in form {Molecule: {atom1:weight1, atom2:weight2, ...}}
         """
+        atom_weights = {}
         if self.complex:
-            atom_weights = {}
             for m in self.structure_cols:
                 if isinstance(mol[m], ReactionContainer):
                     atom_weights[mol[m]] = {i[0]:0 for react in mol[m].molecules() for i in react.atoms()}
@@ -305,7 +305,7 @@ class ColorAtom:
             ext_svg = m.depict()[:-6]
             ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
             for k, c in contr.items():
-                x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
+                x, y = m.atom(k).x, -m.atom(k).y
                 if len(m.atom(k).atomic_symbol) >1:
                     x -= 0.1
                 if self.model_type=="R":
