@@ -539,10 +539,8 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
     def __init__(self, associator: List[Tuple[str, object]], structure_columns=None):
-        if structure_columns is None:
-            structure_columns = []
+        self.structure_columns = [] if structure_columns is None else structure_columns
         self.associator = associator
-        self.structure_columns = structure_columns
         #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
     
@@ -552,7 +550,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         Returns the list of only structural features associated to the structure_column as strings.
         """
     #    return self.fragmentor.get_feature_names()
-    
+
     def fit(self, x: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
@@ -568,10 +566,13 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         self.feature_names = []
         for k, v in self.associator:
-            v.fit(x[k])
+            if k == "numerical":
+                v.fit(x)
+            else:
+                v.fit(x[k])
             self.feature_names += [k+'::'+f for f in v.get_feature_names()]
         return self
-    
+
     def transform(self, x: DataFrame, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given data frame to a data frame of features
@@ -590,9 +591,15 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         concat = []
         for k, v in self.associator:
             if len(x.shape) == 1:
-                concat.append(v.transform([x[k]]))
+                if k == "numerical":
+                    concat.append(v.transform(x.iloc[:1]))
+                else:
+                    concat.append(v.transform(x.iloc[:1][k]))
             else:
-                concat.append(v.transform(x[k]))
+                if k == "numerical":
+                    concat.append(v.transform(x))
+                else:
+                    concat.append(v.transform(x[k]))
         res = pd.concat(concat, axis=1, sort=False)
         res.columns = self.feature_names
         return res
