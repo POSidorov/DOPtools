@@ -20,9 +20,8 @@ import pandas as pd
 from pandas import DataFrame
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import SelectorMixin 
 from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Iterable
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
@@ -196,7 +195,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                                 self.feature_names.append(sub_smiles)
         return self
 
-    def transform(self, X: DataFrame, y: Optional[List] = None) -> DataFrame:
+    def transform(self, X: Iterable, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -438,7 +437,6 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         return self
         
     def get_features(self, x):
-
         features = dict([(i, []) for i in range(self.nBits)])
         if self.fp_type == 'morgan':
             m = Chem.MolFromSmiles(str(x))
@@ -589,12 +587,14 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type y: None
         """
         concat = []
+        if not isinstance(x, DataFrame) and isinstance(x, (dict, list, pd.Series)):
+            x = pd.DataFrame(x if isinstance(x, list) else [x])
         for k, v in self.associator:
             if len(x.shape) == 1:
                 if k == "numerical":
                     concat.append(v.transform(x.iloc[:1]))
                 else:
-                    concat.append(v.transform(x.iloc[:1][k]))
+                    concat.append(v.transform([x.iloc[:1][k]]))
             else:
                 if k == "numerical":
                     concat.append(v.transform(x))
