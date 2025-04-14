@@ -111,8 +111,8 @@ class ColorAtom:
 
         Parameters
         ----------
-        mol : [MoleculeContainer,CGRContainer,DataFrame]
-            the molecule for which the atom contributions will be calculated
+        mol : [MoleculeContainer,CGRContainer,Series]
+            the molecule(s) for which the atom contributions will be calculated
 
         Returns
         -------
@@ -249,7 +249,8 @@ class ColorAtom:
                             atom_weights[mol][a] += w
         return atom_weights
     
-    def output_html(self, mol, ipython: bool = True, colorbar: bool = False, external_limits: List = None):
+    def output_html(self, mol, ipython: bool = True, colorbar: bool = False, external_limits: List = None,
+                    contributions: Dict = None):
         """For the given molecule (DataFrame if complex), generates the SVG image where the contributions
         of atoms are depicted with colors (purple for negative contributions, green for positive, by default).
         The depiction is based on the CGRTools Depict class and method.
@@ -260,8 +261,9 @@ class ColorAtom:
         mol : [MoleculeContainer,CGRContainer,DataFrame]
             the molecule for which the image of atom contributions will be generated
 
-        # contributions: Dict [optional]
-        #     if given, the contribution of the molecule will not be recalculated
+        contributions: Dict [optional]
+            If previously calculated by calculate_atom_contributions and given,
+            the contribution of the molecule will not be recalculated.
 
         ipython: bool [optional]
             If True, an IPython-like object is returned. If False, the html code is returned
@@ -275,13 +277,15 @@ class ColorAtom:
         Returns
         -------
         html: HTML object
-            an HTML object or str containing SVG image for each structure with contributions colored
+            an HTML object or str containing SVG image for each structure with colored atomic contributions.
         """
 
         if self.complex:
-            svgs = self._draw_multiple_molecules(mol, colorbar=colorbar, external_limits=external_limits)
+            svgs = self._draw_multiple_molecules(mol, colorbar=colorbar, external_limits=external_limits,
+                                                 contributions=contributions)
         else:
-            svgs = self._draw_one_molecule(mol, colorbar=colorbar, external_limits=external_limits)
+            svgs = self._draw_one_molecule(mol, colorbar=colorbar, external_limits=external_limits,
+                                           contributions=contributions)
         no_wrap_div = '<div style="white-space: nowrap; align-items: middle">'+'{}'*len(svgs)+'</div>'
         return HTML(no_wrap_div.format(*svgs)) if ipython else no_wrap_div.format(*svgs)
 
@@ -340,9 +344,10 @@ class ColorAtom:
             return [ext_svg]
 
     
-    def _draw_multiple_molecules(self, mol_series: pd.Series, colorbar: bool = True,
+    def _draw_multiple_molecules(self, mol_series: pd.Series, colorbar: bool = True, contributions: Dict = None,
                                  print_limits: bool = False, external_limits:List = None):
-        contributions = self.calculate_atom_contributions(mol_series)
+        if contributions is None:
+            contributions = self.calculate_atom_contributions(mol_series)
         if external_limits is None:
             numerical_contributions = sum([list(cc.values()) for cc in contributions.values()], [])
             if self.model_type == "C":
@@ -353,13 +358,13 @@ class ColorAtom:
                 min_value = -max_value
         else:
             min_value, max_value = external_limits
+        nb_mol = len(self.structure_cols)
         svgs = []
-        for m in self.structure_cols[:-1]:
-            svgs += self._draw_one_molecule(mol_series[m], contributions={mol_series[m]:contributions[mol_series[m]]},
-                                            print_limits=print_limits, external_limits=[min_value, max_value])
-        svgs += self._draw_one_molecule(mol_series[self.structure_cols][-1],
-                                        contributions={mol_series[self.structure_cols][-1]:contributions[mol_series[self.structure_cols][-1]]},
-                                        print_limits=print_limits, external_limits=[min_value, max_value], colorbar=colorbar)
+        for m in range(nb_mol):
+            svgs += self._draw_one_molecule(mol_series[self.structure_cols][m],
+                                            contributions={mol_series[self.structure_cols][m]: contributions[mol_series[self.structure_cols][m]]},
+                                            print_limits=print_limits, external_limits=[min_value, max_value],
+                                            colorbar=True if (colorbar and m + 1 == nb_mol) else False)
         return svgs
 
     def _plot_to_svg(self) -> str:
