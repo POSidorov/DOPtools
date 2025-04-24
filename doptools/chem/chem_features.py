@@ -374,7 +374,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     FP), and any addiitonal parameters that the RDkit FP type can
     take.
     """
-    def __init__(self, fp_type, nBits: int = 1024, radius=None, params=None, fmt="mol"):
+    def __init__(self, fp_type, nBits: int = 1024, radius=None, params=None, fmt="mol", chirality=False):
         if params is None:
             params = {}
         self.fp_type = fp_type
@@ -386,6 +386,8 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             self._size = (radius, nBits)
         self.radius = radius
         self.params = params
+        self.chirality = chirality
+        self.fingerprinter = None
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
         self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
@@ -415,113 +417,87 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
+        if self.fp_type == "atompairs":
+            Chem.rdFingerprintGenerator.GetAtomPairGenerator(includeChirality=self.chirality,
+                                                             fpSize=self.nBits)
+        if self.fp_type == 'avalon':
+            pass
         if self.fp_type == 'morgan':
-            self.feature_names = dict([(i, []) for i in range(self.nBits)])
-            for x in X:
-                temp = {}
-                if self.fmt == "smiles":
-                    m = Chem.MolFromSmiles(x)
-                else:
-                    m = Chem.MolFromSmiles(str(x))
-                AllChem.GetMorganFingerprintAsBitVect(m, 
-                                                      nBits=self.nBits, 
-                                                      radius=self.size[0], 
-                                                      bitInfo=temp, 
-                                                      **self.params)
-                self.info.update(temp)
-                for k, v in temp.items():
+            if "useFeatures" not in self.params:
+                self.fingerprinter = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                                   includeChirality=self.chirality, 
+                                                                                   fpSize=self.nBits)
+            elif not self.params["useFeatures"]:
+                self.fingerprinter = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                                   includeChirality=self.chirality, 
+                                                                                   fpSize=self.nBits)
+            else:
+                feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                self.fingerprinter = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                                   includeChirality=self.chirality, 
+                                                                                   fpSize=self.nBits, 
+                                                                                   atomInvariantsGenerator=feat_gen)
+        if self.fp_type == 'layered':
+            pass
+        if self.fp_type == 'torsion':
+            Chem.rdFingerprintGenerator.GetTopologicalTorsionGenerator(includeChirality=self.chirality, 
+                                                                       fpSize=self.nBits)
+        if self.fp_type == 'rdkfp':
+            self.fingerprinter = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
+                                                                                 useHs=False, 
+                                                                                 fpSize=self.nBits,
+                                                                                 **self.params)
+        return self
+        
+    def get_features(self, x, output="smiles"):
+
+        features = dict([(i, []) for i in range(self.nBits)])
+        if self.fmt == "smiles":
+            m = Chem.MolFromSmiles(x)
+        else:
+            m = Chem.MolFromSmiles(str(x))
+        if self.fp_type == 'avalon':
+            pass
+        elif self.fp_type == 'layered':
+            pass
+        elif self.fp_type == 'atompairs':
+            pass
+        elif self.fp_type == 'torsion':
+            pass
+        elif self.fp_type == "morgan":
+            ao = AllChem.AdditionalOutput()
+            ao.CollectBitInfoMap()
+            desc = self.fingerprinter.GetFingerprintAsNumPy(m, additionalOutput=ao)
+            bmap = ao.GetBitInfoMap()
+            if output=="smiles":
+                for k, v in bmap.items():
                     for i in v:
                         if i[1] > 0:
                             env = Chem.FindAtomEnvironmentOfRadiusN(m, i[1], i[0])
                             amap = {}
                             submol = Chem.PathToSubmol(m, env, atomMap=amap)
-                            self.feature_names[k].append(Chem.MolToSmiles(submol, canonical=True))
+                            features[k].append(Chem.MolToSmiles(submol, canonical=True))
                         else:
-                            self.feature_names[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
-                        #self.feature_names_chython[k].append(str(x.augmented_substructure([i[0]+1], deep=i[1])))
-            for k, v in self.feature_names.items():
-                vt = [item for item in v if item != '']
-                self.feature_names[k] = set(vt)
-            #for k, v in self.feature_names_chython.items():
-            #    vt = [item for item in v if item != '']
-            #    self.feature_names_chython[k] = set(vt)
-        elif self.fp_type == 'avalon':
-            pass
-        elif self.fp_type == 'layered':
-            pass
-        elif self.fp_type == 'atompairs':
-            pass
-        elif self.fp_type == 'torsion':
-            pass
-        elif self.fp_type == 'rdkfp':
-            self.feature_names = dict([(i, []) for i in range(self.nBits)])
-            for x in X:
-                temp = {}
-                if self.fmt == "smiles":
-                    m = Chem.MolFromSmiles(x)
-                else:
-                    m = Chem.MolFromSmiles(str(x))
-                Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                    maxPath=self.size[0], bitInfo=temp, **self.params)
-                self.info.update(temp)
-                for k, v in temp.items():
-                    for i in v:
-                        self.feature_names[k].append(Chem.MolFragmentToSmiles(m,
-                                                    atomsToUse=set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
-                                                    m.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], [])),
-                                                     bondsToUse=i))
-            for k, v in self.feature_names.items():
-                vt = [item for item in v if item != '']
-                self.feature_names[k] = set(vt)
-            #self.feature_names_chython = self.feature_names
-        
-        return self
-        
-    def get_features(self, x):
-
-        features = dict([(i, []) for i in range(self.nBits)])
-        if self.fp_type == 'morgan':
-            if self.fmt == "smiles":
-                m = Chem.MolFromSmiles(x)
+                            features[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
+                for k, v in features.items():
+                    vt = [item for item in v if item != '']
+                    features[k] = set(vt)
             else:
-                m = Chem.MolFromSmiles(str(x))
-            temp = {} 
-            AllChem.GetMorganFingerprintAsBitVect(m,
-                                                  nBits=self.nBits,
-                                                  radius=self.size[0],
-                                                  bitInfo=temp,
-                                                  **self.params)
-            for k, v in temp.items():
+                features = bmap
+        elif self.fp_type == "rdkfp":
+            ao = AllChem.AdditionalOutput()
+            ao.CollectBitPaths()
+            desc = self.fingerprinter.GetFingerprintAsNumPy(m, additionalOutput=ao)
+            bmap = ao.GetBitPaths()
+            for k, v in bmap.items():
                 for i in v:
-                    features[k].append(str(m.augmented_substructure([i[0]+1], deep=i[1])))
+                    features[k].append(Chem.MolFragmentToSmiles(m, 
+                                                                atomsToUse=set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
+                                                                                    m.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], [])),
+                                                                bondsToUse=i))
             for k, v in features.items():
                 vt = [item for item in v if item != '']
                 features[k] = set(vt)
-        elif self.fp_type == 'rdkfp':
-            temp = {}
-            if self.fmt == "smiles":
-                m = Chem.MolFromSmiles(x)
-            else:
-                m = Chem.MolFromSmiles(str(x))
-            Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                maxPath=self.size[0], bitInfo=temp, **self.params)
-            for k, v in temp.items():
-                for i in v:
-                    features[k].append(Chem.MolFragmentToSmiles(m,
-                                            atomsToUse=set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
-                                            x.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], [])),
-                                            bondsToUse=i))
-            for k, v in self.feature_names.items():
-                vt = [item for item in v if item != '']
-                features[k] = set(vt)
-        elif self.fp_type == 'avalon':
-            pass
-        elif self.fp_type == 'layered':
-            pass
-        elif self.fp_type == 'atompairs':
-            pass
-        elif self.fp_type == 'torsion':
-            pass
         return features
 
     def get_feature_names(self) -> List[str]:
@@ -546,26 +522,13 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 m = Chem.MolFromSmiles(x)
             else:
                 m = Chem.MolFromSmiles(str(x))
-            if self.fp_type == 'morgan':
-                res.append(AllChem.GetMorganFingerprintAsBitVect(m, 
-                                                                 nBits=self.nBits, 
-                                                                 radius=self.size[0], 
-                                                                 **self.params))
             if self.fp_type == 'avalon':
                 res.append(pyAvalonTools.GetAvalonFP(m, nBits=self.nBits))
-            if self.fp_type == 'rdkfp':
-                res.append(Chem.RDKFingerprint(m, fpSize=self.nBits, useHs=False,
-                                               maxPath=self.size[0], **self.params))
-            if self.fp_type == 'layered':
+            elif self.fp_type == 'layered':
                 res.append(Chem.LayeredFingerprint(m, fpSize=self.nBits,
                                                    maxPath=self.size[0], **self.params))
-            if self.fp_type == 'atompairs':
-                res.append(rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(m, nBits=self.nBits,
-                                                                                  **self.params))
-            if self.fp_type == 'torsion':
-                res.append(rdMolDescriptors.GetHashedTopologicalTorsionFingerprintAsBitVect(m, nBits=self.nBits,
-                                                                                            **self.params))
-            
+            else:
+                res.append(self.fingerprinter.GetFingerprintAsNumPy(m))
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
 
 
@@ -596,13 +559,6 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.feature_names = []
         self._name = "ComplexFragmentor"
         self._short_name = ".".join([c[1].short_name for c in associator])
-    
-    # CURRENTLY NOT IMPLEMENTED
-    #def get_structural_feature_names(self) -> List[str]:
-        """
-        Returns the list of only structural features associated to the structure_column as strings.
-        """
-    #    return self.fragmentor.get_feature_names()
     
     def fit(self, x: DataFrame, y: Optional[List] = None):
         """
