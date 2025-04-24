@@ -67,6 +67,103 @@ basic_params = {
     "standardize": True
 }
 
+def _calculate_and_output(calculator, data, prop, prop_name, output_folder, pickles=False, fmt="svm"):
+    desc = calculator.fit_transform(data)
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder, exist_ok=True)  # exist_ok is useful when several processes try to create the folder at the same time
+        print('The output directory {} created'.format(output_folder))
+        
+    if pickles:
+        fragmentor_name = os.path.join(output_dir, '.'.join([prop_name, calculator.short_name, 'pkl']))
+        with open(fragmentor_name, 'wb') as f:
+            pickle.dump(calculator, f, pickle.HIGHEST_PROTOCOL)
+
+    output_name = os.path.join(output_dir, '.'.join([prop_name, calculator.short_name, fmt]))
+    if fmt == "csv":
+        desc = pd.concat([pd.Series(prop, name=prop_name), desc], axis=1, sort=False)
+        desc.to_csv(output_name, index=False)
+    else:
+        dump_svmlight_file(np.array(desc), prop, output_name, zero_based=False)
+    
+
+def _perform_fullconfig(fullconfig):
+    calculators = {}
+
+    if fullconfig["input_file"].endswith(".csv"):
+        data = pd.read_table(fullconfig["input_file"], sep=",")
+    elif fullconfig["input_file"].endswith(".xlsx"):
+        data = pd.read_excel(fullconfig["input_file"])
+
+    for s in fullconfig["structures"].keys():
+        struct = [smiles(m) for m in data[s]]
+        if fullconfig["standardize"]:
+            # this is magic, gives an error if done otherwise...
+            for m in struct:
+                try:
+                    m.canonicalize(fix_tautomers=False) 
+                except:
+                    m.canonicalize(fix_tautomers=False)
+        data[s] = [str[m] for m in struct]
+
+    y = data[fullconfig["property"]]
+    indices = y[pd.notnull(y)].index
+    if len(indices) < len(data):
+        print(f"'{p}' column warning: only {len(indices)} out of {len(data)} instances have the property.")
+        print(f"Molecules that don't have the property will be discarded from the set.")
+    y = y.iloc[indices]
+    data = data.iloc[indices]
+
+    if "numerical" in fullconfig.keys() or "solvent" in fullconfig.keys() or len(fullconfig["structures"].keys())>1:
+        data_x = data
+        
+        fullconfig["separate_folders"] = False
+        
+        associators = []
+        for s in fullconfig["structures"].keys():
+            associators.append([])
+            for t, d in fullconfig["structures"][s].items():
+                if fullconfig["chiral"]:
+                    if t in ["morgan", "torsion", "atompairs"]:
+                        d["chirality"] = [True]
+                d["fmt"] = ["smiles"]
+                param_values = list(d.values())
+                for p in [dict(zip(list(d.keys()), i)) for i in product(*param_values)]:
+                    associators[-1].append((s, get_raw_calculator(t, p)))
+    
+        if "solvent" in params.keys():
+            associators.append([(fullconfig["solvent"], SolventVectorizer())])
+    
+        if "numerical" in params.keys():
+            associators.append([("numerical", PassThrough(fullconfig["numerical"]))])
+    
+        for p in product(*associators):
+            cf = ComplexFragmentor(associator=p, structure_columns=list(fullconfig["structures"].keys()))
+            calculators[cf.short_name] = cf
+    else:
+        data_x = data[fullconfig["structures"].keys()]
+        for s in fullconfig["structures"].keys():
+            for t, d in fullconfig["structures"][s].items():
+                d["fmt"] = ["smiles"]
+                param_values = list(d.values())
+                for p in [dict(zip(list(d.keys()), i)) for i in product(*param_values)]:
+                    calc = get_raw_calculator(t, p)
+                    calculators[calc.short_name] = calc
+
+    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
+    # non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' not in desc]
+    # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
+    # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
+    pool.map(_calculate_and_output, [(calc, 
+                                      data_x, 
+                                      y, 
+                                      full_config["property_name"], 
+                                      full_config["output_folder"], 
+                                      full_config["save"], 
+                                      full_config["output_fmt"]) for calc in calculators.values()])
+    pool.close() # Close the pool and prevent any more tasks from being submitted
+    pool.join() # Wait for all the tasks to complete
+
 def _set_default(argument, default_values):
     if len(argument) > 0:
         return list(set(argument))
@@ -136,19 +233,19 @@ if __name__ == '__main__':
                                      description='Prepares the descriptor files for hyperparameter optimization launch.')
     
     # I/O arguments
-    parser.add_argument('-i', '--input', required=True, 
+    parser.add_argument('-i', '--input', 
                         help='Input file, requires csv or Excel format')
     parser.add_argument('--structure_col', action='store', type=str, default='SMILES',
                         help='Column name with molecular structures representations. Default = SMILES.')
     parser.add_argument('--concatenate', action='extend', type=str, nargs='+', default=[],
                         help='Additional column names with molecular structures representations to be concatenated with the primary structure column.')
-    parser.add_argument('--property_col', required=True, action='extend', type=str, nargs='+', default=[],
+    parser.add_argument('--property_col',  action='extend', type=str, nargs='+', default=[],
                         help='Column with properties to be used. Case sensitive.')
     parser.add_argument('--property_names', action='extend', type=str, nargs='+', default=[],
                         help='Alternative name for the property columns specified by --property_col.')
     parser.add_argument('--standardize', action='store_true', default=False,
                         help='Standardize the input structures? Default = False.')
-    parser.add_argument('-o', '--output', required=True,
+    parser.add_argument('-o', '--output', 
                          help='Output folder where the descriptor files will be saved.')
     parser.add_argument('-f', '--format', action='store', type=str, default='svm', choices=['svm', 'csv'],
                         help='Descriptor files format. Default = svm.')
@@ -160,6 +257,8 @@ if __name__ == '__main__':
                         help='Save each descriptor type into a separate folders.')
     parser.add_argument('--load_config', action='store', type=str, default='',
                         help='Load descriptor configuration from a JSON file. JSON parameters are prioritized! Use "basic" to load default parameters')
+    parser.add_argument('--full_config', action='store', type=str, default='',
+                        help='Load preparer configuration from a JSON file. In this case, all the other parameters are ignored.')
 
     # Morgan fingerprints
     parser.add_argument('--morgan', action='store_true', 
@@ -247,48 +346,53 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.load_config == "basic":
-        vars(args).update(basic_params)
-    elif args.load_config:
-        with open(args.load_config) as f:
-            p = json.load(f)
-        vars(args).update(p)
+    if args.full_config:
+        with open(args.full_config) as f:
+            fconfig = json.load(f)
+        _perform_fullconfig(fconfig)
+    else:
+        if args.load_config == "basic":
+            vars(args).update(basic_params)
+        elif args.load_config:
+            with open(args.load_config) as f:
+                p = json.load(f)
+            vars(args).update(p)
 
-    check_parameters(args)
-    
-    input_params = {
-        'input_file': args.input,
-        'structure_col': args.structure_col,
-        'standardize': args.standardize,
-        'property_col': args.property_col,
-        'property_names': args.property_names,
-        'concatenate': args.concatenate,
-        'solvent': args.solvent
-    }
+        check_parameters(args)
+        
+        input_params = {
+            'input_file': args.input,
+            'structure_col': args.structure_col,
+            'standardize': args.standardize,
+            'property_col': args.property_col,
+            'property_names': args.property_names,
+            'concatenate': args.concatenate,
+            'solvent': args.solvent
+        }
 
-    output_params = {
-        'output': args.output,
-        'separate': args.separate_folders,
-        'format': args.format,
-        'pickle': args.save,
-        'write_output': True,
-    }
-    create_output_dir(output_params['output'])
+        output_params = {
+            'output': args.output,
+            'separate': args.separate_folders,
+            'format': args.format,
+            'pickle': args.save,
+            'write_output': True,
+        }
+        create_output_dir(output_params['output'])
 
-    inpt = create_input(input_params)
+        inpt = create_input(input_params)
 
-    descriptor_dictionary = _enumerate_parameters(args)
-    # Create a multiprocessing pool (excluding mordred) with the specified number of processes
-    # If args.parallel is 0 or negative, use the default number of processes
-    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
-    non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' not in desc]
-    # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
-    # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
-    pool.map(calculate_and_output, [(inpt, desc, descriptor_dictionary[desc], output_params) for desc in non_mordred_descriptors])
-    pool.close() # Close the pool and prevent any more tasks from being submitted
-    pool.join() # Wait for all the tasks to complete
+        descriptor_dictionary = _enumerate_parameters(args)
+        # Create a multiprocessing pool (excluding mordred) with the specified number of processes
+        # If args.parallel is 0 or negative, use the default number of processes
+        pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
+        non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' not in desc]
+        # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
+        # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
+        pool.map(calculate_and_output, [(inpt, desc, descriptor_dictionary[desc], output_params) for desc in non_mordred_descriptors])
+        pool.close() # Close the pool and prevent any more tasks from being submitted
+        pool.join() # Wait for all the tasks to complete
 
-    # Serial mordred calculations
-    mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' in desc]
-    for desc in mordred_descriptors:
-        calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
+        # Serial mordred calculations
+        mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' in desc]
+        for desc in mordred_descriptors:
+            calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
