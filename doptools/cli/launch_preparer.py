@@ -151,17 +151,17 @@ def _perform_fullconfig(fullconfig):
                     calc = get_raw_calculator(t, p)
                     calculators[calc.short_name] = calc
 
-    pool = mp.Pool(processes=fullconfig.parallel if fullconfig.parallel > 0 else 1)
+    pool = mp.Pool(processes=fullconfig["parallel"] if fullconfig["parallel"] > 0 else 1)
     # non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' not in desc]
     # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
     # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
     pool.map(_calculate_and_output, [(calc, 
                                       data_x, 
                                       y, 
-                                      full_config["property_name"], 
-                                      full_config["output_folder"], 
-                                      full_config["save"], 
-                                      full_config["output_fmt"]) for calc in calculators.values()])
+                                      fullconfig["property_name"], 
+                                      fullconfig["output_folder"], 
+                                      fullconfig["save"], 
+                                      fullconfig["output_fmt"]) for calc in calculators.values()])
     pool.close() # Close the pool and prevent any more tasks from being submitted
     pool.join() # Wait for all the tasks to complete
 
