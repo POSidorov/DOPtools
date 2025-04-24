@@ -104,7 +104,7 @@ def _perform_fullconfig(fullconfig):
                     m.canonicalize(fix_tautomers=False) 
                 except:
                     m.canonicalize(fix_tautomers=False)
-        data[s] = [str[m] for m in struct]
+        data[s] = [str(m) for m in struct]
 
     y = data[fullconfig["property"]]
     indices = y[pd.notnull(y)].index
