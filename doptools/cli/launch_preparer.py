@@ -132,10 +132,10 @@ def _perform_fullconfig(fullconfig):
                 for p in [dict(zip(list(d.keys()), i)) for i in product(*param_values)]:
                     associators[-1].append((s, get_raw_calculator(t, p)))
     
-        if "solvent" in params.keys():
+        if "solvent" in fullconfig.keys():
             associators.append([(fullconfig["solvent"], SolventVectorizer())])
     
-        if "numerical" in params.keys():
+        if "numerical" in fullconfig.keys():
             associators.append([("numerical", PassThrough(fullconfig["numerical"]))])
     
         for p in product(*associators):
@@ -151,7 +151,7 @@ def _perform_fullconfig(fullconfig):
                     calc = get_raw_calculator(t, p)
                     calculators[calc.short_name] = calc
 
-    pool = mp.Pool(processes=args.parallel if args.parallel > 0 else 1)
+    pool = mp.Pool(processes=fullconfig.parallel if fullconfig.parallel > 0 else 1)
     # non_mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' not in desc]
     # Use pool.map to apply the calculate_and_output function to each set of arguments in parallel
     # The arguments are tuples containing (inpt, descriptor, descriptor_params, output_params)
