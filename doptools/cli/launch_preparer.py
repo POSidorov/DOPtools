@@ -68,7 +68,8 @@ basic_params = {
     "standardize": True
 }
 
-def _calculate_and_output(calculator, data, prop, prop_name, output_folder, pickles=False, fmt="svm"):
+def _calculate_and_output(input_params):
+    calculator, data, prop, prop_name, output_folder, pickles, fmt = input_params
     desc = calculator.fit_transform(data)
 
     if not os.path.exists(output_folder):
