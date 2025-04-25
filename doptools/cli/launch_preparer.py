@@ -77,11 +77,11 @@ def _calculate_and_output(input_params):
         print('The output directory {} created'.format(output_folder))
         
     if pickles:
-        fragmentor_name = os.path.join(output_dir, '.'.join([prop_name, calculator.short_name, 'pkl']))
+        fragmentor_name = os.path.join(output_folder, '.'.join([prop_name, calculator.short_name, 'pkl']))
         with open(fragmentor_name, 'wb') as f:
             pickle.dump(calculator, f, pickle.HIGHEST_PROTOCOL)
 
-    output_name = os.path.join(output_dir, '.'.join([prop_name, calculator.short_name, fmt]))
+    output_name = os.path.join(output_folder, '.'.join([prop_name, calculator.short_name, fmt]))
     if fmt == "csv":
         desc = pd.concat([pd.Series(prop, name=prop_name), desc], axis=1, sort=False)
         desc.to_csv(output_name, index=False)
