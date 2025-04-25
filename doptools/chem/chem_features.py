@@ -387,7 +387,6 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.radius = radius
         self.params = params
         self.chirality = chirality
-        self.fingerprinter = None
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
         self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
@@ -417,36 +416,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
-        if self.fp_type == "atompairs":
-            Chem.rdFingerprintGenerator.GetAtomPairGenerator(includeChirality=self.chirality,
-                                                             fpSize=self.nBits)
-        if self.fp_type == 'avalon':
-            pass
-        if self.fp_type == 'morgan':
-            if "useFeatures" not in self.params:
-                self.fingerprinter = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
-                                                                                   includeChirality=self.chirality, 
-                                                                                   fpSize=self.nBits)
-            elif not self.params["useFeatures"]:
-                self.fingerprinter = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
-                                                                                   includeChirality=self.chirality, 
-                                                                                   fpSize=self.nBits)
-            else:
-                feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
-                self.fingerprinter = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
-                                                                                   includeChirality=self.chirality, 
-                                                                                   fpSize=self.nBits, 
-                                                                                   atomInvariantsGenerator=feat_gen)
-        if self.fp_type == 'layered':
-            pass
-        if self.fp_type == 'torsion':
-            Chem.rdFingerprintGenerator.GetTopologicalTorsionGenerator(includeChirality=self.chirality, 
-                                                                       fpSize=self.nBits)
-        if self.fp_type == 'rdkfp':
-            self.fingerprinter = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
-                                                                                 useHs=False, 
-                                                                                 fpSize=self.nBits,
-                                                                                 **self.params)
+        
         return self
         
     def get_features(self, x, output="smiles"):
@@ -465,9 +435,23 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         elif self.fp_type == 'torsion':
             pass
         elif self.fp_type == "morgan":
+            if "useFeatures" not in self.params:
+                frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                    includeChirality=self.chirality, 
+                                                                    fpSize=self.nBits)
+            elif not self.params["useFeatures"]:
+                frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                    includeChirality=self.chirality, 
+                                                                    fpSize=self.nBits)
+            else:
+                feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                    includeChirality=self.chirality, 
+                                                                    fpSize=self.nBits, 
+                                                                    atomInvariantsGenerator=feat_gen)
             ao = AllChem.AdditionalOutput()
             ao.CollectBitInfoMap()
-            desc = self.fingerprinter.GetFingerprintAsNumPy(m, additionalOutput=ao)
+            desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
             bmap = ao.GetBitInfoMap()
             if output=="smiles":
                 for k, v in bmap.items():
@@ -485,9 +469,13 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             else:
                 features = bmap
         elif self.fp_type == "rdkfp":
+            frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
+                                                                    useHs=False, 
+                                                                    fpSize=self.nBits,
+                                                                    **self.params)
             ao = AllChem.AdditionalOutput()
             ao.CollectBitPaths()
-            desc = self.fingerprinter.GetFingerprintAsNumPy(m, additionalOutput=ao)
+            desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
             bmap = ao.GetBitPaths()
             for k, v in bmap.items():
                 for i in v:
@@ -528,7 +516,33 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 res.append(Chem.LayeredFingerprint(m, fpSize=self.nBits,
                                                    maxPath=self.size[0], **self.params))
             else:
-                res.append(self.fingerprinter.GetFingerprintAsNumPy(m))
+                if self.fp_type == "atompairs":
+                    frg = Chem.rdFingerprintGenerator.GetAtomPairGenerator(includeChirality=self.chirality,
+                                                                     fpSize=self.nBits)
+                if self.fp_type == 'morgan':
+                    if "useFeatures" not in self.params:
+                        frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                                           includeChirality=self.chirality, 
+                                                                                           fpSize=self.nBits)
+                    elif not self.params["useFeatures"]:
+                        frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                                           includeChirality=self.chirality, 
+                                                                                           fpSize=self.nBits)
+                    else:
+                        feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                        frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
+                                                                                           includeChirality=self.chirality, 
+                                                                                           fpSize=self.nBits, 
+                                                                                           atomInvariantsGenerator=feat_gen)
+                if self.fp_type == 'torsion':
+                    frg = Chem.rdFingerprintGenerator.GetTopologicalTorsionGenerator(includeChirality=self.chirality, 
+                                                                               fpSize=self.nBits)
+                if self.fp_type == 'rdkfp':
+                    frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
+                                                                                         useHs=False, 
+                                                                                         fpSize=self.nBits,
+                                                                                         **self.params)
+                res.append(frg.GetFingerprintAsNumPy(m))
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
 
 
