@@ -240,7 +240,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                     for atom in mol._atoms:
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([atom], deep=length)
-                        sub_set = set([a[0] for a in mol.augmented_substructure([atom], deep=length).atoms()])
+                        sub_set = set([a[0] for a in mol.augmented_substructure([atom], deep=length)._atoms])
                         sub_smiles = str(sub)
                         if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
@@ -256,7 +256,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                     for bond in mol.bonds():
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
-                        sub_set = set([a[0] for a in mol.augmented_substructure([bond[0], bond[1]], deep=length).atoms()])
+                        sub_set = set([a[0] for a in mol.augmented_substructure([bond[0], bond[1]], deep=length)._atoms])
                         sub_smiles = str(sub)
                         if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
