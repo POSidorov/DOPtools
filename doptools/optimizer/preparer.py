@@ -183,13 +183,14 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
                 if 'passthrough' in input_dict.keys():
                     if type(input_dict['passthrough']) is not pd.DataFrame:
                         input_dict['passthrough'] = pd.DataFrame(input_dict['passthrough'])
-                    for pt in input_dict['passthrough']:
-                        calculators_dict[pt] = PassThrough(column_name=pt)
-                        input_table = pd.concat([input_table, input_dict['passthrough'][pt]], axis=1)
+                    input_table = pd.concat([input_table, input_dict['passthrough']], axis=1)
+                    calculators_dict['numerical'] = PassThrough(column_names=list(input_dict['passthrough']))
 
-                calculator = ComplexFragmentor(associator=list(calculators_dict.items()),
+                calculator = ComplexFragmentor(associator=list((x,y) for x,y in calculators_dict.items()),
                                                structure_columns=[base_column])
-                desc = calculator.fit_transform(input_table.iloc[d['indices']])
+                desc = calculator.fit_transform(input_table) #.iloc[d['indices']])
+                print("input_table", input_table)
+                print("desc", desc)
 
             result[k] = {'calculator': calculator, 'table': desc, 
                          'name': d['property_name'], 'property': d['property']}

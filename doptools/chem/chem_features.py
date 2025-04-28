@@ -20,9 +20,8 @@ import pandas as pd
 from pandas import DataFrame
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.feature_selection import SelectorMixin 
 from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Iterable
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
@@ -212,7 +211,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                                 self.feature_names.append(sub_smiles)
         return self
 
-    def transform(self, X: DataFrame, y: Optional[List] = None) -> DataFrame:
+    def transform(self, X: Iterable, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -434,6 +433,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             pass
         elif self.fp_type == 'torsion':
             pass
+
         elif self.fp_type == "morgan":
             if "useFeatures" not in self.params:
                 frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius, 
@@ -580,10 +580,8 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
     def __init__(self, associator: List[Tuple[str, object]], structure_columns=None):
-        if structure_columns is None:
-            structure_columns = []
+        self.structure_columns = [] if structure_columns is None else structure_columns
         self.associator = associator
-        self.structure_columns = structure_columns
         #self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
         self._name = "ComplexFragmentor"
@@ -610,7 +608,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 v.fit(x[k])
             self.feature_names += [k+'::'+f for f in v.get_feature_names()]
         return self
-    
+
     def transform(self, x: DataFrame, y: Optional[List] = None) -> DataFrame:
         """
         Transforms the given data frame to a data frame of features
@@ -627,12 +625,15 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type y: None
         """
         concat = []
+        if not isinstance(x, DataFrame) and isinstance(x, (dict, list, pd.Series)):
+            x = pd.DataFrame(x if isinstance(x, list) else [x])
         for k, v in self.associator:
             if len(x.shape) == 1:
                 if k == "numerical":
                     concat.append(v.transform(x.iloc[:1]))
                 else:
-                    concat.append(v.transform(x.iloc[:1][k]))
+                    concat.append(v.transform([x.iloc[:1][k]]))
+
             else:
                 if k == "numerical":
                     concat.append(v.transform(x))
