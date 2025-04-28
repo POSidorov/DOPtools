@@ -327,6 +327,10 @@ class ColorAtom:
             ext_svg = m.depict()[:-6]
             ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
             for k, c in contr.items():
+                try: # for chython versions < 2
+                    x, y = mols[0].atom(k).xy[0], -mols[0].atom(k).xy[1]
+                except: # for chython versions >= 2
+                    x, y = mols[0].atom(k).xy.x, -mols[0].atom(k).xy.y
                 x, y = m.atom(k).x, -m.atom(k).y
                 if len(m.atom(k).atomic_symbol) >1:
                     x -= 0.1
