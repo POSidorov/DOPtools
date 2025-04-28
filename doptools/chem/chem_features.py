@@ -453,20 +453,29 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             ao.CollectBitInfoMap()
             desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
             bmap = ao.GetBitInfoMap()
-            if output=="smiles":
-                for k, v in bmap.items():
-                    for i in v:
-                        if i[1] > 0:
-                            env = Chem.FindAtomEnvironmentOfRadiusN(m, i[1], i[0])
-                            amap = {}
-                            submol = Chem.PathToSubmol(m, env, atomMap=amap)
+            for k, v in bmap.items():
+                for i in v:
+                    if i[1] > 0:
+                        env = Chem.FindAtomEnvironmentOfRadiusN(m, i[1], i[0])
+                        amap = {}
+                        submol = Chem.PathToSubmol(m, env, atomMap=amap)
+                        if output=="smiles":
                             features[k].append(Chem.MolToSmiles(submol, canonical=True))
+                        elif output=="mapping":
+                            features[k].append(tuple(amap.keys()))
                         else:
+                            features[k] = bmap
+                    else:
+                        if output=="smiles":
                             features[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
-                for k, v in features.items():
-                    vt = [item for item in v if item != '']
-                    features[k] = set(vt)
-            else:
+                        elif output=="mapping":
+                            features[k].append(i[0])
+                        else:
+                            features[k] = bmap
+            for k, v in features.items():
+                vt = [item for item in v if item != '']
+                features[k] = set(vt)
+
                 features = bmap
         elif self.fp_type == "rdkfp":
             frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
@@ -479,10 +488,16 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             bmap = ao.GetBitPaths()
             for k, v in bmap.items():
                 for i in v:
-                    features[k].append(Chem.MolFragmentToSmiles(m, 
+                    if output=="smiles":
+                        features[k].append(Chem.MolFragmentToSmiles(m, 
                                                                 atomsToUse=set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
                                                                                     m.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], [])),
                                                                 bondsToUse=i))
+                    elif output=="mapping":
+                        features[k].append(tuple(set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
+                                                     m.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], []))))
+                    else:
+                        features[k] = bmap                  
             for k, v in features.items():
                 vt = [item for item in v if item != '']
                 features[k] = set(vt)
