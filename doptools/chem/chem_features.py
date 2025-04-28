@@ -469,7 +469,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                         if output=="smiles":
                             features[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
                         elif output=="mapping":
-                            features[k].append(i[0])
+                            features[k].append(tuple([i[0]]))
                         else:
                             features[k] = bmap
             for k, v in features.items():
