@@ -1,0 +1,53 @@
+{
+
+    "input_file": "Tutorials/Selectivity_data_full.xlsx",
+    "output_folder": "output",
+    "property": "ddG",
+    "property_name": "ddG",
+
+
+    "standardize": true,
+    "chiral": true,
+    "structures": {
+        "Ar_formatted": {
+            "circus": { 
+                "lower":[0], 
+                "upper":[2,3,4,5],
+                "on_bond":[true,false]
+            }
+        },
+        "R": {
+            "circus": { 
+                "lower":[0], 
+                "upper":[2,3]
+            },
+            "chyline" : {
+                "lower":[2], 
+                "upper":[3,4,5]
+            }, 
+            "morgan": {
+                "nBits":[1024],
+                "radius":[2,3]
+            }
+            
+        },
+        "reaction": {
+            "circus": { 
+                "lower":[0], 
+                "upper":[2,3]
+            },
+            "chyline" : {
+                "lower":[2], 
+                "upper":[3,4,5]
+            }
+        }
+    },
+    "numerical": ["T(K)"],
+    "solvent": "solvent",
+
+
+    "save": true,
+    "separate_folders": false,
+    "parallel": 1,
+    "output_fmt": "svm"
+}

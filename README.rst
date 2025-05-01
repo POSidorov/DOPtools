@@ -9,7 +9,7 @@ DOPtools library contains tools for working with molecules and reaction in machi
 * CircuS and Chyline descriptors and the code to calculate them,
 * Calculators for fingerprints and Mordred, implemented as SKLearn compatible classes,
 * ComplexFragmentor as a tool to concatenate descriptors of several structures into one table,
-* ColorAtom implementation in Python, usable with CircuS desciriptors,
+* ColorAtom implementation in Python, usable with CircuS and ChyLine descriptors,
 * Scripts for CLI descriptor calculation and model optimization.
 
 Installation
@@ -36,6 +36,77 @@ Tutorials
 ==================
 
 The main functionalities of the library are demonstrated in the tutorials available in Tutorials folder.
+
+Changelog
+==================
+
+2025-04-30 - Version 1.3.
+
+- Full Config for preparer. It is now possible to pass a JSON file with full configuration on the input, output and descriptor types. 
+With the full config  it is possible to make any kind of combination of descriptors if you are using concatenation. The example file
+is given in the examples folder. Some explanations:
+
+The option is activated by the --full_config [filename] argument given to the launch_preparer.py script.
+
+    "input_file": "Tutorials/Selectivity_data_full.xlsx",
+    "output_folder": "output",
+    "property": "ddG",
+    "property_name": "ddG",
+These are mandatory parameters for input and output. 
+
+    "standardize": true,
+    "chiral": true,
+Standardization of structures on/off, and including chirality in fingerprints on/off.
+
+    "structures": {
+        "Ar_formatted": {
+            "circus": { 
+                "lower":[0], 
+                "upper":[2,3,4,5],
+                "on_bond":[true,false]
+            }
+        },
+        "R": {
+            "circus": { 
+                "lower":[0], 
+                "upper":[2,3]
+            },
+            "chyline" : {
+                "lower":[2], 
+                "upper":[3,4,5]
+            }, 
+            "morgan": {
+                "nBits":[1024],
+                "radius":[2,3]
+            }
+            
+        },
+        "reaction": {
+            "circus": { 
+                "lower":[0], 
+                "upper":[2,3]
+            },
+            "chyline" : {
+                "lower":[2], 
+                "upper":[3,4,5]
+            }
+        }
+    },
+All structural columns are now listed in this dictionary. For every column, it is possible to indicate all descriptor types and options.
+The options should be given as lists, even if it is only one value. All parameters of the descriptor calculators from chem module can be used.
+Be aware that the parameters such as "useFeatures" or "branchingPaths" for Morgan and RDKit FP should be given as usual, as dictionaries.
+
+    "numerical": ["T(K)"],
+    "solvent": "solvent",
+"solvent" is indicating the column containing solvent names, "numernical" is for any columns that should be included in the descriptor table from the 
+initial data table without change (pre-computed descriptors).
+
+    "save": true,
+    "separate_folders": false,
+    "parallel": 1,
+    "output_fmt": "svm"
+Output parameters. Be aware that the script will currently skip the separate folder option and will output all descriptors in the same output folder.
+
 
 ComplexFragmentor
 ==================
