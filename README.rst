@@ -41,29 +41,31 @@ Changelog
 ==================
 
 2025-04-30 - Version 1.3.
-------------------
+----------------------------
 
-- Full Config for preparer. It is now possible to pass a JSON file with full configuration on the input, output and descriptor types. 
+Full Config for preparer. It is now possible to pass a JSON file with full configuration on the input, output and descriptor types. 
 With the full config  it is possible to make any kind of combination of descriptors if you are using concatenation. The example file
 is given in the examples folder. Some explanations:
 
-The option is activated by the --full_config [filename] argument given to the launch_preparer.py script.
+The option is activated by the --full_config [filename] argument given to the launch_preparer.py script. 
+
+.. code-block:: json-object
 
     "input_file": "Tutorials/Selectivity_data_full.xlsx",
-
     "output_folder": "output",
-
     "property": "ddG",
-
     "property_name": "ddG",
 
 These are mandatory parameters for input and output. 
 
-    "standardize": true,
+.. code-block:: json-object
 
+    "standardize": true,
     "chiral": true,
 
-Standardization of structures on/off, and including chirality in fingerprints on/off.
+Standardization of structures on/off, and including chirality in fingerprints on/off. 
+
+.. code-block:: json-object
 
     "structures": {
         "Ar_formatted": {
@@ -81,12 +83,11 @@ Standardization of structures on/off, and including chirality in fingerprints on
             "chyline" : {
                 "lower":[2], 
                 "upper":[3,4,5]
-            }, 
+            },
             "morgan": {
                 "nBits":[1024],
                 "radius":[2,3]
             }
-            
         },
         "reaction": {
             "circus": { 
@@ -102,21 +103,21 @@ Standardization of structures on/off, and including chirality in fingerprints on
 
 All structural columns are now listed in this dictionary. For every column, it is possible to indicate all descriptor types and options.
 The options should be given as lists, even if it is only one value. All parameters of the descriptor calculators from chem module can be used.
-Be aware that the parameters such as "useFeatures" or "branchingPaths" for Morgan and RDKit FP should be given as usual, as dictionaries.
+Be aware that the parameters such as "useFeatures" or "branchingPaths" for Morgan and RDKit FP should be given as usual, as dictionaries. 
+
+.. code-block:: json-object
 
     "numerical": ["T(K)"],
-
     "solvent": "solvent",
 
 "solvent" is indicating the column containing solvent names, "numernical" is for any columns that should be included in the descriptor table from the 
 initial data table without change (pre-computed descriptors). 
 
+.. code-block:: json-object
+
     "save": true,
-
     "separate_folders": false,
-
     "parallel": 1,
-
     "output_fmt": "svm"
 
 Output parameters. Be aware that the script will currently skip the separate folder option and will output all descriptors in the same output folder.
