@@ -47,17 +47,17 @@ With the full config  it is possible to make any kind of combination of descript
 is given in the examples folder. Some explanations:
 
 The option is activated by the --full_config [filename] argument given to the launch_preparer.py script.
-
+::
     "input_file": "Tutorials/Selectivity_data_full.xlsx",
     "output_folder": "output",
     "property": "ddG",
     "property_name": "ddG",
 These are mandatory parameters for input and output. 
-
+::
     "standardize": true,
     "chiral": true,
 Standardization of structures on/off, and including chirality in fingerprints on/off.
-
+::
     "structures": {
         "Ar_formatted": {
             "circus": { 
@@ -95,12 +95,12 @@ Standardization of structures on/off, and including chirality in fingerprints on
 All structural columns are now listed in this dictionary. For every column, it is possible to indicate all descriptor types and options.
 The options should be given as lists, even if it is only one value. All parameters of the descriptor calculators from chem module can be used.
 Be aware that the parameters such as "useFeatures" or "branchingPaths" for Morgan and RDKit FP should be given as usual, as dictionaries.
-
+::
     "numerical": ["T(K)"],
     "solvent": "solvent",
 "solvent" is indicating the column containing solvent names, "numernical" is for any columns that should be included in the descriptor table from the 
 initial data table without change (pre-computed descriptors).
-
+::
     "save": true,
     "separate_folders": false,
     "parallel": 1,
