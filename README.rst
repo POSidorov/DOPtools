@@ -41,23 +41,29 @@ Changelog
 ==================
 
 2025-04-30 - Version 1.3.
+------------------
 
 - Full Config for preparer. It is now possible to pass a JSON file with full configuration on the input, output and descriptor types. 
 With the full config  it is possible to make any kind of combination of descriptors if you are using concatenation. The example file
 is given in the examples folder. Some explanations:
 
 The option is activated by the --full_config [filename] argument given to the launch_preparer.py script.
-::
+
+.. code-block:: json
     "input_file": "Tutorials/Selectivity_data_full.xlsx",
     "output_folder": "output",
     "property": "ddG",
     "property_name": "ddG",
+
 These are mandatory parameters for input and output. 
-::
+
+.. code-block:: json
     "standardize": true,
     "chiral": true,
+
 Standardization of structures on/off, and including chirality in fingerprints on/off.
-::
+
+.. code-block:: json
     "structures": {
         "Ar_formatted": {
             "circus": { 
@@ -92,19 +98,24 @@ Standardization of structures on/off, and including chirality in fingerprints on
             }
         }
     },
+
 All structural columns are now listed in this dictionary. For every column, it is possible to indicate all descriptor types and options.
 The options should be given as lists, even if it is only one value. All parameters of the descriptor calculators from chem module can be used.
 Be aware that the parameters such as "useFeatures" or "branchingPaths" for Morgan and RDKit FP should be given as usual, as dictionaries.
-::
+
+.. code-block:: json
     "numerical": ["T(K)"],
     "solvent": "solvent",
+
 "solvent" is indicating the column containing solvent names, "numernical" is for any columns that should be included in the descriptor table from the 
 initial data table without change (pre-computed descriptors).
-::
+
+.. code-block:: json
     "save": true,
     "separate_folders": false,
     "parallel": 1,
     "output_fmt": "svm"
+
 Output parameters. Be aware that the script will currently skip the separate folder option and will output all descriptors in the same output folder.
 
 
@@ -136,10 +147,7 @@ Current implementation is designed for both regression and classification tasks,
 The application of the ColorAtom requires a trained pipeline containing a fragmentor (CircuS and ChyLine are supported), features preprocessing and a model. *calculate_atom_contributions* calculates the contributions of each atom for a given molecule and returns them numerically as a dictionary. Otherwise, they can visualized directly in Jupyter Notebook via *output_html* function that returns an HTML table containing an SVG for each structure in the molecule. Since complexFragmentor is also supported, several structures in one data point can be processed simultaneously. 
 
 The coloring is done with matplotlib library. The atom contributions are normalized between 0 and 1 according to the maximum absolute value of the contribution. Therefore, if several structures are present, they will all have their colors normalized by the maximum value amond all contributions. The default colormap is PiYG. The "lower" (more negative) contributions are shown by red color, the "upper" (more positive) - by green.
-For classification models, the coloring in monochromatic (blue), and the intensity reflects the importance of the atom (the more intense the color, the more it would affect the change in prediction if changed). An example can be seen below:
-
-.. image:: docs/img/coloratom-demo1.png
-
+For classification models, the coloring in monochromatic (blue), and the intensity reflects the importance of the atom (the more intense the color, the more it would affect the change in prediction if changed).
 
 Copyright
 ============
