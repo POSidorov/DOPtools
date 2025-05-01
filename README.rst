@@ -41,7 +41,7 @@ Changelog
 ==================
 
 2025-04-30 - Version 1.3.
-
+------------------
 - Full Config for preparer. It is now possible to pass a JSON file with full configuration on the input, output and descriptor types. 
 With the full config  it is possible to make any kind of combination of descriptors if you are using concatenation. The example file
 is given in the examples folder. Some explanations:
