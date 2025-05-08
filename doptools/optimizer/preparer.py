@@ -188,7 +188,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
 
                 calculator = ComplexFragmentor(associator=list((x,y) for x,y in calculators_dict.items()),
                                                structure_columns=[base_column])
-                desc = calculator.fit_transform(input_table) #.iloc[d['indices']])
+                desc = calculator.fit_transform(input_table).iloc[d['indices']]
 
             result[k] = {'calculator': calculator, 'table': desc, 
                          'name': d['property_name'], 'property': d['property']}
