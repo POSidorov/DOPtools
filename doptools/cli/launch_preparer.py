@@ -98,15 +98,17 @@ def _perform_fullconfig(fullconfig):
         data = pd.read_excel(fullconfig["input_file"])
 
     for s in fullconfig["structures"].keys():
-        struct = [smiles(m) for m in data[s]]
+        
+        # standardization
         if fullconfig["standardize"]:
+            struct = [smiles(m) for m in data[s]]
             # this is magic, gives an error if done otherwise...
             for m in struct:
                 try:
                     m.canonicalize(fix_tautomers=False) 
                 except:
                     m.canonicalize(fix_tautomers=False)
-        data[s] = [str(m) for m in struct]
+            data[s] = [str(m) for m in struct]
 
     y = data[fullconfig["property"]]
     indices = y[pd.notnull(y)].index
@@ -143,7 +145,7 @@ def _perform_fullconfig(fullconfig):
             cf = ComplexFragmentor(associator=p, structure_columns=list(fullconfig["structures"].keys()))
             calculators[cf.short_name] = cf
     else:
-        data_x = data[fullconfig["structures"].keys()]
+        data_x = data[list(params["structures"].keys())[0]]
         for s in fullconfig["structures"].keys():
             for t, d in fullconfig["structures"][s].items():
                 d["fmt"] = ["smiles"]
