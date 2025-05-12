@@ -145,7 +145,7 @@ def _perform_fullconfig(fullconfig):
             cf = ComplexFragmentor(associator=p, structure_columns=list(fullconfig["structures"].keys()))
             calculators[cf.short_name] = cf
     else:
-        data_x = data[list(params["structures"].keys())[0]]
+        data_x = data[list(fullconfig["structures"].keys())[0]]
         for s in fullconfig["structures"].keys():
             for t, d in fullconfig["structures"][s].items():
                 d["fmt"] = ["smiles"]
