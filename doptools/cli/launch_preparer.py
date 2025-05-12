@@ -86,7 +86,7 @@ def _calculate_and_output(input_params):
         desc = pd.concat([pd.Series(prop, name=prop_name), desc], axis=1, sort=False)
         desc.to_csv(output_name, index=False)
     else:
-        dump_svmlight_file(np.array(desc), prop, output_name, zero_based=False)
+        dump_svmlight_file(np.array(desc, dtype="float32"), prop, output_name, zero_based=False)
     
 
 def _perform_fullconfig(fullconfig):
