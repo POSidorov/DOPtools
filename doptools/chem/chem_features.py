@@ -389,10 +389,10 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
         self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
-        if fp_type == "morgan" and 'useFeatures' in params.keys():# and params["useFeatures"]==True:
+        if fp_type == "morgan" and 'useFeatures' in params.keys() and params["useFeatures"]==True:
             self._name = "morganfeatures"
             self._short_name = "-".join(["MF", str(nBits), str(radius)])
-        elif fp_type == "rdkfp" and 'branchedPaths' in params.keys():# and params["branchedPaths"]==False:
+        elif fp_type == "rdkfp" and 'branchedPaths' in params.keys() and params["branchedPaths"]==False:
             self._name = "rdkfplinear"
             self._short_name = "-".join(["RL", str(nBits), str(radius)])
         else:
