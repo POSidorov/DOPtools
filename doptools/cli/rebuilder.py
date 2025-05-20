@@ -42,7 +42,7 @@ class Rebuilder:
                        ensemble:int=0):
         self.file = file
         self.folders = folders
-        if self.file is None and self.folder is None:
+        if self.file is None and self.folders is None:
             raise ValueError("At least one file or folder should be given to rebuild models")
         self.ensemble = ensemble
 
