@@ -55,10 +55,10 @@ class Rebuilder:
         elif self.file is not None:
             trial_files.append(self.file)
 
-        full_df = pd.concat([pd.read_table(f, sep=" ") forf in trial_files])
+        full_df = pd.concat([pd.read_table(f, sep=" ") for f in trial_files])
         return full_df
 
-    
+
 
 def rebuild_from_file(descdir, modeldir, number):
     trials = pd.read_table(os.path.join(modeldir, 'trials.all'), sep=' ')
