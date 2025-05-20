@@ -21,6 +21,9 @@ import os
 import pandas as pd
 import pickle
 import argparse
+import glob
+
+from typing import Optional, List, Dict, Tuple, Iterable
 
 from doptools.optimizer.config import get_raw_model
 
@@ -32,6 +35,30 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 
+
+class Rebuilder:
+    def __init__(self, file:str=None, 
+                       folders:List[str]=None, 
+                       ensemble:int=0):
+        self.file = file
+        self.folders = folders
+        if self.file is None and self.folder is None:
+            raise ValueError("At least one file or folder should be given to rebuild models")
+        self.ensemble = ensemble
+
+
+    def gather_trials(self):
+        trial_files = []
+        if self.folders is not None:
+            for f in self.folders:
+                trial_files.append(glob.glob(os.path.join(f, 'trials.all')))
+        elif self.file is not None:
+            trial_files.append(self.file)
+
+        full_df = pd.concat([pd.read_table(f, sep=" ") forf in trial_files])
+        return full_df
+
+    
 
 def rebuild_from_file(descdir, modeldir, number):
     trials = pd.read_table(os.path.join(modeldir, 'trials.all'), sep=' ')
