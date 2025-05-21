@@ -79,8 +79,8 @@ def collect_data(datadir, task, fmt='svm'):
     desc_dict = {}
     y = {}
     for f in glob.glob(os.path.join(datadir,"*."+fmt)):
-        name = f.split(os.sep)[-1][:-4].split('.')[1]
         propname = f.split(os.sep)[-1].split('.')[0]
+        name = f.split(os.sep)[-1][len(propname):-4]
         fullname = f.split(os.sep)[-1]
         if fmt == 'svm':
             desc_dict[name], y[propname] = load_svmlight_file(f)
