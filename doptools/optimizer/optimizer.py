@@ -190,9 +190,11 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
     if method.endswith('R'):
             fit_scores = {'stat': "fit", 'R2': r2(Y, fit_preds), 
                           'RMSE': rmse(Y, fit_preds), 'MAE': mae(Y, fit_preds)}
+            storage[n]["fit_score"] = fit_scores["R2"]
     elif method.endswith('C') and len(set(Y)) == 2:
             fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(Y, fit_preds), 'ACC': accuracy_score(Y, fit_preds),
                     'BAC': balanced_accuracy_score(Y, fit_preds), 'F1': f1_score(Y, fit_preds),'MCC': matthews_corrcoef(Y, fit_preds)}
+            storage[n]["fit_score"] = fit_scores["BAC"]
     elif method.endswith('C') and len(set(Y)) > 2:
             fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(Y),
                                                                 LabelBinarizer().fit_transform(fit_preds), multi_class='ovr'),
@@ -200,6 +202,7 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
                     'BAC': balanced_accuracy_score(Y, fit_preds),
                     'F1': f1_score(Y, fit_preds, average='macro'),
                     'MCC': matthews_corrcoef(Y, fit_preds)}
+            storage[n]["fit_score"] = fit_scores["BAC"]
 
     score_df = pd.concat([score_df, pd.DataFrame([fit_scores])], ignore_index=True)   
 
@@ -249,21 +252,16 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
     results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score', 'fit_score'])
     intermediate = study.trials_dataframe(attrs=('number', 'value'))
-
-    print(results_dict)
     
     for i, row in intermediate.iterrows():
-        print(row)
         number = int(row.number)
         if number not in results_dict:
             continue
-        if method.endswith("R"):
-            fit_score = results_detailed[number].iloc[-1]["R2"]
-        elif method.endswith("C"):
-            fit_score = results_detailed[number].iloc[-1]["BAC"]
-        added_row = {'trial': number, 'score': row.value, 'fit_score':fit_score}
+        added_row = {'trial': number, 'score': row.value}
+        added_row["fit_score"] = results_dict[number]["fit_score"]
         for hp in hyperparam_names:
             added_row[hp] = results_dict[number][hp]
+
         results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
     
     if write_output:
