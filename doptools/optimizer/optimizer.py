@@ -152,7 +152,7 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
     X = VarianceThreshold().fit_transform(X)
 
     params = suggest_params(trial, method)
-    storage[n] = {'desc': desc, 'scaling': scaling, 'method': method, **params}
+    storage[n] = {"fit_score":0, 'desc': desc, 'scaling': scaling, 'method': method, **params}
 
     model = get_raw_model(method, params)
 
@@ -188,21 +188,21 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
     model.fit(X, Y)
     fit_preds = model.predict(X)
     if method.endswith('R'):
-            fit_scores = {'stat': "fit", 'R2': r2(Y, fit_preds), 
+        fit_scores = {'stat': "fit", 'R2': r2(Y, fit_preds), 
                           'RMSE': rmse(Y, fit_preds), 'MAE': mae(Y, fit_preds)}
-            storage[n]["fit_score"] = fit_scores["R2"]
+        storage[n]["fit_score"] = fit_scores["R2"]
     elif method.endswith('C') and len(set(Y)) == 2:
-            fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(Y, fit_preds), 'ACC': accuracy_score(Y, fit_preds),
+        fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(Y, fit_preds), 'ACC': accuracy_score(Y, fit_preds),
                     'BAC': balanced_accuracy_score(Y, fit_preds), 'F1': f1_score(Y, fit_preds),'MCC': matthews_corrcoef(Y, fit_preds)}
-            storage[n]["fit_score"] = fit_scores["BAC"]
+        storage[n]["fit_score"] = fit_scores["BAC"]
     elif method.endswith('C') and len(set(Y)) > 2:
-            fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(Y),
+        fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(Y),
                                                                 LabelBinarizer().fit_transform(fit_preds), multi_class='ovr'),
                     'ACC': accuracy_score(Y, fit_preds),
                     'BAC': balanced_accuracy_score(Y, fit_preds),
                     'F1': f1_score(Y, fit_preds, average='macro'),
                     'MCC': matthews_corrcoef(Y, fit_preds)}
-            storage[n]["fit_score"] = fit_scores["BAC"]
+        storage[n]["fit_score"] = fit_scores["BAC"]
 
     score_df = pd.concat([score_df, pd.DataFrame([fit_scores])], ignore_index=True)   
 
