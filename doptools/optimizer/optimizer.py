@@ -155,7 +155,6 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
     storage[n] = {'desc': desc, 'scaling': scaling, 'method': method, **params}
 
     model = get_raw_model(method, params)
-    print(model)
 
     Y = np.array(y[y.columns[0]])
     if method.endswith('C'):
@@ -201,6 +200,8 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
                     'BAC': balanced_accuracy_score(Y, fit_preds),
                     'F1': f1_score(Y, fit_preds, average='macro'),
                     'MCC': matthews_corrcoef(Y, fit_preds)}
+
+    print(fit_scores)
     score_df = pd.concat([score_df, pd.DataFrame(fit_scores)], ignore_index=True)   
     print(score_df)     
 
