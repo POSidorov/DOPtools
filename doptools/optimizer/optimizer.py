@@ -200,7 +200,8 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
                     'BAC': balanced_accuracy_score(Y, fit_preds),
                     'F1': f1_score(Y, fit_preds, average='macro'),
                     'MCC': matthews_corrcoef(Y, fit_preds)}
-    score_df = pd.concat([score_df, pd.DataFrame(fit_scores)], ignore_index=True)        
+    score_df = pd.concat([score_df, pd.DataFrame(fit_scores)], ignore_index=True)   
+    print(score_df)     
 
     if write_output:
         score_df.to_csv(os.path.join(outdir, 'trial.' + str(n), 'stats'), sep=' ',
