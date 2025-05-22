@@ -201,9 +201,7 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
                     'F1': f1_score(Y, fit_preds, average='macro'),
                     'MCC': matthews_corrcoef(Y, fit_preds)}
 
-    print(fit_scores)
     score_df = pd.concat([score_df, pd.DataFrame([fit_scores])], ignore_index=True)   
-    print(score_df)     
 
     if write_output:
         score_df.to_csv(os.path.join(outdir, 'trial.' + str(n), 'stats'), sep=' ',
@@ -249,15 +247,18 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
-    results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score'])
+    results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score', 'fit_score'])
     intermediate = study.trials_dataframe(attrs=('number', 'value'))
     
     for i, row in intermediate.iterrows():
         number = int(row.number)
         if number not in results_dict:
             continue
-        
-        added_row = {'trial': number, 'score': row.value}
+        if method.endwith("R"):
+            fit_score = results_detailed[number].iloc[-1]["R2"]
+        elif method.endwith("C"):
+            fit_score = results_detailed[number].iloc[-1]["BAC"]
+        added_row = {'trial': number, 'score': row.value, 'fit_score':fit_score}
         for hp in hyperparam_names:
             added_row[hp] = results_dict[number][hp]
         results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
