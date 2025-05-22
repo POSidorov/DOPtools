@@ -155,6 +155,7 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
     storage[n] = {'desc': desc, 'scaling': scaling, 'method': method, **params}
 
     model = get_raw_model(method, params)
+    print(model)
 
     Y = np.array(y[y.columns[0]])
     if method.endswith('C'):
