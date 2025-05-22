@@ -250,7 +250,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
     
     hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
 
-    results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score', 'fit_score'])
+    results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score'])
     intermediate = study.trials_dataframe(attrs=('number', 'value'))
     
     for i, row in intermediate.iterrows():
@@ -262,7 +262,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         for hp in hyperparam_names:
             added_row[hp] = results_dict[number][hp]
 
-        results_pd = pd.concat([pd.DataFrame(added_row, index=[0]), results_pd.loc[:]]).reset_index(drop=True)
+        results_pd = pd.concat([pd.DataFrame([added_row]), results_pd.loc[:]]).reset_index(drop=True)
     
     if write_output:
         results_pd.to_csv(os.path.join(outdir,'trials.all'), sep=' ', index=False)
