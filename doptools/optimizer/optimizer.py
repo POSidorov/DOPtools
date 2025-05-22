@@ -254,9 +254,9 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         number = int(row.number)
         if number not in results_dict:
             continue
-        if method.endwith("R"):
+        if method.endswith("R"):
             fit_score = results_detailed[number].iloc[-1]["R2"]
-        elif method.endwith("C"):
+        elif method.endswith("C"):
             fit_score = results_detailed[number].iloc[-1]["BAC"]
         added_row = {'trial': number, 'score': row.value, 'fit_score':fit_score}
         for hp in hyperparam_names:
