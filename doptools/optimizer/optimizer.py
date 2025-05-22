@@ -184,6 +184,24 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
 
     score_df = calculate_scores(method[-1], y, res_pd)
 
+    fit_scores = {}
+    model.fit(X, Y)
+    fit_preds = model.predict(X)
+    if method.endswith('R'):
+            fit_scores = {'stat': "fit", 'R2': r2(Y, fit_preds), 
+                          'RMSE': rmse(Y, fit_preds), 'MAE': mae(Y, fit_preds)}
+    elif method.endswith('C') and len(set(Y)) == 2:
+            fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(Y, fit_preds), 'ACC': accuracy_score(Y, fit_preds),
+                    'BAC': balanced_accuracy_score(Y, fit_preds), 'F1': f1_score(Y, fit_preds),'MCC': matthews_corrcoef(Y, fit_preds)}
+    elif method.endswith('C') and len(set(Y)) > 2:
+            fit_scores =  {'stat': "fit", 'ROC_AUC': roc_auc_score(LabelBinarizer().fit_transform(Y),
+                                                                LabelBinarizer().fit_transform(fit_preds), multi_class='ovr'),
+                    'ACC': accuracy_score(Y, fit_preds),
+                    'BAC': balanced_accuracy_score(Y, fit_preds),
+                    'F1': f1_score(Y, fit_preds, average='macro'),
+                    'MCC': matthews_corrcoef(Y, fit_preds)}
+    score_df = pd.concat([score_df, pf.DataFrame(fit_scores)], ignore_index=True)        
+
     if write_output:
         score_df.to_csv(os.path.join(outdir, 'trial.' + str(n), 'stats'), sep=' ',
                         float_format='%.3f', index=False)
