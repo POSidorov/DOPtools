@@ -202,7 +202,7 @@ def objective_study(storage, results_detailed, trial, x_dict, y, outdir, method,
                     'MCC': matthews_corrcoef(Y, fit_preds)}
 
     print(fit_scores)
-    score_df = pd.concat([score_df, pd.DataFrame(fit_scores)], ignore_index=True)   
+    score_df = pd.concat([score_df, pd.DataFrame([fit_scores])], ignore_index=True)   
     print(score_df)     
 
     if write_output:
