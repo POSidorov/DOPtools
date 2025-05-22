@@ -249,6 +249,8 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
 
     results_pd = pd.DataFrame(columns=['trial']+hyperparam_names+['score', 'fit_score'])
     intermediate = study.trials_dataframe(attrs=('number', 'value'))
+
+    print(results_detailed)
     
     for i, row in intermediate.iterrows():
         number = int(row.number)
