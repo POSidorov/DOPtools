@@ -87,6 +87,10 @@ def rebuild_from_file(descdir, modeldir, number):
     for k, p in params.items():
         if pd.isnull(p):
             params[k] = None
+        try:
+            params[k] = float(params[k])
+        except:
+            pass
     method = rebuild_trial['method']
     model = get_raw_model(method, params)
     pipeline_steps.append(('model', model))

@@ -24,6 +24,7 @@ import warnings
 import multiprocessing as mp
 import json
 from itertools import product, combinations
+import logging
 
 import numpy as np
 import pandas as pd
@@ -34,6 +35,12 @@ from doptools.chem.chem_features import ComplexFragmentor, PassThrough
 from doptools.chem.solvents import SolventVectorizer
 from doptools.optimizer.config import get_raw_calculator
 from doptools.optimizer.preparer import *
+
+logging.basicConfig(
+    format="{asctime} - {levelname} - {message}",
+    style="{",
+    datefmt="%Y-%m-%d %H:%M",
+)
 
 basic_params = {
     "circus": True, 
@@ -74,7 +81,10 @@ def _calculate_and_output(input_params):
 
     if not os.path.exists(output_folder):
         os.makedirs(output_folder, exist_ok=True)  # exist_ok is useful when several processes try to create the folder at the same time
+        logging.info("The output directory {} created".format(output_folder))
         print('The output directory {} created'.format(output_folder))
+    else:
+        logging.warning('The output directory {} already exists. The data will be overwritten'.format(output_folder))
         
     if pickles:
         fragmentor_name = os.path.join(output_folder, '.'.join([prop_name, calculator.short_name, 'pkl']))
@@ -222,8 +232,8 @@ def _enumerate_parameters(args):
             for upper in _set_default(args.linear_max, [5]):
                 if int(lower) <= int(upper):
                     param_dict[_make_name(('chyline', lower, upper))] = {'lower': lower, 'upper': upper}
-    if args.mordred2d:
-        param_dict[_make_name(('mordred2d',))] = {}
+    #if args.mordred2d:
+    #    param_dict[_make_name(('mordred2d',))] = {}
     return param_dict
 
 
@@ -341,12 +351,14 @@ if __name__ == '__main__':
                         help='Toggle the calculation of CircuS fragments on bonds. With this option the fragments will be bond-cetered, making a bond the minimal element.')
 
     # Mordred 2D fingerprints
-    parser.add_argument('--mordred2d', action='store_true', 
-                        help='Option to calculate Mordred 2D descriptors.')
+    #parser.add_argument('--mordred2d', action='store_true', 
+    #                    help='Option to calculate Mordred 2D descriptors.')
     # Solvents
     parser.add_argument('--solvent', type=str, action='store', default='',
                         help='Column that contains the solvents. Check the available solvents in the solvents.py script.')
-
+    #parser.add_argument('--testset', nargs='+', action='extend', type=str, default=[],
+    #                    help='Name(s) of the file(s) containing the test set(s) to calculate with the same descriptors')
+    parser.add_argument("--logging", action="store", type=str, default="ERROR")
 
     args = parser.parse_args()
 
@@ -379,7 +391,8 @@ if __name__ == '__main__':
             'separate': args.separate_folders,
             'format': args.format,
             'pickle': args.save,
-            'write_output': True,
+            'write_output': True
+        #    'test_sets':args.testset
         }
         create_output_dir(output_params['output'])
 
@@ -397,6 +410,6 @@ if __name__ == '__main__':
         pool.join() # Wait for all the tasks to complete
 
         # Serial mordred calculations
-        mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' in desc]
-        for desc in mordred_descriptors:
-            calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))
+        #mordred_descriptors = [desc for desc in descriptor_dictionary.keys() if 'mordred2d' in desc]
+        #for desc in mordred_descriptors:
+        #    calculate_and_output((inpt, desc, descriptor_dictionary[desc], output_params))

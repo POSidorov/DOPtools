@@ -25,7 +25,7 @@ from typing import Optional, List, Dict, Tuple, Iterable
 from rdkit import Chem
 from rdkit.Chem import AllChem, rdMolDescriptors
 from rdkit.Avalon import pyAvalonTools
-from mordred import Calculator, descriptors
+#from mordred import Calculator, descriptors
 from doptools.chem.utils import _add_stereo_substructure
 from functools import partialmethod
 
@@ -644,50 +644,50 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
         return res
 
 
-class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin):
-    """
-    Mordred2DCalculator class is a scikit-learn compatible transformer that
-    calculates Mordred 2D descriptors.
-    """
-    def __init__(self):
-        self._size = ()
-        self._name = "mordred2D"
-        self.calculator = None
-        self._short_name = "M2"
+# class Mordred2DCalculator(DescriptorCalculator, BaseEstimator, TransformerMixin):
+#     """
+#     Mordred2DCalculator class is a scikit-learn compatible transformer that
+#     calculates Mordred 2D descriptors.
+#     """
+#     def __init__(self):
+#         self._size = ()
+#         self._name = "mordred2D"
+#         self.calculator = None
+#         self._short_name = "M2"
 
-    def fit(self, X, y=None):
-        """
-        Fits the Mordred calculator.
+#     def fit(self, X, y=None):
+#         """
+#         Fits the Mordred calculator.
 
-        :param X: the array/list/... of molecules to train the calculator.
-        :type X: array-like, [MoleculeContainers]
+#         :param X: the array/list/... of molecules to train the calculator.
+#         :type X: array-like, [MoleculeContainers]
 
-        :param y: required by default by scikit-learn standards, but
-            doesn't change the function at all.
-        :type y: None
-        """
-        mols = [Chem.MolFromSmiles(str(x)) for x in X]
-        self.calculator = Calculator(descriptors, ignore_3D=True)
-        matrix = self.calculator.pandas(mols).select_dtypes(include='number')
-        self.feature_names = list(matrix.columns)
-        return self
+#         :param y: required by default by scikit-learn standards, but
+#             doesn't change the function at all.
+#         :type y: None
+#         """
+#         mols = [Chem.MolFromSmiles(str(x)) for x in X]
+#         self.calculator = Calculator(descriptors, ignore_3D=True)
+#         matrix = self.calculator.pandas(mols).select_dtypes(include='number')
+#         self.feature_names = list(matrix.columns)
+#         return self
 
-    def transform(self, X, y=None):
-        """
-        Transforms the given array of molecules to a data frame
-        with features and their values.
+#     def transform(self, X, y=None):
+#         """
+#         Transforms the given array of molecules to a data frame
+#         with features and their values.
 
-        :param X: the array/list/... of molecules to transform to feature table
-            using trained feature list.
-        :type X: array-like, [MoleculeContainers]
+#         :param X: the array/list/... of molecules to transform to feature table
+#             using trained feature list.
+#         :type X: array-like, [MoleculeContainers]
 
-        :param y: required by default by scikit-learn standards, but
-            doesn't change the function at all.
-        :type y: None
-        """
-        mols = [Chem.MolFromSmiles(str(x)) for x in X]
-        matrix = self.calculator.pandas(mols).select_dtypes(include='number')
-        return matrix[self.feature_names]
+#         :param y: required by default by scikit-learn standards, but
+#             doesn't change the function at all.
+#         :type y: None
+#         """
+#         mols = [Chem.MolFromSmiles(str(x)) for x in X]
+#         matrix = self.calculator.pandas(mols).select_dtypes(include='number')
+#         return matrix[self.feature_names]
         
 
 class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
@@ -841,4 +841,4 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
 
 
 __all__ = ['ChythonCircus', 'ChythonCircusNonhash', 'ChythonLinear', 'ComplexFragmentor',
-           'DescriptorCalculator', 'Fingerprinter', 'Mordred2DCalculator', 'PassThrough']
+           'DescriptorCalculator', 'Fingerprinter', 'PassThrough']
