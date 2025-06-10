@@ -90,8 +90,8 @@ def _enumerate_parameters(args):
             for upper in _set_default(args.linear_max, [5]):
                 if int(lower) <= int(upper):
                     param_dict[_make_name(('chyline', lower, upper))] = {'lower': lower, 'upper': upper}
-    if args.mordred2d:
-        param_dict[_make_name(('mordred2d',))] = {}
+    #if args.mordred2d:
+    #    param_dict[_make_name(('mordred2d',))] = {}
     return param_dict
 
 

@@ -16,7 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, Mordred2DCalculator
+from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter
 
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.svm import SVR, SVC
@@ -41,7 +41,7 @@ calculators = {
     'atompairs': "Fingerprinter(fp_type='atompairs', **descriptor_params)",
     'avalon': "Fingerprinter(fp_type='avalon', **descriptor_params)",
     'torsion': "Fingerprinter(fp_type='torsion', **descriptor_params)",
-    'mordred2d': "Mordred2DCalculator(**descriptor_params)",
+    #'mordred2d': "Mordred2DCalculator(**descriptor_params)",
 }
 
 
@@ -128,14 +128,14 @@ def suggest_params(trial, method):
     elif method == 'RFR':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 10),
-            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
+            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', 1.0, 0.5]),
             'max_samples': trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
             'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
         }
     elif method == 'RFC':
         params = {
             'max_depth': trial.suggest_int("max_depth", 3, 10),
-            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
+            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', 1.0, 0.5]),
             'max_samples': trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
             'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
         }
