@@ -40,6 +40,12 @@ The main functionalities of the library are demonstrated in the tutorials availa
 Changelog
 ==================
 
+2025-06-19 - Version 1.3.7.
+------------------------------
+* Mordred was removed as a dependency and Mordred descriptor calculator has been removed, due to the lack of support and dependencies issues.
+* CLI scripts have been corrected to allow for OS-independence (Windows updates).
+* CLI scrripts can now be launched without .py extension (old version also works for back compatibility).
+
 2025-04-30 - Version 1.3.
 ----------------------------
 
