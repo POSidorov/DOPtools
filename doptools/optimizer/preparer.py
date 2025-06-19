@@ -102,6 +102,8 @@ def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
 
 
 def check_parameters(params):
+    if not params.input:
+        raise ValueError('No input file.')
     if params.input.split('.')[-1] not in ('csv', 'xls', 'xlsx'):
         raise ValueError('The input file should be of CSV or Excel format.')
     for i, p in enumerate(params.property_col):

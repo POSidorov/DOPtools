@@ -35,7 +35,7 @@ setup(
     install_requires=['pandas>=2.1', 'numpy>=1.25', 'scipy>=1.7', 'matplotlib>=3.4', 'tqdm>=4.66.3',
                       'scikit-learn>=1.5', 'ipython>=7.22', 'chython>=1.78', 'rdkit>=2023.09.02',
                       'optuna>=3.5', 'xgboost>=2.0', 'timeout-decorator==0.5', 
-                      'xlwt>=1.3', 'xlrd>=2.0', 'openpyxl>=3.1'],
+                      'xlwt>=1.3', 'xlrd>=2.0', 'openpyxl>=3.1', 'pillow>=11.2.1'],
     description='A package for calculation of molecular descriptors in Scikit-Learn compatible way and model optimization',
     long_description=(Path(__file__).parent / 'README.rst').open(encoding='utf-8').read(),
 entry_points={
