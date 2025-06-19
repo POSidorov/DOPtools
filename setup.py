@@ -21,7 +21,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '1.3.6'
+version = '1.3.7'
 
 setup(
     name='doptools',
@@ -32,14 +32,25 @@ setup(
     author='Dr. Pavel Sidorov',
     author_email='pavel.o.sidorov@gmail.com',
     python_requires='>=3.9.0',
-    install_requires=['pandas>=2.1', 'numpy>=1.25', 'scipy>=1.7', 'matplotlib>=3.4', 'tqdm>=4.66.0',
-                      'scikit-learn>=1.3', 'ipython>=7.22', 'chython>=1.78', 'rdkit>=2023.09.02',
+    install_requires=['pandas>=2.1', 'numpy>=1.25', 'scipy>=1.7', 'matplotlib>=3.4', 'tqdm>=4.66.3',
+                      'scikit-learn>=1.5', 'ipython>=7.22', 'chython>=1.78', 'rdkit>=2023.09.02',
                       'optuna>=3.5', 'xgboost>=2.0', 'timeout-decorator==0.5', 
-                      'xlwt>=1.3', 'xlrd>=2.0', 'openpyxl>=3.1'],
+                      'xlwt>=1.3', 'xlrd>=2.0', 'openpyxl>=3.1', 'pillow>=11.2.1'],
     description='A package for calculation of molecular descriptors in Scikit-Learn compatible way and model optimization',
     long_description=(Path(__file__).parent / 'README.rst').open(encoding='utf-8').read(),
-    scripts=['doptools/cli/launch_optimizer.py','doptools/cli/launch_preparer.py',
-             'doptools/cli/plotter.py','doptools/cli/rebuilder.py'],
+entry_points={
+    'console_scripts': ['launch_preparer = doptools.cli.launch_preparer:launch_preparer',
+                        'launch_optimizer = doptools.cli.launch_optimizer:launch_optimizer',
+                        'plotter = doptools.cli.plotter:plotter',
+                        'rebuilder = doptools.cli.rebuilder:rebuilder',
+
+                        #Back compatibility - commands with .py
+                        'launch_preparer.py = doptools.cli.launch_preparer:launch_preparer',
+                        'launch_optimizer.py = doptools.cli.launch_optimizer:launch_optimizer',
+                        'plotter.py = doptools.cli.plotter:plotter',
+                        'rebuilder.py = doptools.cli.rebuilder:rebuilder',
+    ],
+},
     classifiers=['Environment :: Plugins',
                  'Intended Audience :: Science/Research',
                  'Intended Audience :: Developers',

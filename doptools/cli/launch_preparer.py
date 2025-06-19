@@ -242,7 +242,7 @@ def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
     with open(fragmentor_name, 'wb') as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
-if __name__ == '__main__':
+def launch_preparer():
     parser = argparse.ArgumentParser(prog='Descriptor calculator', 
                                      description='Prepares the descriptor files for hyperparameter optimization launch.')
     

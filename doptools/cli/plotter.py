@@ -120,7 +120,7 @@ def make_classification_plot(predictions, class_number, **params):
     return fig, ax
 
 
-if __name__ == '__main__':
+def plotter():
     parser = argparse.ArgumentParser(prog='Model CV plotter', 
                                      description='Plot out the CV results of the optimizer')
     parser.add_argument('-d', '--datadir', required=True)

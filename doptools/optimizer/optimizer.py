@@ -259,8 +259,7 @@ def launch_study(x_dict, y, outdir, method, ntrials, cv_splits, cv_repeats, jobs
         number = int(row.number)
         if number not in results_dict:
             continue
-        added_row = {'trial': number, 'score': row.value}
-        added_row["fit_score"] = results_dict[number]["fit_score"]
+        added_row = {'trial': number, 'score': row.value, 'fit_score': results_dict[number]["fit_score"]}
         for hp in hyperparam_names:
             added_row[hp] = results_dict[number][hp]
 
