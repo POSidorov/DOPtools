@@ -101,11 +101,11 @@ def rebuild_from_file(descdir, modeldir, number):
 
     return pipeline, rebuild_trial
 
-if __name__ == '__main__':
+def rebuilder():
     parser = argparse.ArgumentParser(prog='Optimized model rebuilder', 
                                      description='Rebuilds the model from the optimized trial parameters,\nsaving it as an UNTRAINED pipeline in pickle')
     parser.add_argument('-d', '--descdir', required=True,
-                        help='the folder containing descriptor files. Can contain folders separated by descriptor type')
+                        help='the folder containing descriptor files and calculators. Can contain folders separated by descriptor type')
     parser.add_argument('-m', '--modeldir', required=True,
                         help='the folder containing model output files. Should contain "trials.all" file.')
     parser.add_argument('-n', '--number', type=int, required=True,
