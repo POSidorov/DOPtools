@@ -72,7 +72,10 @@ def prepare_classification_plot(cv_res, pos_class = 1):
     roc_repeats = {}
     for col in pos_probas.columns:
         repeat = col.split("repeat")[-1]
-        fpr, tpr, _ = roc_curve(true_val, pos_probas[col].values, pos_label=pos_class)
+        if set(true_val)==set([0,1]) or set(true_val)==set([-1,1]):
+            fpr, tpr, _ = roc_curve(true_val, pos_probas[col].values)#, pos_label=pos_class)
+        else:
+            fpr, tpr, _ = roc_curve(true_val, pos_probas[col].values, pos_label=pos_class)
         roc_repeats[repeat] = {'fpr': fpr, 'tpr': tpr, 'auc': auc(fpr, tpr)}
 
     mean_fpr = np.linspace(0, 1, 100)
