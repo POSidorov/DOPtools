@@ -191,6 +191,7 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='al
                 calculator = ComplexFragmentor(associator=list((x,y) for x,y in calculators_dict.items()),
                                                structure_columns=[base_column])
                 desc = calculator.fit_transform(input_table).iloc[d['indices']]
+                print(desc)
 
             result[k] = {'calculator': calculator, 'table': desc, 
                          'name': d['property_name'], 'property': d['property']}
@@ -222,12 +223,12 @@ def output_descriptors(calculated_result, output_params):
             output_name = os.path.join(output_folder, '.'.join([d['name'], 
                                                                 desc_name, 
                                                                 output_params['format']]))
+
             if output_params['format'] == 'csv':
                 desc = pd.concat([pd.Series(d['property'], name=d['name']), d['table']], axis=1, sort=False)
                 desc.to_csv(output_name, index=False)
             else:
-                dump_svmlight_file(np.array(d['table']), d['property'], 
-                                   output_name, zero_based=False)
+                dump_svmlight_file(d['table'].astype(float), d['property'], output_name, zero_based=False)
 
 
 def calculate_and_output(input_args):
