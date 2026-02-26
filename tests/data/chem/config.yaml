@@ -1,0 +1,23 @@
+# Configuration for generating expected chemistry descriptor outputs.
+smiles:
+  - "C1C2CC3CC1CC(C2)C3"
+  - "C[C@@H](C(=O)O)N"
+  - "C1=CN=CN=C1"
+  - "C([C@@H](C(=O)O)N)S"
+  - "COC1=C2C3=C(C(=O)CC3)C(=O)OC2=C4[C@@H]5C=CO[C@@H]5OC4=C1"
+  - "CC1=C(C(=O)CC1OC(=O)C2C(C2(C)C)C=C(C)C(=O)OC)CC=CC=C"
+  - "CC/C=C\\CC1=C([C@H](CC1=O)OC(=O)[C@@H]2[C@H](C2(C)C)/C=C(/C)\\C(=O)OC)C"
+  - "CCCC(CCC=CC=CC#CC#CC=CCO)O"
+  - "OC[C@H]1O[C@H](O)[C@H](O)[C@@H](O)[C@@H]1O"
+  - "C1CCC2C(C1)CCC3C2CCC4C3(CCC4C(C)CCCC(C)C)C"
+
+parameters:
+  n_bits: [128, 256, 512, 1024, 2048]
+  rdkfp_radius: [3, 4, 5, 6]
+  layered_radius: [2, 3, 4]
+  chyline_upper: [3, 4, 5, 6]
+  circus_upper: [2, 3, 4]
+
+numeric_values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+output_folder: expected

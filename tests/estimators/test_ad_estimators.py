@@ -26,7 +26,7 @@ def test_fragment_control_flags_new_fragments(smiles_list: list[str]) -> None:
     ad = ad_estimators.FragmentControl(pipeline)
 
     assert ad.predict([smiles_list[1]]) == [1]
-    assert ad.predict([smiles_list[2]]) == [-1]
+    assert ad.predict([smiles_list[3]]) == [-1]
 
 
 def test_bounding_box_predicts_on_training_set(smiles_list: list[str]) -> None:
