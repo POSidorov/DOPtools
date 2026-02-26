@@ -16,6 +16,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
+from tqdm import tqdm
 from functools import partialmethod
 from typing import Dict, Iterable, List, Optional, Tuple
 from warnings import warn
@@ -35,7 +36,6 @@ from doptools.chem.utils import _add_stereo_substructure
 RDLogger.DisableLog("rdApp.*")
 
 # disabling the mordred tqdm log
-from tqdm import tqdm
 
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
@@ -835,7 +835,7 @@ class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type check: bool
         """
         df = pd.DataFrame(x[self.column_names], columns=self.column_names)
-        if check and not df.applymap(lambda x: isinstance(x, (float, int))).all().all():
+        if check and not df.map(lambda x: isinstance(x, (float, int))).all().all():
             raise ValueError("Non numerical value(s) provided to PassThrough")
         return df
 
