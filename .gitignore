@@ -1,14 +1,35 @@
-__pycache__
+# Do not delete items from .gitignore.
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
 *.py[cod]
-*.so
-*.c
-.DS_Store
 
+# Distribution / packaging
+*.egg-info/
+.eggs/
+dist/
+
+# IDE settings Pycharm/VSCode/Visual Studio
 .idea
-venv
+.vscode
+*.sln
 
-.eggs
-*.egg-info
-build
-dist
-MANIFEST
+# pytest
+.pytest_cache
+.mypy_cache
+
+# IPython Notebook
+.ipynb_checkpoints
+notebooks/data/*
+!notebooks/data/.gitkeep
+
+# Sphinx documentation
+docs/build/*
+docs/source/reference/generated/*rst
+
+# managing secrets
+.ini
+.env
+
+# Agent files (specific to user setup potentially)
+AGENTS.md

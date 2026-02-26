@@ -16,25 +16,27 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import pandas as pd
-from pandas import DataFrame
-import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
-from typing import Optional, List, Dict, Tuple, Iterable
-from rdkit import Chem
-from rdkit.Chem import AllChem, rdMolDescriptors
-from rdkit.Avalon import pyAvalonTools
-#from mordred import Calculator, descriptors
-from doptools.chem.utils import _add_stereo_substructure
 from functools import partialmethod
+from typing import Dict, Iterable, List, Optional, Tuple
 from warnings import warn
 
-from rdkit import RDLogger
-RDLogger.DisableLog('rdApp.*')
+import numpy as np
+import pandas as pd
+from chython import CGRContainer, MoleculeContainer, ReactionContainer, smiles
+from pandas import DataFrame
+from rdkit import Chem, RDLogger
+from rdkit.Avalon import pyAvalonTools
+from rdkit.Chem import AllChem, rdMolDescriptors
+from sklearn.base import BaseEstimator, TransformerMixin
+
+# from mordred import Calculator, descriptors
+from doptools.chem.utils import _add_stereo_substructure
+
+RDLogger.DisableLog("rdApp.*")
 
 # disabling the mordred tqdm log
 from tqdm import tqdm
+
 tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
 
 
@@ -44,6 +46,7 @@ class DescriptorCalculator:
     Made for utility functions, such as retrieveing the name, size, or
     features of the calculator.
     """
+
     def __init__(self, name: str, size: Tuple[int]):
         self._name = name
         self._size = size
@@ -55,7 +58,7 @@ class DescriptorCalculator:
         """
         Returns the size of the calculator as a tuple of integers.
         """
-        
+
         return self._size
 
     @property
@@ -68,14 +71,13 @@ class DescriptorCalculator:
     @property
     def short_name(self):
         return self._short_name
-    
 
     def get_feature_names(self) -> List[str]:
         """
         Returns the list of features as strings.
         """
         return self.feature_names
-    
+
 
 class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
@@ -107,8 +109,15 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
     in SMILES.
     """
 
-    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, 
-                 on_bond: bool = False, fmt: str = "mol", keep_stereo = 'no'):
+    def __init__(
+        self,
+        lower: int = 0,
+        upper: int = 0,
+        only_dynamic: bool = False,
+        on_bond: bool = False,
+        fmt: str = "mol",
+        keep_stereo="no",
+    ):
         """
         Circus descriptor calculator constructor.
 
@@ -131,7 +140,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type keep_stereo: str
         """
         self.feature_names = []
-        self.lower = lower 
+        self.lower = lower
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
@@ -149,7 +158,7 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         elif keep_stereo == "both":
             all_params += ["BS"]
         self._short_name = "-".join(all_params)
-    
+
     def fit(self, X: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
@@ -171,42 +180,44 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
             if isinstance(mol, ReactionContainer):
                 reac = mol
                 mol = reac.compose()
-            for length in range(self.lower, self.upper+1):
+            for length in range(self.lower, self.upper + 1):
                 if not self.on_bond:
                     for atom in mol._atoms:
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([atom], deep=length)
                         sub_smiles = str(sub)
-                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "yes" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles not in self.feature_names:
                             # if dynamic_only is on, skip all non-dynamic fragments
                             if self.only_dynamic and ">" not in sub_smiles:
                                 continue
                             self.feature_names.append(sub_smiles)
-                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "both" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                             if sub_smiles not in self.feature_names:
-                            # if dynamic_only is on, skip all non-dynamic fragments
+                                # if dynamic_only is on, skip all non-dynamic fragments
                                 if self.only_dynamic and ">" not in sub_smiles:
                                     continue
                                 self.feature_names.append(sub_smiles)
                 else:
                     for bond in mol.bonds():
                         # deep is the radius of the neighborhood sphere in bonds
-                        sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
+                        sub = mol.augmented_substructure(
+                            [bond[0], bond[1]], deep=length
+                        )
                         sub_smiles = str(sub)
-                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "yes" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                         if sub_smiles not in self.feature_names:
                             # if dynamic_only is on, skip all non-dynamic fragments
                             if self.only_dynamic and ">" not in sub_smiles:
                                 continue
                             self.feature_names.append(sub_smiles)
-                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "both" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                             if sub_smiles not in self.feature_names:
-                            # if dynamic_only is on, skip all non-dynamic fragments
+                                # if dynamic_only is on, skip all non-dynamic fragments
                                 if self.only_dynamic and ">" not in sub_smiles:
                                     continue
                                 self.feature_names.append(sub_smiles)
@@ -235,40 +246,62 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 reac = mol
                 mol = reac.compose()
             table.loc[len(table)] = 0
-            for length in range(self.lower, self.upper+1):
+            for length in range(self.lower, self.upper + 1):
                 if not self.on_bond:
                     for atom in mol._atoms:
                         # deep is the radius of the neighborhood sphere in bonds
                         sub = mol.augmented_substructure([atom], deep=length)
-                        sub_set = set([a for a in mol.augmented_substructure([atom], deep=length)._atoms.keys()])
+                        sub_set = set(
+                            [
+                                a
+                                for a in mol.augmented_substructure(
+                                    [atom], deep=length
+                                )._atoms.keys()
+                            ]
+                        )
                         sub_smiles = str(sub)
-                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "yes" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
-                        if sub_smiles in self.feature_names and sub_set not in visited_substructures:
+                        if (
+                            sub_smiles in self.feature_names
+                            and sub_set not in visited_substructures
+                        ):
                             visited_substructures.append(sub_set)
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
-                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "both" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                             if sub_smiles in self.feature_names:
                                 table.iloc[i, self.feature_names.index(sub_smiles)] += 1
-                        
+
                 else:
                     for bond in mol.bonds():
                         # deep is the radius of the neighborhood sphere in bonds
-                        sub = mol.augmented_substructure([bond[0], bond[1]], deep=length)
-                        sub_set = set([a for a in mol.augmented_substructure([bond[0], bond[1]], deep=length)._atoms.keys()])
+                        sub = mol.augmented_substructure(
+                            [bond[0], bond[1]], deep=length
+                        )
+                        sub_set = set(
+                            [
+                                a
+                                for a in mol.augmented_substructure(
+                                    [bond[0], bond[1]], deep=length
+                                )._atoms.keys()
+                            ]
+                        )
                         sub_smiles = str(sub)
-                        if self.keep_stereo=='yes' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "yes" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
-                        if sub_smiles in self.feature_names and sub_set not in visited_substructures:
+                        if (
+                            sub_smiles in self.feature_names
+                            and sub_set not in visited_substructures
+                        ):
                             visited_substructures.append(sub_set)
                             table.iloc[i, self.feature_names.index(sub_smiles)] += 1
-                        if self.keep_stereo=='both' and isinstance(mol, CGRContainer):
+                        if self.keep_stereo == "both" and isinstance(mol, CGRContainer):
                             sub_smiles = _add_stereo_substructure(sub, reac)
                             if sub_smiles in self.feature_names:
                                 table.iloc[i, self.feature_names.index(sub_smiles)] += 1
         return table
-    
+
 
 class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
@@ -291,9 +324,16 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
     in a chython MoleculeContainer or CGRContainer, "smiles" if they are
     in SMILES.
     """
-    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, fmt: str = "mol"):
+
+    def __init__(
+        self,
+        lower: int = 0,
+        upper: int = 0,
+        only_dynamic: bool = False,
+        fmt: str = "mol",
+    ):
         self.feature_names = []
-        self.lower = lower 
+        self.lower = lower
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
@@ -325,7 +365,9 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
             if isinstance(mol, ReactionContainer):
                 reac = mol
                 mol = reac.compose()
-            output.append(mol.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
+            output.append(
+                mol.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0)
+            )
         self.feature_names = pd.DataFrame(output).columns
         return self
 
@@ -351,10 +393,12 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
             if isinstance(m, ReactionContainer):
                 reac = m
                 m = reac.compose()
-            output.append(m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0))
+            output.append(
+                m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0)
+            )
         output = pd.DataFrame(output)
         output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
-        
+
         output2 = output[output.columns.intersection(df.columns)]
         df = pd.concat([df, output2])
         df = df.fillna(0)
@@ -374,7 +418,16 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     FP), and any addiitonal parameters that the RDkit FP type can
     take.
     """
-    def __init__(self, fp_type, nBits: int = 1024, radius=None, params=None, fmt="mol", chirality=False):
+
+    def __init__(
+        self,
+        fp_type,
+        nBits: int = 1024,
+        radius=None,
+        params=None,
+        fmt="mol",
+        chirality=False,
+    ):
         if params is None:
             params = {}
         self.fp_type = fp_type
@@ -390,21 +443,35 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         self.info = dict([(i, []) for i in range(self.nBits)])
         self.feature_names = dict([(i, []) for i in range(self.nBits)])
         self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
-        if fp_type == "morgan" and 'useFeatures' in params.keys() and params["useFeatures"]==True:
+        if (
+            fp_type == "morgan"
+            and "useFeatures" in params.keys()
+            and params["useFeatures"] == True
+        ):
             self._name = "morganfeatures"
             self._short_name = "-".join(["MF", str(nBits), str(radius)])
-        elif fp_type == "rdkfp" and 'branchedPaths' in params.keys() and params["branchedPaths"]==False:
+        elif (
+            fp_type == "rdkfp"
+            and "branchedPaths" in params.keys()
+            and params["branchedPaths"] == False
+        ):
             self._name = "rdkfplinear"
             self._short_name = "-".join(["RL", str(nBits), str(radius)])
         else:
             self._name = fp_type
-            sh_name = {"atompairs":"AP", "avalon": "V", "morgan":"M",
-                       "layered":"L", "torsion":"T", "rdkfp":"R"}
+            sh_name = {
+                "atompairs": "AP",
+                "avalon": "V",
+                "morgan": "M",
+                "layered": "L",
+                "torsion": "T",
+                "rdkfp": "R",
+            }
             all_params = [sh_name[fp_type], str(nBits)]
             if radius is not None:
                 all_params.append(str(radius))
             self._short_name = "-".join(all_params)
-        
+
     def fit(self, X: DataFrame, y=None):
         """
         Fits the fingerprint calculator.
@@ -416,35 +483,39 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
-        
+
         return self
-        
+
     def get_features(self, x, output="smiles"):
         features = dict([(i, []) for i in range(self.nBits)])
         m = Chem.MolFromSmiles(str(x))
-        if self.fp_type == 'avalon':
+        if self.fp_type == "avalon":
             pass
-        elif self.fp_type == 'layered':
+        elif self.fp_type == "layered":
             pass
-        elif self.fp_type == 'atompairs':
+        elif self.fp_type == "atompairs":
             pass
-        elif self.fp_type == 'torsion':
+        elif self.fp_type == "torsion":
             pass
 
         elif self.fp_type == "morgan":
-            if not hasattr(self, 'chirality'): #Back compatibility
+            if not hasattr(self, "chirality"):  # Back compatibility
                 self.chirality = False
-                warn('Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it')
+                warn(
+                    "Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it"
+                )
 
             if "useFeatures" in self.params and self.params["useFeatures"]:
                 feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
             else:
                 feat_gen = None
 
-            frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius,
-                                                                includeChirality=self.chirality,
-                                                                fpSize=self.nBits,
-                                                                atomInvariantsGenerator=feat_gen)
+            frg = Chem.rdFingerprintGenerator.GetMorganGenerator(
+                radius=self.radius,
+                includeChirality=self.chirality,
+                fpSize=self.nBits,
+                atomInvariantsGenerator=feat_gen,
+            )
             ao = AllChem.AdditionalOutput()
             ao.CollectBitInfoMap()
             desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
@@ -455,53 +526,80 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                         env = Chem.FindAtomEnvironmentOfRadiusN(m, i[1], i[0])
                         amap = {}
                         submol = Chem.PathToSubmol(m, env, atomMap=amap)
-                        if output=="smiles":
+                        if output == "smiles":
                             features[k].append(Chem.MolToSmiles(submol, canonical=True))
-                        elif output=="mapping":
+                        elif output == "mapping":
                             features[k].append(tuple(amap.keys()))
                         else:
                             features[k] = bmap
                     else:
-                        if output=="smiles":
+                        if output == "smiles":
                             features[k].append(m.GetAtomWithIdx(i[0]).GetSymbol())
-                        elif output=="mapping":
+                        elif output == "mapping":
                             features[k].append(tuple([i[0]]))
                         else:
                             features[k] = bmap
             for k, v in features.items():
-                vt = [item for item in v if item != '']
+                vt = [item for item in v if item != ""]
                 features[k] = set(vt)
 
                 features = bmap
         elif self.fp_type == "rdkfp":
-            frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
-                                                                    useHs=False, 
-                                                                    fpSize=self.nBits,
-                                                                    **self.params)
+            frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(
+                maxPath=self.radius, useHs=False, fpSize=self.nBits, **self.params
+            )
             ao = AllChem.AdditionalOutput()
             ao.CollectBitPaths()
             desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
             bmap = ao.GetBitPaths()
             for k, v in bmap.items():
                 for i in v:
-                    if output=="smiles":
-                        features[k].append(Chem.MolFragmentToSmiles(m, 
-                                                                atomsToUse=set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
-                                                                                    m.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], [])),
-                                                                bondsToUse=i))
-                    elif output=="mapping":
-                        features[k].append(tuple(set(sum([[m.GetBondWithIdx(b).GetBeginAtomIdx(),
-                                                     m.GetBondWithIdx(b).GetEndAtomIdx()] for b in i], []))))
+                    if output == "smiles":
+                        features[k].append(
+                            Chem.MolFragmentToSmiles(
+                                m,
+                                atomsToUse=set(
+                                    sum(
+                                        [
+                                            [
+                                                m.GetBondWithIdx(b).GetBeginAtomIdx(),
+                                                m.GetBondWithIdx(b).GetEndAtomIdx(),
+                                            ]
+                                            for b in i
+                                        ],
+                                        [],
+                                    )
+                                ),
+                                bondsToUse=i,
+                            )
+                        )
+                    elif output == "mapping":
+                        features[k].append(
+                            tuple(
+                                set(
+                                    sum(
+                                        [
+                                            [
+                                                m.GetBondWithIdx(b).GetBeginAtomIdx(),
+                                                m.GetBondWithIdx(b).GetEndAtomIdx(),
+                                            ]
+                                            for b in i
+                                        ],
+                                        [],
+                                    )
+                                )
+                            )
+                        )
                     else:
-                        features[k] = bmap                  
+                        features[k] = bmap
             for k, v in features.items():
-                vt = [item for item in v if item != '']
+                vt = [item for item in v if item != ""]
                 features[k] = set(vt)
         return features
 
     def get_feature_names(self) -> List[str]:
         return [str(i) for i in range(self.nBits)]
-                                       
+
     def transform(self, X, y=None):
         """
         Transforms the given array of molecules to a data frame
@@ -518,69 +616,83 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         res = []
         for x in X:
             m = Chem.MolFromSmiles(str(x))
-            if self.fp_type == 'avalon':
+            if self.fp_type == "avalon":
                 res.append(pyAvalonTools.GetAvalonFP(m, nBits=self.nBits))
-            elif self.fp_type == 'layered':
-                res.append(Chem.LayeredFingerprint(m, fpSize=self.nBits,
-                                                   maxPath=self.size[0], **self.params))
+            elif self.fp_type == "layered":
+                res.append(
+                    Chem.LayeredFingerprint(
+                        m, fpSize=self.nBits, maxPath=self.size[0], **self.params
+                    )
+                )
             else:
-                if not hasattr(self, 'chirality'):  # Back compatibility
+                if not hasattr(self, "chirality"):  # Back compatibility
                     self.chirality = False
-                    warn('Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it')
+                    warn(
+                        "Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it"
+                    )
 
                 if self.fp_type == "atompairs":
-                    frg = Chem.rdFingerprintGenerator.GetAtomPairGenerator(includeChirality=self.chirality,
-                                                                           fpSize=self.nBits)
-                elif self.fp_type == 'morgan':
+                    frg = Chem.rdFingerprintGenerator.GetAtomPairGenerator(
+                        includeChirality=self.chirality, fpSize=self.nBits
+                    )
+                elif self.fp_type == "morgan":
                     if "useFeatures" in self.params and self.params["useFeatures"]:
-                        feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                        feat_gen = (
+                            Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                        )
                     else:
                         feat_gen = None
 
-                    frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius,
-                                                                         includeChirality=self.chirality,
-                                                                         fpSize=self.nBits,
-                                                                         atomInvariantsGenerator=feat_gen)
-                elif self.fp_type == 'torsion':
-                    frg = Chem.rdFingerprintGenerator.GetTopologicalTorsionGenerator(includeChirality=self.chirality,
-                                                                                     fpSize=self.nBits)
-                elif self.fp_type == 'rdkfp':
-                    frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius,
-                                                                          useHs=False,
-                                                                          fpSize=self.nBits,
-                                                                          **self.params)
+                    frg = Chem.rdFingerprintGenerator.GetMorganGenerator(
+                        radius=self.radius,
+                        includeChirality=self.chirality,
+                        fpSize=self.nBits,
+                        atomInvariantsGenerator=feat_gen,
+                    )
+                elif self.fp_type == "torsion":
+                    frg = Chem.rdFingerprintGenerator.GetTopologicalTorsionGenerator(
+                        includeChirality=self.chirality, fpSize=self.nBits
+                    )
+                elif self.fp_type == "rdkfp":
+                    frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(
+                        maxPath=self.radius,
+                        useHs=False,
+                        fpSize=self.nBits,
+                        **self.params
+                    )
                 else:
-                    raise ValueError('Unknown fingerprint type')
+                    raise ValueError("Unknown fingerprint type")
                 res.append(frg.GetFingerprintAsNumPy(m))
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
 
 
 class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
-    ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features 
+    ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features
     according to specified associations. The most important argument is the "associator" - a list of tuples
-    that establishes the correspondence between a column in a data frame X and the transformer 
+    that establishes the correspondence between a column in a data frame X and the transformer
     that is trained on it (similarly to how sklearn Pipeline works).
 
-    For example, say you have a data frame with molecules/CGRs in one column ("molecules"), and 
-    solvents in another ("solvent"). You want to generate a feture table that includes both structural 
+    For example, say you have a data frame with molecules/CGRs in one column ("molecules"), and
+    solvents in another ("solvent"). You want to generate a feture table that includes both structural
     and solvent descriptors. You would define a ComplexFragmentor class with associator as a list of tuples,
     where each tuple is a pair of column names and the corresponding feature generators. In this case, e.g.,
 
         associator = [("molecules", Augmentor(lower=a, upper=b)),
                       ("solvent":SolventVectorizer())]  # see CIMTools library for solvent features
 
-    ComplexFragmentor assumes that one of the types of features will be structural, thus, 
+    ComplexFragmentor assumes that one of the types of features will be structural, thus,
     "structure_column" parameter defines the column of the data frame where structures are found.
     """
+
     def __init__(self, associator: List[Tuple[str, object]], structure_columns=None):
         self.structure_columns = [] if structure_columns is None else structure_columns
         self.associator = associator
-        #self.fragmentor = self.associator[self.structure_column]
+        # self.fragmentor = self.associator[self.structure_column]
         self.feature_names = []
         self._name = "ComplexFragmentor"
         self._short_name = ".".join([c[1].short_name for c in associator])
-    
+
     def fit(self, x: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
@@ -600,7 +712,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 v.fit(x)
             else:
                 v.fit(x[k])
-            self.feature_names += [k+'::'+f for f in v.get_feature_names()]
+            self.feature_names += [k + "::" + f for f in v.get_feature_names()]
         return self
 
     def transform(self, x: DataFrame, y: Optional[List] = None) -> DataFrame:
@@ -682,7 +794,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
 #         mols = [Chem.MolFromSmiles(str(x)) for x in X]
 #         matrix = self.calculator.pandas(mols).select_dtypes(include='number')
 #         return matrix[self.feature_names]
-        
+
 
 class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
@@ -692,20 +804,23 @@ class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
     passthrough function. Needed to be compatible with
     ComplexFragmentor.
     """
+
     def __init__(self, column_names: List[str]):
         self.column_names = column_names
         self.feature_names = self.column_names
         self._name = "numerical"
         self._short_name = "N"
         self._size = ()
-    
+
     def fit(self, x: DataFrame, y=None):
         """
         Fits the calculator. Parameters are not necessary.
         """
         return self
-    
-    def transform(self, x: DataFrame, y: Optional[List] = None, check: Optional[bool] = True):
+
+    def transform(
+        self, x: DataFrame, y: Optional[List] = None, check: Optional[bool] = True
+    ):
         """
         Returns the column without any transformation.
 
@@ -721,7 +836,7 @@ class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         df = pd.DataFrame(x[self.column_names], columns=self.column_names)
         if check and not df.applymap(lambda x: isinstance(x, (float, int))).all().all():
-            raise ValueError('Non numerical value(s) provided to PassThrough')
+            raise ValueError("Non numerical value(s) provided to PassThrough")
         return df
 
     def get_feature_names(self):
@@ -741,7 +856,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
     such substructures are detected and stored as distinct features.
     The substructures will keep any rings found within them. The value
     of the feature is the number of occurrence of such substructure in
-    the given molecule. 
+    the given molecule.
 
     OLD IMPLEMENTATION!!! This is the old implementation and requires
     quite a long time to perform.
@@ -756,7 +871,13 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
     in SMILES.
     """
 
-    def __init__(self, lower: int = 0, upper: int = 0, only_dynamic: bool = False, fmt: str = "mol"):
+    def __init__(
+        self,
+        lower: int = 0,
+        upper: int = 0,
+        only_dynamic: bool = False,
+        fmt: str = "mol",
+    ):
         """
         Circus descriptor calculator constructor.
 
@@ -774,13 +895,13 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         """
         self.feature_names = []
         self.features = []
-        self.lower = lower 
+        self.lower = lower
         self.upper = upper
         self.only_dynamic = only_dynamic
         self.fmt = fmt
         self._name = "linear"
         self._size = (lower, upper)
-    
+
     def fit(self, X: DataFrame, y: Optional[List] = None):
         """
         Fits the calculator - finds all possible substructures in the
@@ -799,7 +920,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
-            for length in range(self.lower, self.upper+1):
+            for length in range(self.lower, self.upper + 1):
                 for atom in mol.atoms():
                     # deep is the radius of the neighborhood sphere in bonds
                     sub = mol.augmented_substructure([atom[0]], deep=length)
@@ -840,5 +961,12 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         return self.feature_names
 
 
-__all__ = ['ChythonCircus', 'ChythonCircusNonhash', 'ChythonLinear', 'ComplexFragmentor',
-           'DescriptorCalculator', 'Fingerprinter', 'PassThrough']
+__all__ = [
+    "ChythonCircus",
+    "ChythonCircusNonhash",
+    "ChythonLinear",
+    "ComplexFragmentor",
+    "DescriptorCalculator",
+    "Fingerprinter",
+    "PassThrough",
+]

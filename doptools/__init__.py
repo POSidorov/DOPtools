@@ -17,5 +17,5 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from .chem import *
-from .optimizer import *
 from .cli import *
+from .optimizer import *
