@@ -15,9 +15,9 @@ def test_get_raw_model_svr() -> None:
     assert isinstance(model, SVR)
 
 
-def test_get_raw_calculator_morgan() -> None:
+def test_get_raw_calculator_rdkfp() -> None:
     """get_raw_calculator returns a fingerprint calculator."""
-    calculator = get_raw_calculator("morgan", {"nBits": 64, "radius": 2})
+    calculator = get_raw_calculator("rdkfp", {"nBits": 64, "radius": 2})
 
     assert isinstance(calculator, Fingerprinter)
     assert calculator.nBits == 64
