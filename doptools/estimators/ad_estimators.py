@@ -4,6 +4,8 @@ from pandas import DataFrame
 from sklearn.base import BaseEstimator, OutlierMixin, clone
 from sklearn.utils.validation import check_is_fitted
 
+import pandas as pd
+
 
 class FragmentControl(BaseEstimator, OutlierMixin):
     def __init__(self, pipeline):

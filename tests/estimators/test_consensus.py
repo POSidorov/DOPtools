@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyRegressor
 from sklearn.pipeline import Pipeline
@@ -12,8 +11,6 @@ from doptools.estimators import consensus
 
 def test_consensus_model_regression_outputs() -> None:
     """ConsensusModel aggregates predictions for regression pipelines."""
-    consensus.np = np
-
     X = pd.DataFrame({"x": [1, 2, 3, 4]})
     y = [1.0, 2.0, 3.0, 4.0]
 
@@ -32,8 +29,6 @@ def test_consensus_model_regression_outputs() -> None:
 
 def test_consensus_model_avg_output() -> None:
     """ConsensusModel returns average-only output when requested."""
-    consensus.np = np
-
     X = pd.DataFrame({"x": [1, 2]})
     y = [1.0, 2.0]
 

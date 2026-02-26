@@ -50,8 +50,6 @@ def test_pipeline_with_ad_fragment_control_prediction(
     smiles_list: list[str],
 ) -> None:
     """PipelineWithAD returns predictions and AD flags."""
-    ad_estimators.pd = pd
-
     pipeline = Pipeline(
         [
             ("frag", ChythonCircus(lower=0, upper=0, fmt="smiles")),

@@ -1,10 +1,11 @@
 from typing import Tuple
 
 import pandas as pd
+import numpy as np
 from sklearn import base
 from sklearn.base import BaseEstimator
 
-from doptools.estimators.ad_estimators import *
+from doptools.estimators.ad_estimators import PipelineWithAD
 
 
 class ConsensusModel(BaseEstimator):
