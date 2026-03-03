@@ -16,11 +16,13 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import SVC, SVR
-from xgboost import XGBClassifier, XGBRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor  # noqa: F401
+from sklearn.svm import SVC, SVR  # noqa: F401
+from xgboost import XGBClassifier, XGBRegressor  # noqa: F401
 
-from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter
+from doptools.chem.chem_features import ChythonCircus  # noqa: F401
+from doptools.chem.chem_features import ChythonLinear  # noqa: F401
+from doptools.chem.chem_features import Fingerprinter  # noqa: F401
 
 methods = {
     "SVR": "SVR(**params, gamma='auto')",
@@ -35,14 +37,14 @@ calculators = {
     "circus": "ChythonCircus(**descriptor_params)",
     "chyline": "ChythonLinear(**descriptor_params)",
     "morgan": "Fingerprinter(fp_type='morgan', **descriptor_params)",
-    "morganfeatures": "Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",
+    "morganfeatures": "Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",  # noqa: E501
     "rdkfp": "Fingerprinter(fp_type='rdkfp', **descriptor_params)",
-    "rdkfplinear": "Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",
+    "rdkfplinear": "Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",  # noqa: E501
     "layered": "Fingerprinter(fp_type='layered', **descriptor_params)",
     "atompairs": "Fingerprinter(fp_type='atompairs', **descriptor_params)",
     "avalon": "Fingerprinter(fp_type='avalon', **descriptor_params)",
     "torsion": "Fingerprinter(fp_type='torsion', **descriptor_params)",
-    #'mordred2d': "Mordred2DCalculator(**descriptor_params)",
+    # 'mordred2d': "Mordred2DCalculator(**descriptor_params)",
 }
 
 

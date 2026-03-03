@@ -16,12 +16,11 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import argparse
-import json
-import multiprocessing as mp
+
 import os
 import pickle
 import warnings
+from typing import Any, Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -36,18 +35,18 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=DeprecationWarning)
 
 
-def _set_default(argument, default_values):
+def _set_default(argument: List[Any], default_values: List[Any]) -> List[Any]:
     if len(argument) > 0:
         return list(set(argument))
     else:
         return default_values
 
 
-def _enumerate_parameters(args):
-    def _make_name(iterable):
+def _enumerate_parameters(args: Any) -> Dict[str, Dict[str, Any]]:
+    def _make_name(iterable: Iterable[Any]) -> str:
         return "_".join([str(i) for i in iterable])
 
-    param_dict = {}
+    param_dict: Dict[str, Dict[str, Any]] = {}
     if args.morgan:
         for nb in _set_default(args.morgan_nBits, [1024]):
             for mr in _set_default(args.morgan_radius, [2]):
@@ -114,13 +113,15 @@ def _enumerate_parameters(args):
     return param_dict
 
 
-def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
+def _pickle_descriptors(
+    output_dir: str, fragmentor: Any, prop_name: str, desc_name: str
+) -> None:
     fragmentor_name = os.path.join(output_dir, ".".join([prop_name, desc_name, "pkl"]))
     with open(fragmentor_name, "wb") as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
 
-def check_parameters(params):
+def check_parameters(params: Any) -> None:
     if not params.input:
         raise ValueError("No input file.")
     if params.input.split(".")[-1] not in ("csv", "xls", "xlsx"):
@@ -128,18 +129,20 @@ def check_parameters(params):
     for i, p in enumerate(params.property_col):
         if " " in p and len(params.property_names) < (i + 1):
             raise ValueError(
-                f"Column name {p} contains spaces in the name.\nPlease provide alternative names with --property_names option."
+                f"Column name {p} contains spaces in the name.\n"
+                "Please provide alternative names with --property_names option."
             )
     if params.property_names:
         if len(params.property_col) != len(params.property_names):
             raise ValueError(
-                "The number of alternative names is not equal to the number of properties."
+                "The number of alternative names is not equal to the number of "
+                "properties."
             )
 
 
-def create_input(input_params):
-    input_dict = {}
-    structures = []
+def create_input(input_params: Dict[str, Any]) -> Dict[str, Any]:
+    input_dict: Dict[str, Any] = {}
+    structures: List[Any] = []
 
     if input_params["input_file"].endswith("csv"):
         data_table = pd.read_table(input_params["input_file"], sep=",")
@@ -162,7 +165,7 @@ def create_input(input_params):
             for m in structures:
                 try:
                     m.canonicalize(fix_tautomers=False)
-                except:
+                except Exception:
                     m.canonicalize(fix_tautomers=False)
         input_dict["structures"][col] = structures
     # input_dict['structures'] = structures
@@ -178,10 +181,12 @@ def create_input(input_params):
         indices = list(y[pd.notnull(y)].index)
         if len(indices) < len(structures):
             print(
-                f"'{p}' column warning: only {len(indices)} out of {len(structures)} instances have the property."
+                f"'{p}' column warning: only {len(indices)} out of "
+                f"{len(structures)} instances have the property."
             )
             print(
-                f"Molecules that don't have the property will be discarded from the set."
+                "Molecules that don't have the property will be discarded from the "
+                "set."
             )
             y = y.iloc[indices]
         y = np.array(y)
@@ -199,9 +204,14 @@ def create_input(input_params):
     return input_dict
 
 
-def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out="all"):
+def calculate_descriptor_table(
+    input_dict: Dict[str, Any],
+    desc_name: str,
+    descriptor_params: Dict[str, Any],
+    out: str = "all",
+) -> Any:
     desc_type = desc_name.split("_")[0]
-    result = {"name": desc_name, "type": desc_type}
+    result: Dict[str, Any] = {"name": desc_name, "type": desc_type}
     for k, d in input_dict.items():
         if k.startswith("prop"):
             base_column = list(input_dict["structures"].columns)[0]
@@ -260,7 +270,9 @@ def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out="al
         raise ValueError("The return value is not in the result dictionary")
 
 
-def output_descriptors(calculated_result, output_params):
+def output_descriptors(
+    calculated_result: Dict[str, Any], output_params: Dict[str, Any]
+) -> None:
     desc_name = calculated_result["name"]
     desc_type = calculated_result["type"]
 
@@ -268,9 +280,8 @@ def output_descriptors(calculated_result, output_params):
     if output_params["separate"]:
         output_folder = os.path.join(output_folder, desc_type)
     if not os.path.exists(output_folder):
-        os.makedirs(
-            output_folder, exist_ok=True
-        )  # exist_ok is useful when several processes try to create the folder at the same time
+        os.makedirs(output_folder, exist_ok=True)
+        # exist_ok helps when several processes try to create the folder at once
         print("The output directory {} created".format(output_folder))
     for k, d in calculated_result.items():
         if k.startswith("prop"):
@@ -299,18 +310,19 @@ def output_descriptors(calculated_result, output_params):
                 )
 
 
-def calculate_and_output(input_args):
+def calculate_and_output(
+    input_args: Tuple[Dict[str, Any], str, Dict[str, Any], Dict[str, Any]]
+) -> None:
     inpt, desc, descriptor_params, output_params = input_args
     result = calculate_descriptor_table(inpt, desc, descriptor_params)
     output_descriptors(result, output_params)
 
 
-def create_output_dir(outdir):
+def create_output_dir(outdir: str) -> None:
     if os.path.exists(outdir):
         print(
-            "The output directory {} already exists. The data may be overwritten".format(
-                outdir
-            )
+            "The output directory {} already exists. The data may be "
+            "overwritten".format(outdir)
         )
     else:
         os.makedirs(outdir)

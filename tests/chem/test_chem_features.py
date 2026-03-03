@@ -1,19 +1,8 @@
 """Tests for chem_features module."""
 
-from __future__ import annotations
-
 import pandas as pd
 import pandas.testing as pdt
 import pytest
-
-from tests.conftest import (
-    CHEM_CHYLINE_UPPER,
-    CHEM_CIRCUS_UPPER,
-    CHEM_EXPECTED_DIR,
-    CHEM_LAYERED_RADIUS,
-    CHEM_NBITS,
-    CHEM_RDKFP_RADIUS,
-)
 
 from doptools.chem.chem_features import (
     ChythonCircus,
@@ -21,6 +10,14 @@ from doptools.chem.chem_features import (
     ComplexFragmentor,
     Fingerprinter,
     PassThrough,
+)
+from tests.conftest import (
+    CHEM_CHYLINE_UPPER,
+    CHEM_CIRCUS_UPPER,
+    CHEM_EXPECTED_DIR,
+    CHEM_LAYERED_RADIUS,
+    CHEM_NBITS,
+    CHEM_RDKFP_RADIUS,
 )
 
 

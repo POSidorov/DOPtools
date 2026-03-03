@@ -1,7 +1,5 @@
 """Tests for optimizer config helpers."""
 
-from __future__ import annotations
-
 from sklearn.svm import SVR
 
 from doptools.chem.chem_features import Fingerprinter

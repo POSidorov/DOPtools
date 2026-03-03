@@ -21,12 +21,10 @@ import argparse
 import contextlib
 import os
 import warnings
-from functools import partial
-from multiprocessing import Manager
 
 import optuna
 
-from doptools.optimizer.optimizer import *
+from doptools.optimizer.optimizer import collect_data, launch_study
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=DeprecationWarning)
@@ -34,30 +32,42 @@ warnings.simplefilter(action="ignore", category=DeprecationWarning)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
-def launch_optimizer():
+def launch_optimizer() -> None:
     parser = argparse.ArgumentParser(
         prog="Optuna optimizer",
-        description='Optimizes the hyperparameters of ML method on given data, as well as selects the "best" descriptor space.',
+        description=(
+            "Optimizes the hyperparameters of ML method on given data, as well as "
+            'selects the "best" descriptor space.'
+        ),
     )
 
     parser.add_argument(
         "-d",
         "--datadir",
         required=True,
-        help="Path to the directory containing the descriptors files to run the optimisation on.",
+        help=(
+            "Path to the directory containing the descriptors files to run the "
+            "optimisation on."
+        ),
     )
     parser.add_argument(
         "-o",
         "--outdir",
         required=True,
-        help="Path to the output directory where the results optimization will be saved.",
+        help=(
+            "Path to the output directory where the results optimization will be "
+            "saved."
+        ),
     )
 
     parser.add_argument(
         "--ntrials",
         type=int,
         default=100,
-        help="Number of hyperparameter sets to explore. After exploring this number of sets, the optimization stops. Default = 100.",
+        help=(
+            "Number of hyperparameter sets to explore. After exploring this number "
+            "of sets, the optimization stops. Default = 100."
+        ),
     )
     parser.add_argument(
         "--cv_splits",
@@ -69,26 +79,37 @@ def launch_optimizer():
         "--cv_repeats",
         type=int,
         default=1,
-        help="Number of times the cross-validation will be repeated with shuffling. Scores are reported as consensus between repeats. Default = 1.",
+        help=(
+            "Number of times the cross-validation will be repeated with shuffling. "
+            "Scores are reported as consensus between repeats. Default = 1."
+        ),
     )
 
     parser.add_argument(
         "--earlystop_patience",
         type=int,
         default=0,
-        help="Number of optimization steps that the best N solutions must not change for the early stopping. By default early stopping is not triggered.",
+        help=(
+            "Number of optimization steps that the best N solutions must not change "
+            "for the early stopping. By default early stopping is not triggered."
+        ),
     )
     parser.add_argument(
         "--earlystop_leaders",
         type=int,
         default=1,
-        help="Number N of best solutions that will be checked for the early stopping. Default = 1.",
+        help=(
+            "Number N of best solutions that will be checked for the early stopping. "
+            "Default = 1."
+        ),
     )
     parser.add_argument(
         "--timeout",
         type=int,
         default=60,
-        help="Timeout in sec. If a trial takes longer it will be killed. Default = 60.",
+        help=(
+            "Timeout in sec. If a trial takes longer it will be killed. Default = 60."
+        ),
     )
 
     parser.add_argument(
@@ -96,7 +117,10 @@ def launch_optimizer():
         "--jobs",
         type=int,
         default=1,
-        help="Number of processes that will be launched in parallel during the optimization. Default = 1.",
+        help=(
+            "Number of processes that will be launched in parallel during the "
+            "optimization. Default = 1."
+        ),
     )
     parser.add_argument(
         "-m",
@@ -104,7 +128,9 @@ def launch_optimizer():
         type=str,
         default="SVR",
         choices=["SVR", "SVC", "RFR", "RFC", "XGBR", "XGBC"],
-        help="ML algorithm to be used for optimization. Only one can be used at a time.",
+        help=(
+            "ML algorithm to be used for optimization. Only one can be used at a time."
+        ),
     )
     # parser.add_argument('--multi', action='store_true')
     parser.add_argument(
@@ -131,9 +157,8 @@ def launch_optimizer():
 
     if os.path.exists(outdir):
         print(
-            "The output directory {} already exists. The data may be overwritten".format(
-                outdir
-            )
+            "The output directory {} already exists. The data may be "
+            "overwritten".format(outdir)
         )
     else:
         os.makedirs(outdir)

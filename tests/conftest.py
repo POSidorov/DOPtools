@@ -1,12 +1,10 @@
 """Shared pytest fixtures for doptools tests."""
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 _ROOT = Path(__file__).resolve().parent
 CHEM_DATA_DIR = _ROOT / "data" / "chem"

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# mypy: ignore-errors
+# flake8: noqa
 #
 #  Copyright 2022-2025 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
 #  file is part of DOPTools repository.

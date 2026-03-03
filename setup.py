@@ -50,7 +50,10 @@ setup(
         "openpyxl>=3.1",
         "pillow>=11.2.1",
     ],
-    description="A package for calculation of molecular descriptors in Scikit-Learn compatible way and model optimization",
+    description=(
+        "A package for calculation of molecular descriptors in Scikit-Learn "
+        "compatible way and model optimization"
+    ),
     long_description=(Path(__file__).parent / "README.rst")
     .open(encoding="utf-8")
     .read(),
@@ -73,7 +76,8 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Software Development :: Libraries :: Python Modules",
-        "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 or later "
+        "(LGPLv3+)",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",

@@ -1,32 +1,35 @@
 from copy import deepcopy
-
-from pandas import DataFrame
-from sklearn.base import BaseEstimator, OutlierMixin, clone
-from sklearn.utils.validation import check_is_fitted
+from typing import Any, Iterable, List, Optional, Union
 
 import pandas as pd
+from pandas import DataFrame
+from sklearn.base import BaseEstimator, OutlierMixin
+from sklearn.datasets import load_svmlight_file
+from sklearn.utils.validation import check_is_fitted
 
 
 class FragmentControl(BaseEstimator, OutlierMixin):
-    def __init__(self, pipeline):
-        self.pipeline = pipeline
-        self.fragmentor = deepcopy(pipeline[0])
-        self.feature_names = []
+    def __init__(self, pipeline: Any) -> None:
+        self.pipeline: Any = pipeline
+        self.fragmentor: Any = deepcopy(pipeline[0])
+        self.feature_names: List[str] = []
         try:
             check_is_fitted(self.pipeline)
             self.feature_names = pipeline[0].get_feature_names()
-        except:
+        except Exception:
             print("The pipeline is not fitted, you should fit it.")
 
-    def fit(self, X, y=None):
+    def fit(self, X: Any, y: Optional[Iterable[Any]] = None) -> "FragmentControl":
         self.pipeline.fit(X, y)
         self.fragmentor = deepcopy(self.pipeline[0])
         self.feature_names = self.pipeline[0].get_feature_names()
         self.is_fitted_ = True
         return self
 
-    def predict(self, X, y=None):
-        res = []
+    def predict(
+        self, X: Union[DataFrame, List[Any]], y: Optional[Iterable[Any]] = None
+    ) -> List[int]:
+        res: List[int] = []
         for i in range(len(X)):
             if isinstance(X, DataFrame):
                 x = X.iloc[i]
@@ -42,11 +45,16 @@ class FragmentControl(BaseEstimator, OutlierMixin):
 
 
 class BoundingBox(BaseEstimator, OutlierMixin):
-    def __init__(self, pipeline):
-        self.pipeline = pipeline
-        self.fragmentor = deepcopy(pipeline[0])
+    def __init__(self, pipeline: Any) -> None:
+        self.pipeline: Any = pipeline
+        self.fragmentor: Any = deepcopy(pipeline[0])
 
-    def fit(self, X, y=None, svm_file=None):
+    def fit(
+        self,
+        X: Any,
+        y: Optional[Iterable[Any]] = None,
+        svm_file: Optional[str] = None,
+    ) -> "BoundingBox":
         self.is_fitted_ = True
         if svm_file is not None:
             d, _ = load_svmlight_file(svm_file)
@@ -57,8 +65,10 @@ class BoundingBox(BaseEstimator, OutlierMixin):
         self.max_limits = descs.max(axis=0)
         return self
 
-    def predict(self, X, y=None):
-        res = []
+    def predict(
+        self, X: Union[DataFrame, List[Any]], y: Optional[Iterable[Any]] = None
+    ) -> List[int]:
+        res: List[int] = []
         for i in range(len(X)):
             if isinstance(X, DataFrame):
                 x = X.iloc[i]
@@ -77,23 +87,29 @@ class BoundingBox(BaseEstimator, OutlierMixin):
 
 
 class PipelineWithAD(BaseEstimator):
-    def __init__(self, pipeline, ad_type, threshold=None):
-        self.ad_type = ad_type
-        self.pipeline = pipeline
-        self.threshold = threshold
+    def __init__(
+        self, pipeline: Any, ad_type: str, threshold: Optional[float] = None
+    ) -> None:
+        self.ad_type: str = ad_type
+        self.pipeline: Any = pipeline
+        self.threshold: Optional[float] = threshold
         if self.ad_type == "FragmentControl":
             self.ad_estimator = FragmentControl(self.pipeline)
         elif self.ad_type == "BoundingBox":
-            self.ad_estimator = BoudingBox(self.pipeline)
+            self.ad_estimator = BoudingBox(  # type: ignore[name-defined]  # noqa: F821
+                self.pipeline
+            )
 
-    def fit(self, X, y=None):
+    def fit(self, X: Any, y: Optional[Iterable[Any]] = None) -> "PipelineWithAD":
         self.is_fitted_ = True
         self.pipeline.fit(X, y)
         self.ad_estimator.fit(X, y)
         return self
 
-    def predict(self, X, y=None):
-        res = []
+    def predict(
+        self, X: Union[DataFrame, List[Any]], y: Optional[Iterable[Any]] = None
+    ) -> DataFrame:
+        res: List[tuple[Any, Any]] = []
         for i in range(len(X)):
             if isinstance(X, DataFrame):
                 x = X.iloc[i]
@@ -102,9 +118,11 @@ class PipelineWithAD(BaseEstimator):
             res.append((self.pipeline.predict(x)[0], self.ad_estimator.predict(x)[0]))
         return pd.DataFrame(res, columns=["Predicted", "AD"])
 
-    def predict_within_AD(self, X, y=None):
-        res = []
-        indices = []
+    def predict_within_AD(
+        self, X: Union[DataFrame, List[Any]], y: Optional[Iterable[Any]] = None
+    ) -> DataFrame:
+        res: List[Any] = []
+        indices: List[int] = []
         for i in range(len(X)):
             if isinstance(X, DataFrame):
                 x = X.iloc[i]

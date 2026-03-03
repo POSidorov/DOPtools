@@ -1,7 +1,5 @@
 """Tests for launch_preparer CLI."""
 
-from __future__ import annotations
-
 import importlib
 import sys
 
@@ -10,7 +8,7 @@ cli = importlib.import_module("doptools.cli.launch_preparer")
 
 class _DummyPool:
     def __init__(self) -> None:
-        self.mapped = []
+        self.mapped: list[tuple[object, list[object]]] = []
 
     def map(self, func, iterable):
         self.mapped.append((func, list(iterable)))

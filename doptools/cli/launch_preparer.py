@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# flake8: noqa
 #
 #  Copyright 2022-2025 Pavel Sidorov <pavel.o.sidorov@gmail.com> This
 #  file is part of DOPTools repository.
@@ -23,8 +24,8 @@ import logging
 import multiprocessing as mp
 import os
 import pickle
-import warnings
-from itertools import combinations, product
+from itertools import product
+from typing import Any, Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,12 @@ from sklearn.datasets import dump_svmlight_file
 from doptools.chem.chem_features import ComplexFragmentor, PassThrough
 from doptools.chem.solvents import SolventVectorizer
 from doptools.optimizer.config import get_raw_calculator
-from doptools.optimizer.preparer import *
+from doptools.optimizer.preparer import (
+    calculate_and_output,
+    check_parameters,
+    create_input,
+    create_output_dir,
+)
 
 logging.basicConfig(
     format="{asctime} - {levelname} - {message}",
@@ -42,7 +48,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M",
 )
 
-basic_params = {
+basic_params: Dict[str, Any] = {
     "circus": True,
     "circus_min": [0],
     "circus_max": [2, 3, 4],
@@ -76,7 +82,9 @@ basic_params = {
 }
 
 
-def _calculate_and_output(input_params):
+def _calculate_and_output(
+    input_params: Tuple[Any, pd.DataFrame, np.ndarray, str, str, bool, str]
+) -> None:
     calculator, data, prop, prop_name, output_folder, pickles, fmt = input_params
     desc = calculator.fit_transform(data)
 
@@ -112,8 +120,8 @@ def _calculate_and_output(input_params):
         )
 
 
-def _perform_fullconfig(fullconfig):
-    calculators = {}
+def _perform_fullconfig(fullconfig: Dict[str, Any]) -> None:
+    calculators: Dict[str, Any] = {}
 
     if fullconfig["input_file"].endswith(".csv"):
         data = pd.read_table(fullconfig["input_file"], sep=",")
@@ -129,17 +137,18 @@ def _perform_fullconfig(fullconfig):
             for m in struct:
                 try:
                     m.canonicalize(fix_tautomers=False)
-                except:
+                except Exception:
                     m.canonicalize(fix_tautomers=False)
             data[s] = [str(m) for m in struct]
 
-    y = data[fullconfig["property"]]
+    property_col = fullconfig["property"]
+    y = data[property_col]
     indices = y[pd.notnull(y)].index
     if len(indices) < len(data):
         print(
-            f"'{p}' column warning: only {len(indices)} out of {len(data)} instances have the property."
+            f"'{property_col}' column warning: only {len(indices)} out of {len(data)} instances have the property."
         )
-        print(f"Molecules that don't have the property will be discarded from the set.")
+        print("Molecules that don't have the property will be discarded from the set.")
     y = y.iloc[indices]
     data = data.iloc[indices]
 
@@ -152,7 +161,7 @@ def _perform_fullconfig(fullconfig):
 
         fullconfig["separate_folders"] = False
 
-        associators = []
+        associators: List[List[Tuple[str, Any]]] = []
         for s in fullconfig["structures"].keys():
             associators.append([])
             for t, d in fullconfig["structures"][s].items():
@@ -170,9 +179,10 @@ def _perform_fullconfig(fullconfig):
         if "numerical" in fullconfig.keys():
             associators.append([("numerical", PassThrough(fullconfig["numerical"]))])
 
-        for p in product(*associators):
+        for assoc in product(*associators):
             cf = ComplexFragmentor(
-                associator=p, structure_columns=list(fullconfig["structures"].keys())
+                associator=assoc,
+                structure_columns=list(fullconfig["structures"].keys()),
             )
             calculators[cf.short_name] = cf
     else:
@@ -210,18 +220,18 @@ def _perform_fullconfig(fullconfig):
     pool.join()  # Wait for all the tasks to complete
 
 
-def _set_default(argument, default_values):
+def _set_default(argument: List[Any], default_values: List[Any]) -> List[Any]:
     if len(argument) > 0:
         return list(set(argument))
     else:
         return default_values
 
 
-def _enumerate_parameters(args):
-    def _make_name(iterable):
+def _enumerate_parameters(args: Any) -> Dict[str, Dict[str, Any]]:
+    def _make_name(iterable: Iterable[Any]) -> str:
         return "_".join([str(i) for i in iterable])
 
-    param_dict = {}
+    param_dict: Dict[str, Dict[str, Any]] = {}
     if args.morgan:
         for nb in _set_default(args.morgan_nBits, [1024]):
             for mr in _set_default(args.morgan_radius, [2]):
@@ -288,13 +298,15 @@ def _enumerate_parameters(args):
     return param_dict
 
 
-def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
+def _pickle_descriptors(
+    output_dir: str, fragmentor: Any, prop_name: str, desc_name: str
+) -> None:
     fragmentor_name = os.path.join(output_dir, ".".join([prop_name, desc_name, "pkl"]))
     with open(fragmentor_name, "wb") as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
 
-def launch_preparer():
+def launch_preparer() -> None:
     parser = argparse.ArgumentParser(
         prog="Descriptor calculator",
         description="Prepares the descriptor files for hyperparameter optimization launch.",

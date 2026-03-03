@@ -19,10 +19,13 @@
 
 import argparse
 import warnings
+from typing import Any, Dict, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from sklearn.metrics import auc
 from sklearn.metrics import mean_absolute_error as mae
 from sklearn.metrics import roc_curve
@@ -33,7 +36,9 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=DeprecationWarning)
 
 
-def make_regression_plot(predictions, errorbar=False, stats=False, title=""):
+def make_regression_plot(
+    predictions: str, errorbar: bool = False, stats: bool = False, title: str = ""
+) -> Tuple[Figure, Axes]:
 
     fig, ax = plt.subplots(figsize=(4, 4), dpi=300, facecolor="white")
 
@@ -72,7 +77,9 @@ def make_regression_plot(predictions, errorbar=False, stats=False, title=""):
     return fig, ax
 
 
-def prepare_classification_plot(cv_res, pos_class=1):
+def prepare_classification_plot(
+    cv_res: pd.DataFrame, pos_class: int = 1
+) -> Tuple[Dict[str, Dict[str, Any]], Dict[str, Any]]:
     prop_name = cv_res.columns[1].split(".")[0]
     true_val = cv_res[prop_name + ".observed"].values
     pos_label = [
@@ -121,7 +128,9 @@ def prepare_classification_plot(cv_res, pos_class=1):
     return roc_repeats, roc_mean
 
 
-def make_classification_plot(predictions, class_number, **params):
+def make_classification_plot(
+    predictions: str, class_number: int, **params: Any
+) -> Tuple[Figure, Axes]:
     cv_res = pd.read_table(predictions, sep=" ")
     roc_repeats, roc_mean = prepare_classification_plot(cv_res, class_number)
     fig, ax = plt.subplots(figsize=(5, 5), dpi=300, facecolor="w")
@@ -166,7 +175,7 @@ def make_classification_plot(predictions, class_number, **params):
     return fig, ax
 
 
-def plotter():
+def plotter() -> None:
     parser = argparse.ArgumentParser(
         prog="Model CV plotter", description="Plot out the CV results of the optimizer"
     )
