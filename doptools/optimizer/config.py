@@ -16,32 +16,35 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from doptools.chem.chem_features import ChythonCircus, ChythonLinear, Fingerprinter, Mordred2DCalculator
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor  # noqa: F401
+from sklearn.svm import SVC, SVR  # noqa: F401
+from xgboost import XGBClassifier, XGBRegressor  # noqa: F401
 
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.svm import SVR, SVC
-from xgboost import XGBRegressor, XGBClassifier
+from doptools.chem.chem_features import ChythonCircus  # noqa: F401
+from doptools.chem.chem_features import ChythonLinear  # noqa: F401
+from doptools.chem.chem_features import Fingerprinter  # noqa: F401
 
-
-methods = {'SVR': "SVR(**params, gamma='auto')", 
-           'SVC': "SVC(**params, gamma='auto', probability=True)",
-           'XGBR': "XGBRegressor(**params, verbosity=0, nthread=1)",
-           'XGBC': "XGBClassifier(**params, verbosity=0, nthread=1)",
-           'RFR': "RandomForestRegressor(**params)",
-           'RFC': "RandomForestClassifier(**params)"}
+methods = {
+    "SVR": "SVR(**params, gamma='auto')",
+    "SVC": "SVC(**params, gamma='auto', probability=True)",
+    "XGBR": "XGBRegressor(**params, verbosity=0, nthread=1)",
+    "XGBC": "XGBClassifier(**params, verbosity=0, nthread=1)",
+    "RFR": "RandomForestRegressor(**params)",
+    "RFC": "RandomForestClassifier(**params)",
+}
 
 calculators = {
-    'circus': "ChythonCircus(**descriptor_params)",
-    'chyline': "ChythonLinear(**descriptor_params)",
-    'morgan': "Fingerprinter(fp_type='morgan', **descriptor_params)",
-    'morganfeatures': "Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",
-    'rdkfp': "Fingerprinter(fp_type='rdkfp', **descriptor_params)",
-    'rdkfplinear': "Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",
-    'layered': "Fingerprinter(fp_type='layered', **descriptor_params)",
-    'atompairs': "Fingerprinter(fp_type='atompairs', **descriptor_params)",
-    'avalon': "Fingerprinter(fp_type='avalon', **descriptor_params)",
-    'torsion': "Fingerprinter(fp_type='torsion', **descriptor_params)",
-    'mordred2d': "Mordred2DCalculator(**descriptor_params)",
+    "circus": "ChythonCircus(**descriptor_params)",
+    "chyline": "ChythonLinear(**descriptor_params)",
+    "morgan": "Fingerprinter(fp_type='morgan', **descriptor_params)",
+    "morganfeatures": "Fingerprinter(fp_type='morgan', params={'useFeatures':True}, **descriptor_params)",  # noqa: E501
+    "rdkfp": "Fingerprinter(fp_type='rdkfp', **descriptor_params)",
+    "rdkfplinear": "Fingerprinter(fp_type='rdkfp', params={'branchedPaths':False}, **descriptor_params)",  # noqa: E501
+    "layered": "Fingerprinter(fp_type='layered', **descriptor_params)",
+    "atompairs": "Fingerprinter(fp_type='atompairs', **descriptor_params)",
+    "avalon": "Fingerprinter(fp_type='avalon', **descriptor_params)",
+    "torsion": "Fingerprinter(fp_type='torsion', **descriptor_params)",
+    # 'mordred2d': "Mordred2DCalculator(**descriptor_params)",
 }
 
 
@@ -51,7 +54,12 @@ def get_raw_model(method: str, params=None):
     if method in methods.keys():
         return eval(methods[method])
     else:
-        raise ValueError("Unknown method "+method+". Allowed values: "+", ".join(methods.keys()))
+        raise ValueError(
+            "Unknown method "
+            + method
+            + ". Allowed values: "
+            + ", ".join(methods.keys())
+        )
 
 
 def get_raw_calculator(desc_type: str, descriptor_params=None):
@@ -60,29 +68,40 @@ def get_raw_calculator(desc_type: str, descriptor_params=None):
     if desc_type in calculators.keys():
         return eval(calculators[desc_type])
     else:
-        raise ValueError("Unknown descriptors type "+desc_type+". Allowed values: "+", ".join(calculators.keys()))
+        raise ValueError(
+            "Unknown descriptors type "
+            + desc_type
+            + ". Allowed values: "
+            + ", ".join(calculators.keys())
+        )
 
 
 def suggest_params(trial, method):
-    if method == 'SVR':
-        params = { 
-            'C': trial.suggest_float('C', 1e-9, 1e9, log=True),
-            'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf', 'poly', 'sigmoid']),
-            'coef0': trial.suggest_float('r0', -10, 10)
+    if method == "SVR":
+        params = {
+            "C": trial.suggest_float("C", 1e-9, 1e9, log=True),
+            "kernel": trial.suggest_categorical(
+                "kernel", ["linear", "rbf", "poly", "sigmoid"]
+            ),
+            "coef0": trial.suggest_float("r0", -10, 10),
         }
-    elif method == 'SVC':
-        params = { 
-            'C': trial.suggest_float('C', 1e-9, 1e9, log=True),
-            'kernel': trial.suggest_categorical('kernel', ['linear', 'rbf', 'poly', 'sigmoid']),
-            'coef0': trial.suggest_float('r0', -10, 10)
-        }   
-    elif method == 'LGBMR':
+    elif method == "SVC":
+        params = {
+            "C": trial.suggest_float("C", 1e-9, 1e9, log=True),
+            "kernel": trial.suggest_categorical(
+                "kernel", ["linear", "rbf", "poly", "sigmoid"]
+            ),
+            "coef0": trial.suggest_float("r0", -10, 10),
+        }
+    elif method == "LGBMR":
         params = {
             "n_estimators": trial.suggest_categorical("n_estimators", [100]),
             "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3),
             "num_leaves": trial.suggest_int("num_leaves", 20, 3000, step=10),
             "max_depth": trial.suggest_int("max_depth", 3, 12),
-            "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 50, 1000, step=10),
+            "min_data_in_leaf": trial.suggest_int(
+                "min_data_in_leaf", 50, 1000, step=10
+            ),
             "max_bin": trial.suggest_int("max_bin", 200, 300),
             "lambda_l1": trial.suggest_int("lambda_l1", 0, 100, step=5),
             "lambda_l2": trial.suggest_int("lambda_l2", 0, 100, step=5),
@@ -95,49 +114,83 @@ def suggest_params(trial, method):
                 "feature_fraction", 0.2, 0.95, step=0.1
             ),
         }
-    elif method == 'XGBR':
+    elif method == "XGBR":
         params = {
-            'max_depth': trial.suggest_int("max_depth", 3, 18),
-            'eta': trial.suggest_float('eta', 1e-9, 1, log=True),
-            'gamma': trial.suggest_float('gamma', 1, 9),
-            'reg_alpha': trial.suggest_int('reg_alpha', 10, 180),
-            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1),
-            'min_child_weight': trial.suggest_int('min_child_weight', 0, 10),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
-            'subsample': trial.suggest_float('subsample', 0.5, 1),
-            'sampling_method': trial.suggest_categorical('sampling_method', ['uniform']),
-            'booster': trial.suggest_categorical('booster', ['gbtree', 'gblinear', 'dart']),
-            'tree_method': trial.suggest_categorical('tree_method', ['auto', 'exact', 'approx', 'hist']) 
+            "n_estimators": trial.suggest_int(
+                "n_estimators", 100, 1000
+            ),  # Increased range
+            "max_depth": trial.suggest_int(
+                "max_depth", 3, 10
+            ),  # 18 is usually too deep (overfit)
+            "learning_rate": trial.suggest_float(
+                "learning_rate", 0.01, 0.3, log=True
+            ),  # 'eta'
+            "gamma": trial.suggest_float(
+                "gamma", 1e-8, 1.0, log=True
+            ),  # Much more permissive
+            "reg_alpha": trial.suggest_float(
+                "reg_alpha", 1e-8, 1.0, log=True
+            ),  # $L_1$ regularization
+            "reg_lambda": trial.suggest_float(
+                "reg_lambda", 1e-8, 1.0, log=True
+            ),  # $L_2$ regularization
+            "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+            "booster": "gbtree",  # Stick to trees first for QSPR
+            "tree_method": "auto",
         }
-    elif method == 'XGBC':
+    elif method == "XGBC":
         params = {
-            'max_depth': trial.suggest_int("max_depth", 3, 18),
-            'eta': trial.suggest_float('eta', 1e-9, 1, log=True),
-            'gamma': trial.suggest_float('gamma', 1, 9),
-            'reg_alpha': trial.suggest_int('reg_alpha', 10, 180),
-            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.5, 1),
-            'min_child_weight': trial.suggest_int('min_child_weight', 0, 10),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
-            'subsample': trial.suggest_float('subsample', 0.5, 1),
-            'sampling_method': trial.suggest_categorical('sampling_method', ['uniform']),
-            'booster': trial.suggest_categorical('booster', ['gbtree', 'gblinear', 'dart']),
-            'tree_method': trial.suggest_categorical('tree_method', ['auto', 'exact', 'approx', 'hist'])
+            "n_estimators": trial.suggest_int(
+                "n_estimators", 100, 1000
+            ),  # Increased range
+            "max_depth": trial.suggest_int(
+                "max_depth", 3, 10
+            ),  # 18 is usually too deep (overfit)
+            "learning_rate": trial.suggest_float(
+                "learning_rate", 0.01, 0.3, log=True
+            ),  # 'eta'
+            "gamma": trial.suggest_float(
+                "gamma", 1e-8, 1.0, log=True
+            ),  # Much more permissive
+            "reg_alpha": trial.suggest_float(
+                "reg_alpha", 1e-8, 1.0, log=True
+            ),  # $L_1$ regularization
+            "reg_lambda": trial.suggest_float(
+                "reg_lambda", 1e-8, 1.0, log=True
+            ),  # $L_2$ regularization
+            "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+            "colsample_bytree": trial.suggest_float("colsample_bytree", 0.5, 1.0),
+            "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+            "booster": "gbtree",  # Stick to trees first for QSPR
+            "tree_method": "auto",
         }
-    elif method == 'RFR':
+    elif method == "RFR":
         params = {
-            'max_depth': trial.suggest_int("max_depth", 3, 10),
-            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
-            'max_samples': trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
+            "max_depth": trial.suggest_int("max_depth", 3, 10),
+            "max_features": trial.suggest_categorical(
+                "max_features", ["sqrt", "log2", 1.0, 0.5]
+            ),
+            "max_samples": trial.suggest_categorical(
+                "max_samples", [0.2, 0.3, 0.5, 0.7, 0.8, 1]
+            ),
+            "n_estimators": trial.suggest_categorical(
+                "n_estimators", [20, 50, 100, 150, 200]
+            ),
         }
-    elif method == 'RFC':
+    elif method == "RFC":
         params = {
-            'max_depth': trial.suggest_int("max_depth", 3, 10),
-            'max_features': trial.suggest_categorical('max_features', ['sqrt', 'log2', None]),
-            'max_samples': trial.suggest_categorical('max_samples', [0.2, 0.3, 0.5, 0.7, 0.8, 1]),
-            'n_estimators': trial.suggest_categorical("n_estimators", [20, 50, 100, 150, 200]),
+            "max_depth": trial.suggest_int("max_depth", 3, 10),
+            "max_features": trial.suggest_categorical(
+                "max_features", ["sqrt", "log2", 1.0, 0.5]
+            ),
+            "max_samples": trial.suggest_categorical(
+                "max_samples", [0.2, 0.3, 0.5, 0.7, 0.8, 1]
+            ),
+            "n_estimators": trial.suggest_categorical(
+                "n_estimators", [20, 50, 100, 150, 200]
+            ),
         }
     else:
         raise ValueError("Unknown method")
@@ -145,4 +198,10 @@ def suggest_params(trial, method):
     return params
 
 
-__all__ = ['calculators', 'methods', 'suggest_params', 'get_raw_calculator', 'get_raw_model']
+__all__ = [
+    "calculators",
+    "methods",
+    "suggest_params",
+    "get_raw_calculator",
+    "get_raw_model",
+]

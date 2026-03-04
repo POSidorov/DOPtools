@@ -20,11 +20,11 @@ import numpy as np
 
 
 def r2(a, b):
-    return 1. - np.sum((a-b)**2)/np.sum((a-np.mean(a))**2)
+    return 1.0 - np.sum((a - b) ** 2) / np.sum((a - np.mean(a)) ** 2)
 
 
 def rmse(a, b):
-    return np.sqrt(np.sum((a-b)**2)/len(a))
+    return np.sqrt(np.sum((a - b) ** 2) / len(a))
 
 
-__all__ = ['r2', 'rmse']
+__all__ = ["r2", "rmse"]

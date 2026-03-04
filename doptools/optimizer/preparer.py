@@ -16,12 +16,11 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import argparse
+
 import os
 import pickle
 import warnings
-import multiprocessing as mp
-import json
+from typing import Any, Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -32,215 +31,309 @@ from doptools.chem.chem_features import ComplexFragmentor, PassThrough
 from doptools.chem.solvents import SolventVectorizer
 from doptools.optimizer.config import get_raw_calculator
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=DeprecationWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
+warnings.simplefilter(action="ignore", category=DeprecationWarning)
 
 
-def _set_default(argument, default_values):
+def _set_default(argument: List[Any], default_values: List[Any]) -> List[Any]:
     if len(argument) > 0:
         return list(set(argument))
     else:
         return default_values
 
 
-def _enumerate_parameters(args):
-    def _make_name(iterable):
-        return '_'.join([str(i) for i in iterable])
+def _enumerate_parameters(args: Any) -> Dict[str, Dict[str, Any]]:
+    def _make_name(iterable: Iterable[Any]) -> str:
+        return "_".join([str(i) for i in iterable])
 
-    param_dict = {}
+    param_dict: Dict[str, Dict[str, Any]] = {}
     if args.morgan:
         for nb in _set_default(args.morgan_nBits, [1024]):
             for mr in _set_default(args.morgan_radius, [2]):
-                param_dict[_make_name(('morgan', nb, mr))] = {'nBits': nb, 'radius': mr}
+                param_dict[_make_name(("morgan", nb, mr))] = {"nBits": nb, "radius": mr}
     if args.morganfeatures:
         for nb in _set_default(args.morganfeatures_nBits, [1024]):
             for mr in _set_default(args.morganfeatures_radius, [2]):
-                param_dict[_make_name(('morganfeatures', nb, mr))] = {'nBits': nb, 'radius': mr}
+                param_dict[_make_name(("morganfeatures", nb, mr))] = {
+                    "nBits": nb,
+                    "radius": mr,
+                }
     if args.rdkfp:
         for nb in _set_default(args.rdkfp_nBits, [1024]):
             for rl in _set_default(args.rdkfp_length, [3]):
-                param_dict[_make_name(('rdkfp', nb, rl))] = {'nBits': nb, 'radius': rl}
+                param_dict[_make_name(("rdkfp", nb, rl))] = {"nBits": nb, "radius": rl}
     if args.rdkfplinear:
         for nb in _set_default(args.rdkfplinear_nBits, [1024]):
             for rl in _set_default(args.rdkfplinear_length, [3]):
-                param_dict[_make_name(('rdkfplinear', nb, rl))] = {'nBits': nb, 'radius': rl}
+                param_dict[_make_name(("rdkfplinear", nb, rl))] = {
+                    "nBits": nb,
+                    "radius": rl,
+                }
     if args.layered:
         for nb in _set_default(args.layered_nBits, [1024]):
             for rl in _set_default(args.layered_length, [3]):
-                param_dict[_make_name(('layered', nb, rl))] = {'nBits': nb, 'radius': rl}
+                param_dict[_make_name(("layered", nb, rl))] = {
+                    "nBits": nb,
+                    "radius": rl,
+                }
     if args.avalon:
         for nb in _set_default(args.avalon_nBits, [1024]):
-            param_dict[_make_name(('avalon', nb))] = {'nBits': nb}
+            param_dict[_make_name(("avalon", nb))] = {"nBits": nb}
     if args.torsion:
         for nb in _set_default(args.torsion_nBits, [1024]):
-            param_dict[_make_name(('torsion', nb))] = {'nBits': nb}
+            param_dict[_make_name(("torsion", nb))] = {"nBits": nb}
     if args.atompairs:
         for nb in _set_default(args.atompairs_nBits, [1024]):
-            param_dict[_make_name(('atompairs', nb))] = {'nBits': nb}
+            param_dict[_make_name(("atompairs", nb))] = {"nBits": nb}
     if args.circus:
         for lower in _set_default(args.circus_min, [1]):
             for upper in _set_default(args.circus_max, [2]):
                 if int(lower) <= int(upper):
                     if args.onbond:
-                        param_dict[_make_name(('circus_b', lower, upper))] = {'lower': lower, 'upper': upper, 'on_bond': True}
+                        param_dict[_make_name(("circus_b", lower, upper))] = {
+                            "lower": lower,
+                            "upper": upper,
+                            "on_bond": True,
+                        }
                     else:
-                        param_dict[_make_name(('circus', lower, upper))] = {'lower': lower, 'upper': upper}
+                        param_dict[_make_name(("circus", lower, upper))] = {
+                            "lower": lower,
+                            "upper": upper,
+                        }
     if args.linear:
         for lower in _set_default(args.linear_min, [2]):
             for upper in _set_default(args.linear_max, [5]):
                 if int(lower) <= int(upper):
-                    param_dict[_make_name(('chyline', lower, upper))] = {'lower': lower, 'upper': upper}
-    if args.mordred2d:
-        param_dict[_make_name(('mordred2d',))] = {}
+                    param_dict[_make_name(("chyline", lower, upper))] = {
+                        "lower": lower,
+                        "upper": upper,
+                    }
+    # if args.mordred2d:
+    #    param_dict[_make_name(('mordred2d',))] = {}
     return param_dict
 
 
-def _pickle_descriptors(output_dir, fragmentor, prop_name, desc_name):
-    fragmentor_name = os.path.join(output_dir, '.'.join([prop_name, desc_name, 'pkl']))
-    with open(fragmentor_name, 'wb') as f:
+def _pickle_descriptors(
+    output_dir: str, fragmentor: Any, prop_name: str, desc_name: str
+) -> None:
+    fragmentor_name = os.path.join(output_dir, ".".join([prop_name, desc_name, "pkl"]))
+    with open(fragmentor_name, "wb") as f:
         pickle.dump(fragmentor, f, pickle.HIGHEST_PROTOCOL)
 
 
-def check_parameters(params):
-    if params.input.split('.')[-1] not in ('csv', 'xls', 'xlsx'):
-        raise ValueError('The input file should be of CSV or Excel format.')
+def check_parameters(params: Any) -> None:
+    if not params.input:
+        raise ValueError("No input file.")
+    if params.input.split(".")[-1] not in ("csv", "xls", "xlsx"):
+        raise ValueError("The input file should be of CSV or Excel format.")
     for i, p in enumerate(params.property_col):
-        if ' ' in p and len(params.property_names)<(i+1):
-            raise ValueError(f'Column name {p} contains spaces in the name.\nPlease provide alternative names with --property_names option.')
+        if " " in p and len(params.property_names) < (i + 1):
+            raise ValueError(
+                f"Column name {p} contains spaces in the name.\n"
+                "Please provide alternative names with --property_names option."
+            )
     if params.property_names:
         if len(params.property_col) != len(params.property_names):
-            raise ValueError('The number of alternative names is not equal to the number of properties.')
-        
+            raise ValueError(
+                "The number of alternative names is not equal to the number of "
+                "properties."
+            )
 
-def create_input(input_params):
-    input_dict = {}
-    structures = []
 
-    if input_params['input_file'].endswith('csv'):
-        data_table = pd.read_table(input_params['input_file'], sep=',')
-    elif input_params['input_file'].endswith('xls') or input_params['input_file'].endswith('xlsx'):
-        data_table = pd.read_excel(input_params['input_file'])
+def create_input(input_params: Dict[str, Any]) -> Dict[str, Any]:
+    input_dict: Dict[str, Any] = {}
+    structures: List[Any] = []
+
+    if input_params["input_file"].endswith("csv"):
+        data_table = pd.read_table(input_params["input_file"], sep=",")
+    elif input_params["input_file"].endswith("xls") or input_params[
+        "input_file"
+    ].endswith("xlsx"):
+        data_table = pd.read_excel(input_params["input_file"])
     else:
-        raise ValueError("Input file format not supported. Please use csv, xls or xlsx.")
+        raise ValueError(
+            "Input file format not supported. Please use csv, xls or xlsx."
+        )
 
-    input_dict['structures'] = pd.DataFrame(columns=[input_params['structure_col']] + input_params['concatenate'])
-    for col in [input_params['structure_col']] + input_params['concatenate']:
+    input_dict["structures"] = pd.DataFrame(
+        columns=[input_params["structure_col"]] + input_params["concatenate"]
+    )
+    for col in [input_params["structure_col"]] + input_params["concatenate"]:
         structures = [smiles(m) for m in data_table[col]]
-        if input_params['standardize']:
+        if input_params["standardize"]:
             # this is magic, gives an error if done otherwise...
             for m in structures:
                 try:
-                    m.canonicalize(fix_tautomers=False) 
-                except:
                     m.canonicalize(fix_tautomers=False)
-        input_dict['structures'][col] = structures
-    #input_dict['structures'] = structures
+                except Exception:
+                    m.canonicalize(fix_tautomers=False)
+        input_dict["structures"][col] = structures
+    # input_dict['structures'] = structures
 
-    if input_params['solvent']:
-        input_dict['solvents'] = data_table[input_params['solvent']]
+    if input_params["solvent"]:
+        input_dict["solvents"] = data_table[input_params["solvent"]]
 
-    if 'passthrough' in input_params.keys() and input_params['passthrough']:
-        input_dict['passthrough'] = data_table[list(input_params['passthrough'])]
+    if "passthrough" in input_params.keys() and input_params["passthrough"]:
+        input_dict["passthrough"] = data_table[list(input_params["passthrough"])]
 
-    for i, p in enumerate(input_params['property_col']):
+    for i, p in enumerate(input_params["property_col"]):
         y = data_table[p]
         indices = list(y[pd.notnull(y)].index)
         if len(indices) < len(structures):
-            print(f"'{p}' column warning: only {len(indices)} out of {len(structures)} instances have the property.")
-            print(f"Molecules that don't have the property will be discarded from the set.")
+            print(
+                f"'{p}' column warning: only {len(indices)} out of "
+                f"{len(structures)} instances have the property."
+            )
+            print(
+                "Molecules that don't have the property will be discarded from the "
+                "set."
+            )
             y = y.iloc[indices]
         y = np.array(y)
 
-        if input_params['property_names']:
-            name = input_params['property_names'][i]
+        if input_params["property_names"]:
+            name = input_params["property_names"][i]
         else:
             name = p
 
-        input_dict['prop'+str(i+1)] = {'indices': indices,
-                                       'property': y,
-                                       'property_name': name}
+        input_dict["prop" + str(i + 1)] = {
+            "indices": indices,
+            "property": y,
+            "property_name": name,
+        }
     return input_dict
 
 
-def calculate_descriptor_table(input_dict, desc_name, descriptor_params, out='all'):
-    desc_type = desc_name.split('_')[0]
-    result = {'name': desc_name, 'type': desc_type}
+def calculate_descriptor_table(
+    input_dict: Dict[str, Any],
+    desc_name: str,
+    descriptor_params: Dict[str, Any],
+    out: str = "all",
+) -> Any:
+    desc_type = desc_name.split("_")[0]
+    result: Dict[str, Any] = {"name": desc_name, "type": desc_type}
     for k, d in input_dict.items():
-        if k.startswith('prop'):
-            base_column = list(input_dict['structures'].columns)[0]
-            if len(input_dict['structures'].columns) == 1 and 'solvents' not in input_dict.keys() \
-                    and 'passthrough' not in input_dict.keys():
+        if k.startswith("prop"):
+            base_column = list(input_dict["structures"].columns)[0]
+            if (
+                len(input_dict["structures"].columns) == 1
+                and "solvents" not in input_dict.keys()
+                and "passthrough" not in input_dict.keys()
+            ):
                 calculator = get_raw_calculator(desc_type, descriptor_params)
-                desc = calculator.fit_transform(input_dict['structures'][base_column].iloc[d['indices']])
+                desc = calculator.fit_transform(
+                    input_dict["structures"][base_column].iloc[d["indices"]]
+                )
             else:
                 calculators_dict = {}
-                for c in input_dict['structures'].columns:
-                    calculators_dict[c] = get_raw_calculator(desc_type, descriptor_params)
-                input_table = input_dict['structures']
-                if 'solvents' in input_dict.keys():
-                    calculators_dict[input_dict['solvents'].name] = SolventVectorizer()
-                    input_table = pd.concat([input_dict['structures'], input_dict['solvents']], axis=1)
-                if 'passthrough' in input_dict.keys():
-                    if type(input_dict['passthrough']) is not pd.DataFrame:
-                        input_dict['passthrough'] = pd.DataFrame(input_dict['passthrough'])
-                    input_table = pd.concat([input_table, input_dict['passthrough']], axis=1)
-                    calculators_dict['numerical'] = PassThrough(column_names=list(input_dict['passthrough']))
+                for c in input_dict["structures"].columns:
+                    calculators_dict[c] = get_raw_calculator(
+                        desc_type, descriptor_params
+                    )
+                input_table = input_dict["structures"]
+                if "solvents" in input_dict.keys():
+                    calculators_dict[input_dict["solvents"].name] = SolventVectorizer()
+                    input_table = pd.concat(
+                        [input_dict["structures"], input_dict["solvents"]], axis=1
+                    )
+                if "passthrough" in input_dict.keys():
+                    if type(input_dict["passthrough"]) is not pd.DataFrame:
+                        input_dict["passthrough"] = pd.DataFrame(
+                            input_dict["passthrough"]
+                        )
+                    input_table = pd.concat(
+                        [input_table, input_dict["passthrough"]], axis=1
+                    )
+                    calculators_dict["numerical"] = PassThrough(
+                        column_names=list(input_dict["passthrough"])
+                    )
 
-                calculator = ComplexFragmentor(associator=list((x,y) for x,y in calculators_dict.items()),
-                                               structure_columns=[base_column])
-                desc = calculator.fit_transform(input_table).iloc[d['indices']]
+                calculator = ComplexFragmentor(
+                    associator=list((x, y) for x, y in calculators_dict.items()),
+                    structure_columns=[base_column],
+                )
+                desc = calculator.fit_transform(input_table).iloc[d["indices"]]
+                print(desc)
 
-            result[k] = {'calculator': calculator, 'table': desc, 
-                         'name': d['property_name'], 'property': d['property']}
+            result[k] = {
+                "calculator": calculator,
+                "table": desc,
+                "name": d["property_name"],
+                "property": d["property"],
+            }
 
-    if out == 'all':
+    if out == "all":
         return result
     elif out in list(result.keys()):
         return result[out]
     else:
-        raise ValueError('The return value is not in the result dictionary')
+        raise ValueError("The return value is not in the result dictionary")
 
 
-def output_descriptors(calculated_result, output_params):
-    desc_name = calculated_result['name']
-    desc_type = calculated_result['type']
+def output_descriptors(
+    calculated_result: Dict[str, Any], output_params: Dict[str, Any]
+) -> None:
+    desc_name = calculated_result["name"]
+    desc_type = calculated_result["type"]
 
-    output_folder = output_params['output']
-    if output_params['separate']:
+    output_folder = output_params["output"]
+    if output_params["separate"]:
         output_folder = os.path.join(output_folder, desc_type)
     if not os.path.exists(output_folder):
-        os.makedirs(output_folder, exist_ok=True)  # exist_ok is useful when several processes try to create the folder at the same time
-        print('The output directory {} created'.format(output_folder))
+        os.makedirs(output_folder, exist_ok=True)
+        # exist_ok helps when several processes try to create the folder at once
+        print("The output directory {} created".format(output_folder))
     for k, d in calculated_result.items():
-        if k.startswith('prop'):
-            if output_params['pickle']:
-                _pickle_descriptors(output_folder, d['calculator'], 
-                                    d['name'], desc_name)
+        if k.startswith("prop"):
+            if output_params["pickle"]:
+                _pickle_descriptors(
+                    output_folder, d["calculator"], d["name"], desc_name
+                )
 
-            output_name = os.path.join(output_folder, '.'.join([d['name'], 
-                                                                desc_name, 
-                                                                output_params['format']]))
-            if output_params['format'] == 'csv':
-                desc = pd.concat([pd.Series(d['property'], name=d['name']), d['table']], axis=1, sort=False)
+            output_name = os.path.join(
+                output_folder, ".".join([d["name"], desc_name, output_params["format"]])
+            )
+
+            if output_params["format"] == "csv":
+                desc = pd.concat(
+                    [pd.Series(d["property"], name=d["name"]), d["table"]],
+                    axis=1,
+                    sort=False,
+                )
                 desc.to_csv(output_name, index=False)
             else:
-                dump_svmlight_file(np.array(d['table']), d['property'], 
-                                   output_name, zero_based=False)
+                dump_svmlight_file(
+                    d["table"].astype(float),
+                    d["property"],
+                    output_name,
+                    zero_based=False,
+                )
 
 
-def calculate_and_output(input_args):
+def calculate_and_output(
+    input_args: Tuple[Dict[str, Any], str, Dict[str, Any], Dict[str, Any]]
+) -> None:
     inpt, desc, descriptor_params, output_params = input_args
     result = calculate_descriptor_table(inpt, desc, descriptor_params)
     output_descriptors(result, output_params)
 
 
-def create_output_dir(outdir):
+def create_output_dir(outdir: str) -> None:
     if os.path.exists(outdir):
-        print('The output directory {} already exists. The data may be overwritten'.format(outdir))
+        print(
+            "The output directory {} already exists. The data may be "
+            "overwritten".format(outdir)
+        )
     else:
         os.makedirs(outdir)
-        print('The output directory {} created'.format(outdir))
+        print("The output directory {} created".format(outdir))
 
 
-__all__ = ['calculate_and_output', 'calculate_descriptor_table', 'check_parameters',
-           'create_input', 'create_output_dir', 'output_descriptors']
+__all__ = [
+    "calculate_and_output",
+    "calculate_descriptor_table",
+    "check_parameters",
+    "create_input",
+    "create_output_dir",
+    "output_descriptors",
+]
