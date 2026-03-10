@@ -1,14 +1,18 @@
-from sklearn.base import BaseEstimator, OutlierMixin, clone
 from copy import deepcopy
-from sklearn.utils.validation import check_is_fitted
+
 from pandas import DataFrame
+from sklearn.base import BaseEstimator, OutlierMixin, clone
+from sklearn.utils.validation import check_is_fitted
+
+import pandas as pd
+
 
 class FragmentControl(BaseEstimator, OutlierMixin):
     def __init__(self, pipeline):
         self.pipeline = pipeline
         self.fragmentor = deepcopy(pipeline[0])
         self.feature_names = []
-        try: 
+        try:
             check_is_fitted(self.pipeline)
             self.feature_names = pipeline[0].get_feature_names()
         except:
@@ -30,12 +34,12 @@ class FragmentControl(BaseEstimator, OutlierMixin):
                 x = [X[i]]
             self.fragmentor.fit(x)
             features = self.fragmentor.get_feature_names()
-            if len(set(features) - set(self.feature_names))>0:
+            if len(set(features) - set(self.feature_names)) > 0:
                 res.append(-1)
             else:
                 res.append(1)
-        return(res)
-        
+        return res
+
 
 class BoundingBox(BaseEstimator, OutlierMixin):
     def __init__(self, pipeline):
@@ -63,10 +67,14 @@ class BoundingBox(BaseEstimator, OutlierMixin):
             desc = self.fragmentor.transform(x)
             value = 1
             for c in desc.columns:
-                if desc.iloc[0][c]>self.max_limits[c] or desc.iloc[0][c]<self.min_limits[c]:
+                if (
+                    desc.iloc[0][c] > self.max_limits[c]
+                    or desc.iloc[0][c] < self.min_limits[c]
+                ):
                     value = -1
             res.append(value)
         return res
+
 
 class PipelineWithAD(BaseEstimator):
     def __init__(self, pipeline, ad_type, threshold=None):

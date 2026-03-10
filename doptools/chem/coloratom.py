@@ -17,23 +17,29 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
 
-from chython import ReactionContainer, MoleculeContainer, CGRContainer, smiles
-import pandas as pd
-import numpy as np
-from sklearn.pipeline import Pipeline
-from sklearn import base
-from chython.algorithms import depict as DEPICT
-from IPython.display import HTML
-from matplotlib.cm import RdYlGn, PiYG, Blues
-from matplotlib.colors import rgb2hex
 import itertools
 from io import StringIO
-from typing import List, Dict
-from pandas import DataFrame, Series
-import matplotlib.pyplot as plt
-import matplotlib as mpl
+from typing import Dict, List
 
-from doptools.chem.chem_features import ComplexFragmentor, ChythonCircusNonhash, ChythonCircus, ChythonLinear
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from chython import CGRContainer, MoleculeContainer, ReactionContainer, smiles
+from chython.algorithms import depict as DEPICT
+from IPython.display import HTML
+from matplotlib.cm import Blues, PiYG, RdYlGn
+from matplotlib.colors import rgb2hex
+from pandas import DataFrame, Series
+from sklearn import base
+from sklearn.pipeline import Pipeline
+
+from doptools.chem.chem_features import (
+    ChythonCircus,
+    ChythonCircusNonhash,
+    ChythonLinear,
+    ComplexFragmentor,
+)
 
 supported_fragmentors = (ChythonCircusNonhash, ChythonCircus, ChythonLinear)
 
@@ -42,8 +48,8 @@ class ColorAtom:
     """
     ColorAtom class implements the approach of calculating atomic contributions to the prediction
     by a model built using fragment descriptors. The approach is based on the approximation that the
-    weight of a fragment can be calculated as a partial derivative of the model's prediction, and the 
-    atoms in the fragment contribute equally to this weight. The approach is developed and reported in 
+    weight of a fragment can be calculated as a partial derivative of the model's prediction, and the
+    atoms in the fragment contribute equally to this weight. The approach is developed and reported in
 
     G. Marcou, D. Horvath, V. Solov’ev, A. Arrault, P. Vayer and A. Varnek
     Interpretability of SAR/QSAR models of any complexity by atomic contributions
@@ -52,15 +58,23 @@ class ColorAtom:
     Current implementation is designed for regression tasks, for models built with Scikit-learn library and
     using CircuS fragments implemented in this library.
     """
-    def __init__(self, fragmentor=None, model=None, is_complex:bool=False, structure_cols:List=None, 
-                 colormap=None, reaction=None):
+
+    def __init__(
+        self,
+        fragmentor=None,
+        model=None,
+        is_complex: bool = False,
+        structure_cols: List = None,
+        colormap=None,
+        reaction=None,
+    ):
         DEPICT.depict_settings(monochrome=True, aam=False)
         self.model = model
         self.pipeline = None
         self.model_type = "R"
         self.fragmentor = fragmentor
         self.descriptors = []
-        #self.isida_like = isida_like
+        # self.isida_like = isida_like
         if isinstance(self.fragmentor, ComplexFragmentor):
             self.complex = True
         else:
@@ -68,8 +82,8 @@ class ColorAtom:
         self.reaction = reaction
         self.structure_cols = structure_cols
         self.colormap = colormap
-    
-    def set_pipeline(self, pipeline:Pipeline, fragmentor_pos_in_pipeline:int=0):
+
+    def set_pipeline(self, pipeline: Pipeline, fragmentor_pos_in_pipeline: int = 0):
         """Sets the fragmentor and model of the ColorAtom class via sklearn Pipeline. The fragmentor of
         the ColorAtom object is set as the nth position in the pipeline, the model as the rest.
 
@@ -92,9 +106,18 @@ class ColorAtom:
         if isinstance(self.fragmentor, ComplexFragmentor):
             self.complex = True
             if self.structure_cols is None:
-                self.structure_cols = list(set([c for c, f in self.fragmentor.associator
-                                                if isinstance(f, supported_fragmentors)]))
-        self.model = Pipeline([p for i, p in enumerate(pipeline.steps) if i != fragmentor_pos_in_pipeline])
+                self.structure_cols = list(
+                    set(
+                        [
+                            c
+                            for c, f in self.fragmentor.associator
+                            if isinstance(f, supported_fragmentors)
+                        ]
+                    )
+                )
+        self.model = Pipeline(
+            [p for i, p in enumerate(pipeline.steps) if i != fragmentor_pos_in_pipeline]
+        )
         if issubclass(self.pipeline[-1].__class__, base.ClassifierMixin):
             self.model_type = "C"
             if self.colormap is None:
@@ -102,11 +125,11 @@ class ColorAtom:
         else:
             if self.colormap is None:
                 self.colormap = PiYG
-        
+
     def calculate_atom_contributions(self, mol) -> dict:
         """Calculates the atom contribution with the partial derivative approach for the given molecule.
-        If the fragmentor is an object of ComplexFragmentor class, a dataframe with the columns required 
-        by the ComplexFragmentor is accepted. In the latter case, atom contributions will be calculated 
+        If the fragmentor is an object of ComplexFragmentor class, a dataframe with the columns required
+        by the ComplexFragmentor is accepted. In the latter case, atom contributions will be calculated
         for each structural column in the ComplexFragmentor.
 
         Parameters
@@ -123,32 +146,36 @@ class ColorAtom:
         if self.complex:
             for m in self.structure_cols:
                 if isinstance(mol[m], ReactionContainer):
-                    atom_weights[mol[m]] = {i[0]:0 for react in mol[m].molecules() for i in react.atoms()}
+                    atom_weights[mol[m]] = {
+                        i[0]: 0 for react in mol[m].molecules() for i in react.atoms()
+                    }
                 else:
-                    atom_weights[mol[m]] = {i[0]:0 for i in mol[m].atoms()}
+                    atom_weights[mol[m]] = {i[0]: 0 for i in mol[m].atoms()}
         else:
             if isinstance(mol, ReactionContainer):
-                atom_weights[mol] = {i[0]:0 for react in mol.molecules() for i in react.atoms()}
+                atom_weights[mol] = {
+                    i[0]: 0 for react in mol.molecules() for i in react.atoms()
+                }
             else:
-                atom_weights = {mol:{i[0]:0 for i in mol.atoms()}}
+                atom_weights = {mol: {i[0]: 0 for i in mol.atoms()}}
         if not isinstance(mol, Series):
             descriptor_vector = self.fragmentor.transform([mol])
         else:
             descriptor_vector = self.fragmentor.transform(mol)
-        if self.model_type=="R":
+        if self.model_type == "R":
             true_prediction = self.model.predict(descriptor_vector)[0]
             for i, d in enumerate(self.descriptors):
                 new_line = descriptor_vector.copy()
-                if new_line.iloc[0,i]>0:
-                    new_line.at[0,d] -= 1 
+                if new_line.iloc[0, i] > 0:
+                    new_line.at[0, d] -= 1
                 new_prediction = self.model.predict(new_line)[0]
                 w = true_prediction - new_prediction
 
                 if w != 0:
-                    #if self.isida_like:
+                    # if self.isida_like:
                     #    d = self._isida2cgrtools(d)
                     #    participating_atoms = self._full_mapping_from_descriptor(mol, d)
-                    #else:
+                    # else:
                     if "*" in d:
                         d = self._aromatize(d)
                     if self.complex:
@@ -158,40 +185,55 @@ class ColorAtom:
                         if isinstance(mol[mol_name], ReactionContainer):
                             react_cgr = mol[mol_name].compose()
                             frag_cgr = self._frag2cgr(frag_smiles)
-                            participating_atoms = [list(i.values()) for i in frag_cgr.get_mapping(react_cgr)]
+                            participating_atoms = [
+                                list(i.values())
+                                for i in frag_cgr.get_mapping(react_cgr)
+                            ]
                         else:
-                            participating_atoms = [list(i.values()) for i in smiles(frag_smiles).get_mapping(mol[mol_name])]
-                        participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                            participating_atoms = [
+                                list(i.values())
+                                for i in smiles(frag_smiles).get_mapping(mol[mol_name])
+                            ]
+                        participating_atoms = set(
+                            list(itertools.chain.from_iterable(participating_atoms))
+                        )
                         for a in participating_atoms:
                             atom_weights[mol[mol_name]][a] += w
                     else:
                         if isinstance(mol, ReactionContainer):
                             react_cgr = mol.compose()
                             frag_cgr = self._frag2cgr(d)
-                            participating_atoms = [list(i.values()) for  i in frag_cgr.get_mapping(react_cgr)]
+                            participating_atoms = [
+                                list(i.values())
+                                for i in frag_cgr.get_mapping(react_cgr)
+                            ]
                         else:
-                            participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
-                        participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                            participating_atoms = [
+                                list(i.values()) for i in smiles(d).get_mapping(mol)
+                            ]
+                        participating_atoms = set(
+                            list(itertools.chain.from_iterable(participating_atoms))
+                        )
                         for a in participating_atoms:
                             atom_weights[mol][a] += w
-        elif self.model_type=="C":
+        elif self.model_type == "C":
             true_prediction = self.model.predict(descriptor_vector)[0]
             new_prediction = true_prediction
             for i, d in enumerate(self.descriptors):
-                if descriptor_vector.iloc[0,i]>0:
+                if descriptor_vector.iloc[0, i] > 0:
                     new_line = descriptor_vector.copy()
-                    new_line.at[0,d] = 0
+                    new_line.at[0, d] = 0
                     if self.model.predict(new_line)[0] == true_prediction:
                         w1_low = 500
                     else:
                         new_line = descriptor_vector.copy()
                         w1_low = 0
-                        w1_high = new_line.iloc[0,i]
-                        while w1_low != w1_high: 
-                            mid = (w1_low + w1_high)//2
+                        w1_high = new_line.iloc[0, i]
+                        while w1_low != w1_high:
+                            mid = (w1_low + w1_high) // 2
                             if w2_high - w2_low == 1:
                                 mid = w2_high
-                            new_line.at[0,d] = mid
+                            new_line.at[0, d] = mid
                             new_prediction = self.model.predict(new_line)
                             if new_prediction == true_prediction:
                                 w1_low = mid
@@ -199,29 +241,29 @@ class ColorAtom:
                                 w1_high = mid
 
                     new_line = descriptor_vector.copy()
-                    w2_low = new_line.iloc[0,i]
-                    w2_high = new_line.iloc[0,i] + 100
-                    
-                    while w2_low != w2_high: 
-                        mid = (w2_low + w2_high)//2
+                    w2_low = new_line.iloc[0, i]
+                    w2_high = new_line.iloc[0, i] + 100
+
+                    while w2_low != w2_high:
+                        mid = (w2_low + w2_high) // 2
                         if w2_high - w2_low == 1:
                             mid = w2_high
-                        new_line.at[0,d] = mid
+                        new_line.at[0, d] = mid
                         new_prediction = self.model.predict(new_line)
                         if new_prediction == true_prediction:
                             w2_low = mid
                         else:
                             w2_high = mid
-                    
-                    w = 1./min(w1_low, w2_low)
+
+                    w = 1.0 / min(w1_low, w2_low)
                 else:
                     w = 0
 
                 if w != 0:
-                    #if self.isida_like:
+                    # if self.isida_like:
                     #    d = self._isida2cgrtools(d)
                     #    participating_atoms = self._full_mapping_from_descriptor(mol, d)
-                    #else:
+                    # else:
                     if "*" in d:
                         d = self._aromatize(d)
                     if self.complex:
@@ -231,26 +273,47 @@ class ColorAtom:
                         if isinstance(mol[mol_name], ReactionContainer):
                             react_cgr = mol[mol_name].compose()
                             frag_cgr = self._frag2cgr(frag_smiles)
-                            participating_atoms = [list(i.values()) for i in frag_cgr.get_mapping(react_cgr)]
+                            participating_atoms = [
+                                list(i.values())
+                                for i in frag_cgr.get_mapping(react_cgr)
+                            ]
                         else:
-                            participating_atoms = [list(i.values()) for i in smiles(frag_smiles).get_mapping(mol[mol_name])]
-                        participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                            participating_atoms = [
+                                list(i.values())
+                                for i in smiles(frag_smiles).get_mapping(mol[mol_name])
+                            ]
+                        participating_atoms = set(
+                            list(itertools.chain.from_iterable(participating_atoms))
+                        )
                         for a in participating_atoms:
                             atom_weights[mol[mol_name]][a] += w
                     else:
                         if isinstance(mol, ReactionContainer):
                             react_cgr = mol.compose()
                             frag_cgr = self._frag2cgr(d)
-                            participating_atoms = [list(i.values()) for  i in frag_cgr.get_mapping(react_cgr)]
+                            participating_atoms = [
+                                list(i.values())
+                                for i in frag_cgr.get_mapping(react_cgr)
+                            ]
                         else:
-                            participating_atoms = [list(i.values()) for i in smiles(d).get_mapping(mol)]
-                        participating_atoms = set(list(itertools.chain.from_iterable(participating_atoms)))
+                            participating_atoms = [
+                                list(i.values()) for i in smiles(d).get_mapping(mol)
+                            ]
+                        participating_atoms = set(
+                            list(itertools.chain.from_iterable(participating_atoms))
+                        )
                         for a in participating_atoms:
                             atom_weights[mol][a] += w
         return atom_weights
-    
-    def output_html(self, mol, ipython: bool = True, colorbar: bool = False, external_limits: List = None,
-                    contributions: Dict = None):
+
+    def output_html(
+        self,
+        mol,
+        ipython: bool = True,
+        colorbar: bool = False,
+        external_limits: List = None,
+        contributions: Dict = None,
+    ):
         """For the given molecule (DataFrame if complex), generates the SVG image where the contributions
         of atoms are depicted with colors (purple for negative contributions, green for positive, by default).
         The depiction is based on the CGRTools Depict class and method.
@@ -281,16 +344,36 @@ class ColorAtom:
         """
 
         if self.complex:
-            svgs = self._draw_multiple_molecules(mol, colorbar=colorbar, external_limits=external_limits,
-                                                 contributions=contributions)
+            svgs = self._draw_multiple_molecules(
+                mol,
+                colorbar=colorbar,
+                external_limits=external_limits,
+                contributions=contributions,
+            )
         else:
-            svgs = self._draw_one_molecule(mol, colorbar=colorbar, external_limits=external_limits,
-                                           contributions=contributions)
-        no_wrap_div = '<div style="white-space: nowrap; align-items: middle">'+'{}'*len(svgs)+'</div>'
+            svgs = self._draw_one_molecule(
+                mol,
+                colorbar=colorbar,
+                external_limits=external_limits,
+                contributions=contributions,
+            )
+        no_wrap_div = (
+            '<div style="white-space: nowrap; align-items: middle">'
+            + "{}" * len(svgs)
+            + "</div>"
+        )
         return HTML(no_wrap_div.format(*svgs)) if ipython else no_wrap_div.format(*svgs)
 
-    def output_colorbar_html(self, minv: float, maxv: float, width:float, height: float,
-                             orient: str = 'vertical', nticks: int = 5, ipython: bool = True):
+    def output_colorbar_html(
+        self,
+        minv: float,
+        maxv: float,
+        width: float,
+        height: float,
+        orient: str = "vertical",
+        nticks: int = 5,
+        ipython: bool = True,
+    ):
         """
         Returns the colorbar for the contributions as an external svg
         """
@@ -298,66 +381,95 @@ class ColorAtom:
         no_wrap_div = '<div style="white-space: nowrap; align-items: middle">{}</div>'
         return HTML(no_wrap_div.format(svg)) if ipython else no_wrap_div.format(svg)
 
-
-    def _draw_one_molecule(self, mol, contributions=None, print_limits:bool = False, colorbar:bool=False,
-                           external_limits:List = None):
+    def _draw_one_molecule(
+        self,
+        mol,
+        contributions=None,
+        print_limits: bool = False,
+        colorbar: bool = False,
+        external_limits: List = None,
+    ):
         if contributions is None:
             contributions = self.calculate_atom_contributions(mol)
-        
+
         if external_limits is not None:
             min_value, max_value = external_limits
             if min_value > np.min(list(contributions[mol].values())):
-                print("WARNING! The minimum value of the molecule's atomic contributions is lower than the given lower limit.")
+                print(
+                    "WARNING! The minimum value of the molecule's atomic contributions is lower than the given lower limit."
+                )
             if max_value < np.max(list(contributions[mol].values())):
-                print("WARNING! The maximum value of the molecule's atomic contributions is higher than the given upper limit.")
+                print(
+                    "WARNING! The maximum value of the molecule's atomic contributions is higher than the given upper limit."
+                )
         else:
             max_value = np.max(list(contributions[mol].values()))
             min_value = np.min(list(contributions[mol].values()))
 
         if print_limits:
             print("Min value:", min_value, ", max value:", max_value)
-            
+
         for m in contributions.keys():
             contr = contributions[m]
             if isinstance(m, ReactionContainer):
-                if self.reaction=="reactants":
+                if self.reaction == "reactants":
                     m = self._unite_mol_list(m.reactants)
-                elif self.reaction=="products":
+                elif self.reaction == "products":
                     m = self._unite_mol_list(m.products)
             ext_svg = m.depict()[:-6]
-            ext_svg = '<svg style="background-color:white" '+ext_svg[4:]
+            ext_svg = '<svg style="background-color:white" ' + ext_svg[4:]
             for k, c in contr.items():
-                try: # for chython versions < 2
+                try:  # for chython versions < 2
                     x, y = m.atom(k).xy[0], -m.atom(k).xy[1]
-                except: # for chython versions >= 2
+                except:  # for chython versions >= 2
                     x, y = m.atom(k).xy.x, -m.atom(k).xy.y
                 x, y = m.atom(k).x, -m.atom(k).y
-                if len(m.atom(k).atomic_symbol) >1:
+                if len(m.atom(k).atomic_symbol) > 1:
                     x -= 0.1
-                if self.model_type=="R":
-                    color = rgb2hex(self.colormap((c+max(np.abs([min_value, max_value])))/2./max(np.abs([min_value, max_value]))))
-                elif self.model_type=="C":
-                    color = rgb2hex(self.colormap((c-min_value)/(max_value-min_value)))
-                ext_svg += '<circle cx="{}" cy="{}" r="0.33" stroke="{}" stroke-width="0.1" fill="none" />'.format(x, y, color)
+                if self.model_type == "R":
+                    color = rgb2hex(
+                        self.colormap(
+                            (c + max(np.abs([min_value, max_value])))
+                            / 2.0
+                            / max(np.abs([min_value, max_value]))
+                        )
+                    )
+                elif self.model_type == "C":
+                    color = rgb2hex(
+                        self.colormap((c - min_value) / (max_value - min_value))
+                    )
+                ext_svg += '<circle cx="{}" cy="{}" r="0.33" stroke="{}" stroke-width="0.1" fill="none" />'.format(
+                    x, y, color
+                )
             ext_svg += "</svg>"
             if colorbar:
-                cm_svg = self._colorbar_to_svg(min_value, max_value,
-                                               width=float(ext_svg.split('"')[3][:-2])/8+1.01,
-                                               height=float(ext_svg.split('"')[3][:-2]))
+                cm_svg = self._colorbar_to_svg(
+                    min_value,
+                    max_value,
+                    width=float(ext_svg.split('"')[3][:-2]) / 8 + 1.01,
+                    height=float(ext_svg.split('"')[3][:-2]),
+                )
                 return [ext_svg, cm_svg]
             return [ext_svg]
 
-    
-    def _draw_multiple_molecules(self, mol_series: pd.Series, colorbar: bool = True, contributions: Dict = None,
-                                 print_limits: bool = False, external_limits:List = None):
+    def _draw_multiple_molecules(
+        self,
+        mol_series: pd.Series,
+        colorbar: bool = True,
+        contributions: Dict = None,
+        print_limits: bool = False,
+        external_limits: List = None,
+    ):
         if contributions is None:
             contributions = self.calculate_atom_contributions(mol_series)
         if external_limits is None:
-            numerical_contributions = sum([list(cc.values()) for cc in contributions.values()], [])
+            numerical_contributions = sum(
+                [list(cc.values()) for cc in contributions.values()], []
+            )
             if self.model_type == "C":
                 max_value = np.max(numerical_contributions)
                 min_value = np.max(numerical_contributions)
-            else: #R
+            else:  # R
                 max_value = np.max(np.abs(numerical_contributions))
                 min_value = -max_value
         else:
@@ -365,10 +477,17 @@ class ColorAtom:
         nb_mol = len(self.structure_cols)
         svgs = []
         for m in range(nb_mol):
-            svgs += self._draw_one_molecule(mol_series[self.structure_cols][m],
-                                            contributions={mol_series[self.structure_cols][m]: contributions[mol_series[self.structure_cols][m]]},
-                                            print_limits=print_limits, external_limits=[min_value, max_value],
-                                            colorbar=True if (colorbar and m + 1 == nb_mol) else False)
+            svgs += self._draw_one_molecule(
+                mol_series[self.structure_cols][m],
+                contributions={
+                    mol_series[self.structure_cols][m]: contributions[
+                        mol_series[self.structure_cols][m]
+                    ]
+                },
+                print_limits=print_limits,
+                external_limits=[min_value, max_value],
+                colorbar=True if (colorbar and m + 1 == nb_mol) else False,
+            )
         return svgs
 
     def _plot_to_svg(self) -> str:
@@ -376,37 +495,54 @@ class ColorAtom:
         plt.savefig(s, format="svg")
         plt.close()  # https://stackoverflow.com/a/18718162/14851404
         return s.getvalue()
-    
-    def _colorbar_to_svg(self, min_value: float, max_value: float, width: float, height: float,
-                         orient: str = 'vertical', nticks: int = 5):
-        cm = 1/2.54
+
+    def _colorbar_to_svg(
+        self,
+        min_value: float,
+        max_value: float,
+        width: float,
+        height: float,
+        orient: str = "vertical",
+        nticks: int = 5,
+    ):
+        cm = 1 / 2.54
         fig = plt.figure(figsize=(1, 8))
-        if orient == 'vertical':
+        if orient == "vertical":
             ax = fig.add_axes((0.05, 0.15, 0.15, 0.80))
         else:
             ax = fig.add_axes((0.05, 0.50, 0.80, 0.45))
 
-        if self.model_type=="C":
+        if self.model_type == "C":
             norm = mpl.colors.Normalize(vmin=min_value, vmax=max_value)
-            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=self.colormap,
-                                            norm=norm,
-                                            orientation=orient,
-                                            ticks=np.linspace(min_value, max_value, nticks))
+            cb1 = mpl.colorbar.ColorbarBase(
+                ax,
+                cmap=self.colormap,
+                norm=norm,
+                orientation=orient,
+                ticks=np.linspace(min_value, max_value, nticks),
+            )
         else:
-            norm = mpl.colors.Normalize(vmin=-max(np.abs(min_value), np.abs(max_value)), 
-                                        vmax=max(np.abs(min_value), np.abs(max_value)))
-            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=self.colormap,
-                                            norm=norm,
-                                            orientation=orient,
-                                            ticks=np.linspace(-max(np.abs(min_value), np.abs(max_value)),
-                                                              max(np.abs(min_value), np.abs(max_value)),
-                                                              nticks))
-            
+            norm = mpl.colors.Normalize(
+                vmin=-max(np.abs(min_value), np.abs(max_value)),
+                vmax=max(np.abs(min_value), np.abs(max_value)),
+            )
+            cb1 = mpl.colorbar.ColorbarBase(
+                ax,
+                cmap=self.colormap,
+                norm=norm,
+                orientation=orient,
+                ticks=np.linspace(
+                    -max(np.abs(min_value), np.abs(max_value)),
+                    max(np.abs(min_value), np.abs(max_value)),
+                    nticks,
+                ),
+            )
+
         cb1.ax.tick_params(labelsize="small")
-        fig.set_size_inches(width*cm, height*cm/2)
-    
+        fig.set_size_inches(width * cm, height * cm / 2)
+
         return self._plot_to_svg()[156:]
-        
+
     def _full_mapping_from_descriptor(self, mol, isida_fragment):
         subfragments = isida_fragment.split(",")
         central_atom = subfragments[-1][1:]
@@ -416,7 +552,9 @@ class ColorAtom:
 
         for atom in mol.atoms():
             if atom[1].atomic_symbol == central_atom:
-                struct = mol.augmented_substructure([atom[0]], deep=len(self._only_atoms(subfragments[0]))-1)
+                struct = mol.augmented_substructure(
+                    [atom[0]], deep=len(self._only_atoms(subfragments[0])) - 1
+                )
                 for frag in set(subfragments):
                     needed_count = subfragments.count(frag)
                     real_frags = list(smiles(self._aromatize(frag)).get_mapping(struct))
@@ -425,66 +563,81 @@ class ColorAtom:
                     if needed_count < real_count:
                         for f in real_frags:
                             last_atom = f[len(self._only_atoms(subfragments[0]))]
-                            smaller_struct = mol.augmented_substructure([atom[0]], deep=len(self._only_atoms(subfragments[0]))-2)
+                            smaller_struct = mol.augmented_substructure(
+                                [atom[0]],
+                                deep=len(self._only_atoms(subfragments[0])) - 2,
+                            )
                             if last_atom in [j[0] for j in smaller_struct.atoms()]:
                                 real_count -= 1
                     if needed_count == real_count:
                         for f in real_frags:
                             full_mapping += f.values()
         return set(full_mapping)
-    
+
     def _aromatize(self, text):
         res = list(text)
         for i, symbol in enumerate(res):
-            if symbol=="*":
-                res[i-1]=res[i-1].lower()
-                res[i+1]=res[i+1].lower()
+            if symbol == "*":
+                res[i - 1] = res[i - 1].lower()
+                res[i + 1] = res[i + 1].lower()
 
         for i, symbol in enumerate(res):
-            if symbol=="*":
+            if symbol == "*":
                 res[i] = ""
 
-        return("".join(res))
+        return "".join(res)
 
     def _only_atoms(self, text):
         res = list(text)
         for i, symbol in enumerate(res):
-            if symbol=="*" or symbol=="=" or symbol=="-" or symbol=="#":
-                res[i]=""
+            if symbol == "*" or symbol == "=" or symbol == "-" or symbol == "#":
+                res[i] = ""
         return "".join(res)
 
     def _isida2cgrtools(self, text):
         res = list(text)
         for i, symbol in enumerate(res):
-            if symbol=="+" :
-                res[i]="#"
+            if symbol == "+":
+                res[i] = "#"
         text = "".join(res)
-        text = text.replace("2>1", "[=>-]").replace("2>3", "[=>#]").replace("2>0", "[=>.]")
-        text = text.replace("1>2", "[->=]").replace("1>3", "[->#]").replace("1>0", "[->.]")
-        text = text.replace("3>2", "[#>=]").replace("3>1", "[#>-]").replace("3>0", "[#>.]")
-        text = text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
+        text = (
+            text.replace("2>1", "[=>-]").replace("2>3", "[=>#]").replace("2>0", "[=>.]")
+        )
+        text = (
+            text.replace("1>2", "[->=]").replace("1>3", "[->#]").replace("1>0", "[->.]")
+        )
+        text = (
+            text.replace("3>2", "[#>=]").replace("3>1", "[#>-]").replace("3>0", "[#>.]")
+        )
+        text = (
+            text.replace("0>2", "[.>=]").replace("0>3", "[.>#]").replace("0>1", "[.>-]")
+        )
         return text
 
     def _frag2cgr(self, frag_smiles):
         if ">" in frag_smiles:
             frag1 = frag_smiles
-            while frag1.find(">")>0:
-                dyn_bond = frag1[frag1.index(">")-2:frag1.index(">")+3]
+            while frag1.find(">") > 0:
+                dyn_bond = frag1[frag1.index(">") - 2 : frag1.index(">") + 3]
                 frag1 = frag1.replace(dyn_bond, dyn_bond[1], 1)
             frag2 = frag_smiles
-            while frag2.find(">")>0:
-                dyn_bond = frag2[frag2.index(">")-2:frag2.index(">")+3]
+            while frag2.find(">") > 0:
+                dyn_bond = frag2[frag2.index(">") - 2 : frag2.index(">") + 3]
                 frag2 = frag2.replace(dyn_bond, dyn_bond[-2], 1)
-            frag_cgr = ReactionContainer(reactants=[smiles(frag1)], products=[smiles(frag2)]).compose()
+            frag_cgr = ReactionContainer(
+                reactants=[smiles(frag1)], products=[smiles(frag2)]
+            ).compose()
         else:
-            frag_cgr = ReactionContainer(reactants=[smiles(frag_smiles)], products=[smiles(frag_smiles)]).compose()
+            frag_cgr = ReactionContainer(
+                reactants=[smiles(frag_smiles)], products=[smiles(frag_smiles)]
+            ).compose()
 
         return frag_cgr
 
     def _unite_mol_list(self, mols):
-        if len(mols)==1:
+        if len(mols) == 1:
             return mols[0]
-        elif len(mols)==2:
+        elif len(mols) == 2:
             return mols[0].union(mols[1], remap=True)
         else:
             uni = mols[0].union(mols[1], remap=True)
@@ -492,5 +645,5 @@ class ColorAtom:
                 uni = uni.union(mols[i], remap=True)
             return uni
 
-            
-__all__ = ['ColorAtom']
+
+__all__ = ["ColorAtom"]
