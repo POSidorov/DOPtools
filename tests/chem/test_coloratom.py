@@ -1,7 +1,5 @@
 """Tests for coloratom helpers."""
 
-from __future__ import annotations
-
 from doptools.chem.coloratom import ColorAtom
 
 

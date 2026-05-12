@@ -1,3 +1,5 @@
+# flake8: noqa
+
 import argparse
 import glob
 import logging
@@ -8,12 +10,12 @@ import shutil
 import sys
 from functools import partial
 from multiprocessing import Manager
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from chython import smiles
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.datasets import load_svmlight_file
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.feature_selection import VarianceThreshold
@@ -25,7 +27,7 @@ from sklearn.metrics import (
 from sklearn.metrics import r2_score as r2
 from sklearn.metrics import root_mean_squared_error as rmse
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVC, SVR
 from xgboost import XGBClassifier, XGBRegressor
 
@@ -39,7 +41,9 @@ logging.basicConfig(
 )
 
 
-def populate_trials_dictionary(trials_folders):
+def populate_trials_dictionary(
+    trials_folders: List[str],
+) -> Dict[str, Dict[str, str]]:
     """
     Populate a dictionary with trial information from specified folders.
 
@@ -62,7 +66,7 @@ def populate_trials_dictionary(trials_folders):
         trials_file = os.path.join(folder, "trials.best")
 
         if os.path.isfile(trials_file):
-            df = pd.read_csv(trials_file, sep="\s+")
+            df = pd.read_csv(trials_file, sep=r"\s+")
             if "method" in df.columns:
                 method_value = df["method"].iloc[0]
                 if method_value in trials_dict:
@@ -84,7 +88,7 @@ def populate_trials_dictionary(trials_folders):
     return trials_dict
 
 
-def create_output_dir(outdir):
+def create_output_dir(outdir: str) -> None:
     """
     Create an output directory if it does not already exist.
 
@@ -105,7 +109,11 @@ def create_output_dir(outdir):
         logging.info("The output directory {} created".format(outdir))
 
 
-def select_best_CV_models(trials_info_dict, model_type, nb_classes):
+def select_best_CV_models(
+    trials_info_dict: Dict[str, Dict[str, str]],
+    model_type: str,
+    nb_classes: Optional[int],
+) -> pd.DataFrame:
     """
     Selects up to 15 best models based on the model's score in CV. Only one model is selected per descriptor space per ML method.
 
@@ -117,7 +125,7 @@ def select_best_CV_models(trials_info_dict, model_type, nb_classes):
     Returns:
         pandas.DataFrame: A DataFrame containing the selected best models sorted by score in descending order.
     """
-    models_by_desc = {}
+    models_by_desc: Dict[str, List[Dict[str, Any]]] = {}
     highest_score = float("-inf")
 
     for method, info in trials_info_dict.items():
@@ -138,7 +146,7 @@ def select_best_CV_models(trials_info_dict, model_type, nb_classes):
             with open(trials_file, "w") as file:
                 file.writelines(corrected_lines)
 
-        model_stats = pd.read_csv(trials_file, sep="\s+")
+        model_stats = pd.read_csv(trials_file, sep=r"\s+")
         highest_score = max(highest_score, model_stats["score"].max())
         # Per each descriptor space only one (the best) descriptor space is selected.
         for desc, group in model_stats.groupby("desc"):
@@ -146,7 +154,9 @@ def select_best_CV_models(trials_info_dict, model_type, nb_classes):
                 models_by_desc[desc] = []
             models_by_desc[desc].extend(group.to_dict("records"))
 
-    threshold = 1 / nb_classes if model_type == "class" else 0.5
+    if model_type == "class" and nb_classes is None:
+        raise ValueError("nb_classes must be provided for classification models.")
+    threshold = 1 / cast(int, nb_classes) if model_type == "class" else 0.5
     if highest_score < threshold:
         if not args.desperate:
             logging.info(
@@ -171,7 +181,13 @@ def select_best_CV_models(trials_info_dict, model_type, nb_classes):
         return best_models.head(10)
 
 
-def create_model_folder(desc_folder, outdir, models_from_CV, input_df, test_set_df):
+def create_model_folder(
+    desc_folder: str,
+    outdir: str,
+    models_from_CV: pd.DataFrame,
+    input_df: pd.DataFrame,
+    test_set_df: Optional[pd.DataFrame],
+) -> None:
     """
     Create a folder containing relevant files (pickled pipelines and associated descriptor files) based on the best models and copy the training set file.
 
@@ -197,7 +213,7 @@ def create_model_folder(desc_folder, outdir, models_from_CV, input_df, test_set_
             shutil.copyfile(file_path, os.path.join(outdir, file_name))
 
 
-def load_pkl(pkl_file):
+def load_pkl(pkl_file: str) -> Any:
     """
     Load a pickled file from the given path.
 
@@ -216,14 +232,14 @@ def load_pkl(pkl_file):
 
 
 def rebuild_and_evaluate_reg_model(
-    model_row_tuple,
-    shared_data,
-    outdir,
-    desc_folder,
-    property_col,
-    model_type,
-    predict_df,
-):
+    model_row_tuple: Tuple[int, pd.Series],
+    shared_data: List[Dict[str, Any]],
+    outdir: str,
+    desc_folder: str,
+    property_col: str,
+    model_type: str,
+    predict_df: pd.DataFrame,
+) -> float:
     """
     Rebuilds a regression model from specified parameters and evaluates it using the provided prediction dataset.
     This function serves as a workaround to overcome the problem when a regression model gets decent score during CV.
@@ -304,8 +320,13 @@ def rebuild_and_evaluate_reg_model(
 
 
 def rebuild_model(
-    model_row_tuple, shared_data, outdir, desc_folder, property_col, model_type
-):
+    model_row_tuple: Tuple[int, pd.Series],
+    shared_data: List[Dict[str, Any]],
+    outdir: str,
+    desc_folder: str,
+    property_col: str,
+    model_type: str,
+) -> None:
     """
     Rebuild a machine learning model based on the provided model information and input data.
 
@@ -414,7 +435,11 @@ def rebuild_model(
     logging.info(f"{model_filename} saved.")
 
 
-def aggregate_CV_predictions(trials_info_dict, best_models, model_type):
+def aggregate_CV_predictions(
+    trials_info_dict: Dict[str, Dict[str, str]],
+    best_models: pd.DataFrame,
+    model_type: str,
+) -> pd.DataFrame:
     """
     Aggregate predictions from various models and create a summary DataFrame.
 
@@ -440,7 +465,7 @@ def aggregate_CV_predictions(trials_info_dict, best_models, model_type):
 
             if os.path.isfile(file_path):
                 # Read the predictions for the current model.
-                trial_predictions = pd.read_csv(file_path, sep="\s+")
+                trial_predictions = pd.read_csv(file_path, sep=r"\s+")
                 # Extract the actual values and predicted values based on column headers
                 if actual_values is None:
                     actual_values = trial_predictions.filter(like=".observed").iloc[
@@ -490,7 +515,9 @@ def aggregate_CV_predictions(trials_info_dict, best_models, model_type):
     return final_df
 
 
-def evaluate_AD_apply_model(desc_file, shared_molecules):
+def evaluate_AD_apply_model(
+    desc_file: str, shared_molecules: Iterable[Dict[str, Any]]
+) -> pd.DataFrame:
     """
     Evaluate the applicability domain of the compounds and apply the model in the given descriptor space
 
@@ -509,7 +536,9 @@ def evaluate_AD_apply_model(desc_file, shared_molecules):
 
     """
 
-    def frag_ctrl(p_DF, train_fragments, desc_space):
+    def frag_ctrl(
+        p_DF: pd.DataFrame, train_fragments: set[Any], desc_space: str
+    ) -> pd.DataFrame:
         """
         Update the confidence level column based on the fragment control check.
 
@@ -522,7 +551,7 @@ def evaluate_AD_apply_model(desc_file, shared_molecules):
         pd.DataFrame: The updated DataFrame with confidence levels.
         """
 
-        def conf_update(row):
+        def conf_update(row: pd.Series) -> pd.Series:
             """
             Update the confidence level for a single row based on the fragment control check.
 
@@ -558,7 +587,12 @@ def evaluate_AD_apply_model(desc_file, shared_molecules):
 
         return p_DF.apply(conf_update, axis=1)
 
-    def bbox(p_DF, max_train_descs, p_descs, desc_space):
+    def bbox(
+        p_DF: pd.DataFrame,
+        max_train_descs: np.ndarray,
+        p_descs: np.ndarray,
+        desc_space: str,
+    ) -> pd.DataFrame:
         """
         Update the confidence level column based on the bounding box check.
 
@@ -615,7 +649,7 @@ def evaluate_AD_apply_model(desc_file, shared_molecules):
         0
     ]  # Extract the file name without extension
     print(model_name)
-    model_pipeline = load_pkl(model_path)
+    model_pipeline: Any = load_pkl(model_path)
 
     # Initialize column 'Conf' + desc_space populated with zeros
     shared_predict_df[f"Conf-{desc_space}"] = 0
@@ -655,7 +689,11 @@ def evaluate_AD_apply_model(desc_file, shared_molecules):
     return shared_predict_df
 
 
-def aggregate_test_predictions(all_predictions, ext_test_set_DF, model_type):
+def aggregate_test_predictions(
+    all_predictions: Dict[str, Dict[str, Any]],
+    ext_test_set_DF: pd.DataFrame,
+    model_type: str,
+) -> Dict[str, pd.DataFrame]:
     """
     Aggregates prediction data for a given external test set DataFrame and calculates
     confidence levels and statistical summaries based on the model type.
@@ -684,7 +722,7 @@ def aggregate_test_predictions(all_predictions, ext_test_set_DF, model_type):
           to the provided model type.
     """
 
-    def in_AD_aggregation(df_row):
+    def in_AD_aggregation(df_row: pd.Series) -> pd.Series:
         """
         Aggregates predictions for molecules within the applicability domain.
 
@@ -789,7 +827,9 @@ def aggregate_test_predictions(all_predictions, ext_test_set_DF, model_type):
     return {"In_AD": DF_in_AD, "Out_AD": DF_out_AD}
 
 
-def calculate_scores(final_df, property_col, model_type):
+def calculate_scores(
+    final_df: pd.DataFrame, property_col: str, model_type: str
+) -> Dict[str, float]:
     """
     Calculate evaluation scores based on the true and predicted values.
 
@@ -817,7 +857,13 @@ def calculate_scores(final_df, property_col, model_type):
     return scores
 
 
-def plot_regression(dataframe, property_col, scores, outdir, test_set_df):
+def plot_regression(
+    dataframe: pd.DataFrame,
+    property_col: str,
+    scores: Dict[str, float],
+    outdir: str,
+    test_set_df: Optional[pd.DataFrame],
+) -> None:
     """
     Create a regression plot based on the true and predicted values and save it to the specified output directory.
 
@@ -906,8 +952,13 @@ def plot_regression(dataframe, property_col, scores, outdir, test_set_df):
 
 
 def generate_confusion_matrix(
-    dataframe, scores, outdir, nb_classes, class_info, test_set_df
-):
+    dataframe: pd.DataFrame,
+    scores: Dict[str, float],
+    outdir: str,
+    nb_classes: int,
+    class_info: str,
+    test_set_df: Optional[pd.DataFrame],
+) -> None:
     """
     Generate a confusion matrix and write it along with scores to a file in the specified output directory.
 
@@ -1078,10 +1129,11 @@ if __name__ == "__main__":
     property_col = args.property_col
 
     # Maybe not the most elegant solution, but it does what it needs to do. Maybe will refactor one day
-    final_DF = None
-    final_DF_out_AD = None
+    final_DF: Optional[pd.DataFrame] = None
+    final_DF_out_AD: Optional[pd.DataFrame] = None
 
     # Validate model type and number of classes
+    nb_classes: Optional[int]
     if model_type == "class":
         if args.class_info is None:
             logging.error(
@@ -1191,9 +1243,11 @@ if __name__ == "__main__":
                 partial_rebuild_and_evaluatefunc = partial(
                     rebuild_and_evaluate_reg_model, **kwargs
                 )
-                results = pool.map(partial_rebuild_and_evaluatefunc, first_func_args)
+                eval_scores = pool.map(
+                    partial_rebuild_and_evaluatefunc, first_func_args
+                )
                 # Assign the results back to the model_from_CV. It is safe to do that, because when using pool.map() the order of the results is preserved relative to the order of the inputs.
-                models_from_CV["evaluation_score"] = results
+                models_from_CV["evaluation_score"] = eval_scores
                 indices_to_drop = models_from_CV[
                     models_from_CV["evaluation_score"] < 0.5
                 ].index  # Do you really want to live in a world were models with such score are getting accepted?
@@ -1276,7 +1330,7 @@ if __name__ == "__main__":
     if model_type == "reg":
         minimal_row_requirement = 2
     else:
-        minimal_row_requirement = nb_classes
+        minimal_row_requirement = cast(int, nb_classes)
 
     # Handling compounds in AD
     if len(final_DF) >= minimal_row_requirement:
@@ -1288,7 +1342,12 @@ if __name__ == "__main__":
             plot_regression(final_DF, property_col, scores, model_folder, test_set_df)
         else:
             generate_confusion_matrix(
-                final_DF, scores, model_folder, nb_classes, class_info, test_set_df
+                final_DF,
+                scores,
+                model_folder,
+                cast(int, nb_classes),
+                class_info,
+                test_set_df,
             )
     else:
         logging.info(

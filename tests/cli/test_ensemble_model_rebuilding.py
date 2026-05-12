@@ -1,7 +1,5 @@
 """Stub tests for ensemble_model_rebuilding CLI."""
 
-from __future__ import annotations
-
 import pytest
 
 

@@ -16,6 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from .chem import *
-from .cli import *
-from .optimizer import *
+from .chem import *  # noqa: F401,F403
+from .cli import *  # noqa: F401,F403
+from .optimizer import *  # noqa: F401,F403

@@ -1,7 +1,5 @@
 """Tests for solvents module."""
 
-from __future__ import annotations
-
 import pandas.testing as pdt
 
 from doptools.chem.solvents import SolventVectorizer

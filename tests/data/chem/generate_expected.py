@@ -1,12 +1,10 @@
 """Generate expected descriptor outputs for chem tests."""
 
-from __future__ import annotations
-
 from pathlib import Path
-from typing import Iterable, Any
+from typing import Any, Iterable
 
 import pandas as pd
-import yaml
+import yaml  # type: ignore[import-untyped]
 
 from doptools.chem.chem_features import (
     ChythonCircus,
@@ -15,7 +13,6 @@ from doptools.chem.chem_features import (
     Fingerprinter,
     PassThrough,
 )
-
 
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / "config.yaml"
@@ -31,8 +28,9 @@ def _write_csv(df: Any | pd.DataFrame, path: Path) -> None:
     df.to_csv(path, index=False)
 
 
-def _smiles_to_dataframe(smiles: Iterable[str], numeric_values: list[int]
-                         ) -> pd.DataFrame:
+def _smiles_to_dataframe(
+    smiles: Iterable[str], numeric_values: list[int]
+) -> pd.DataFrame:
     return pd.DataFrame({"mol": list(smiles), "num": numeric_values})
 
 
@@ -74,9 +72,10 @@ def generate() -> None:
         for radius in params["rdkfp_radius"]:
             fragmentor = ComplexFragmentor(
                 associator=[
-                    ("mol", Fingerprinter(fp_type="rdkfp",
-                                          nBits=n_bits,
-                                          radius=radius)),
+                    (
+                        "mol",
+                        Fingerprinter(fp_type="rdkfp", nBits=n_bits, radius=radius),
+                    ),
                     ("numerical", PassThrough(["num"])),
                 ],
                 structure_columns=["mol"],

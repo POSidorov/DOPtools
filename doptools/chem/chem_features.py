@@ -16,9 +16,19 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from tqdm import tqdm
 from functools import partialmethod
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 from warnings import warn
 
 import numpy as np
@@ -27,8 +37,9 @@ from chython import CGRContainer, MoleculeContainer, ReactionContainer, smiles
 from pandas import DataFrame
 from rdkit import Chem, RDLogger
 from rdkit.Avalon import pyAvalonTools
-from rdkit.Chem import AllChem, rdMolDescriptors
+from rdkit.Chem import AllChem
 from sklearn.base import BaseEstimator, TransformerMixin
+from tqdm import tqdm
 
 # from mordred import Calculator, descriptors
 from doptools.chem.utils import _add_stereo_substructure
@@ -47,14 +58,14 @@ class DescriptorCalculator:
     features of the calculator.
     """
 
-    def __init__(self, name: str, size: Tuple[int]):
-        self._name = name
-        self._size = size
-        self._short_name = name
-        self.feature_names = []
+    def __init__(self, name: str, size: Tuple[int, ...]) -> None:
+        self._name: str = name
+        self._size: Tuple[int, ...] = size
+        self._short_name: str = name
+        self.feature_names: Union[List[str], Dict[int, List[Any]]] = []
 
     @property
-    def size(self) -> Tuple[int]:
+    def size(self) -> Tuple[int, ...]:
         """
         Returns the size of the calculator as a tuple of integers.
         """
@@ -69,10 +80,10 @@ class DescriptorCalculator:
         return self._name
 
     @property
-    def short_name(self):
+    def short_name(self) -> str:
         return self._short_name
 
-    def get_feature_names(self) -> List[str]:
+    def get_feature_names(self) -> List[str] | Dict[int, List[Any]]:
         """
         Returns the list of features as strings.
         """
@@ -116,8 +127,8 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         only_dynamic: bool = False,
         on_bond: bool = False,
         fmt: str = "mol",
-        keep_stereo="no",
-    ):
+        keep_stereo: str = "no",
+    ) -> None:
         """
         Circus descriptor calculator constructor.
 
@@ -133,21 +144,23 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :param on_bond: toggle for calculating fragments centering on bonds.
         :type on_bond: bool
 
-        param fmt: format of the molecules for input ('mol' for MoleculeContainers, 'smiles' for strings).
+        param fmt: format of the molecules for input ('mol' for MoleculeContainers,
+        'smiles' for strings).
         :type fmt: str
 
-        param keep_stereo: ("yes", "no", or "both") applicable for reactions to generate stereo-keeping CGR fragments.
+        param keep_stereo: ("yes", "no", or "both") applicable for reactions to
+        generate stereo-keeping CGR fragments.
         :type keep_stereo: str
         """
-        self.feature_names = []
-        self.lower = lower
-        self.upper = upper
-        self.only_dynamic = only_dynamic
-        self.fmt = fmt
-        self.on_bond = on_bond
-        self._name = "circus"
-        self._size = (lower, upper)
-        self.keep_stereo = keep_stereo
+        self.feature_names: List[str] = []
+        self.lower: int = lower
+        self.upper: int = upper
+        self.only_dynamic: bool = only_dynamic
+        self.fmt: str = fmt
+        self.on_bond: bool = on_bond
+        self._name: str = "circus"
+        self._size: Tuple[int, ...] = (lower, upper)
+        self.keep_stereo: str = keep_stereo
         all_params = ["C", str(lower), str(upper)]
         if on_bond:
             all_params += ["B"]
@@ -159,7 +172,11 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
             all_params += ["BS"]
         self._short_name = "-".join(all_params)
 
-    def fit(self, X: DataFrame, y: Optional[List] = None):
+    def fit(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> "ChythonCircus":
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -177,6 +194,8 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
             reac = None
             if self.fmt == "smiles":
                 mol = smiles(mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
             if isinstance(mol, ReactionContainer):
                 reac = mol
                 mol = reac.compose()
@@ -223,7 +242,11 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
                                 self.feature_names.append(sub_smiles)
         return self
 
-    def transform(self, X: Iterable, y: Optional[List] = None) -> DataFrame:
+    def transform(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -238,10 +261,12 @@ class ChythonCircus(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         table = pd.DataFrame(columns=self.feature_names)
         for i, mol in enumerate(X):
-            visited_substructures = []
+            visited_substructures: List[set[int]] = []
             reac = None
             if self.fmt == "smiles":
                 mol = smiles(mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
             if isinstance(mol, ReactionContainer):
                 reac = mol
                 mol = reac.compose()
@@ -331,20 +356,24 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         upper: int = 0,
         only_dynamic: bool = False,
         fmt: str = "mol",
-    ):
-        self.feature_names = []
-        self.lower = lower
-        self.upper = upper
-        self.only_dynamic = only_dynamic
-        self.fmt = fmt
-        self._name = "chyline"
-        self._size = (lower, upper)
+    ) -> None:
+        self.feature_names: List[str] = []
+        self.lower: int = lower
+        self.upper: int = upper
+        self.only_dynamic: bool = only_dynamic
+        self.fmt: str = fmt
+        self._name: str = "chyline"
+        self._size: Tuple[int, ...] = (lower, upper)
         all_params = ["H", str(lower), str(upper)]
         if only_dynamic:
             all_params += ["D"]
         self._short_name = "-".join(all_params)
 
-    def fit(self, X: DataFrame, y: Optional[List] = None):
+    def fit(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> "ChythonLinear":
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -358,20 +387,25 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         :type y: None
         """
         self.feature_names = []
-        output = []
+        output: List[Dict[int, Any]] = []
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
             if isinstance(mol, ReactionContainer):
                 reac = mol
                 mol = reac.compose()
             output.append(
                 mol.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0)
             )
-        self.feature_names = pd.DataFrame(output).columns
+        self.feature_names = list(pd.DataFrame(output).columns)
         return self
 
-    def transform(self, X: DataFrame, y: Optional[List] = None):
+    def transform(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -386,20 +420,21 @@ class ChythonLinear(DescriptorCalculator, BaseEstimator, TransformerMixin):
         """
         df = pd.DataFrame(columns=self.feature_names, dtype=int)
 
-        output = []
+        output: List[Dict[int, Any]] = []
         for m in X:
             if self.fmt == "smiles":
                 m = smiles(m)
+            m = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], m)
             if isinstance(m, ReactionContainer):
                 reac = m
                 m = reac.compose()
             output.append(
                 m.linear_smiles_hash(self.lower, self.upper, number_bit_pairs=0)
             )
-        output = pd.DataFrame(output)
-        output = output.map(lambda x: len(x) if isinstance(x, list) else 0)
+        output_df = pd.DataFrame(output)
+        output_df = output_df.map(lambda x: len(x) if isinstance(x, list) else 0)
 
-        output2 = output[output.columns.intersection(df.columns)]
+        output2 = output_df[output_df.columns.intersection(df.columns)]
         df = pd.concat([df, output2])
         df = df.fillna(0)
         return df
@@ -421,39 +456,43 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
     def __init__(
         self,
-        fp_type,
+        fp_type: str,
         nBits: int = 1024,
-        radius=None,
-        params=None,
-        fmt="mol",
-        chirality=False,
-    ):
+        radius: Optional[int] = None,
+        params: Optional[Dict[str, Any]] = None,
+        fmt: str = "mol",
+        chirality: bool = False,
+    ) -> None:
         if params is None:
             params = {}
-        self.fp_type = fp_type
-        self.nBits = nBits
-        self.fmt = fmt
+        self.fp_type: str = fp_type
+        self.nBits: int = nBits
+        self.fmt: str = fmt
         if radius is None:
-            self._size = (nBits,)
+            self._size: Tuple[int, ...] = (nBits,)
         else:
             self._size = (radius, nBits)
-        self.radius = radius
-        self.params = params
-        self.chirality = chirality
-        self.info = dict([(i, []) for i in range(self.nBits)])
-        self.feature_names = dict([(i, []) for i in range(self.nBits)])
-        self.feature_names_chython = dict([(i, []) for i in range(self.nBits)])
+        self.radius: Optional[int] = radius
+        self.params: Dict[str, Any] = params
+        self.chirality: bool = chirality
+        self.info: Dict[int, List[Any]] = dict([(i, []) for i in range(self.nBits)])
+        self.feature_names: Dict[int, List[Any]] = dict(
+            [(i, []) for i in range(self.nBits)]
+        )
+        self.feature_names_chython: Dict[int, List[Any]] = dict(
+            [(i, []) for i in range(self.nBits)]
+        )
         if (
             fp_type == "morgan"
             and "useFeatures" in params.keys()
-            and params["useFeatures"] == True
+            and params["useFeatures"] is True
         ):
             self._name = "morganfeatures"
             self._short_name = "-".join(["MF", str(nBits), str(radius)])
         elif (
             fp_type == "rdkfp"
             and "branchedPaths" in params.keys()
-            and params["branchedPaths"] == False
+            and params["branchedPaths"] is False
         ):
             self._name = "rdkfplinear"
             self._short_name = "-".join(["RL", str(nBits), str(radius)])
@@ -472,7 +511,11 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 all_params.append(str(radius))
             self._short_name = "-".join(all_params)
 
-    def fit(self, X: DataFrame, y=None):
+    def fit(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> "Fingerprinter":
         """
         Fits the fingerprint calculator.
 
@@ -486,8 +529,8 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
         return self
 
-    def get_features(self, x, output="smiles"):
-        features = dict([(i, []) for i in range(self.nBits)])
+    def get_features(self, x: Any, output: str = "smiles") -> Dict[int, Any]:
+        features: Dict[int, Any] = dict([(i, []) for i in range(self.nBits)])
         m = Chem.MolFromSmiles(str(x))
         if self.fp_type == "avalon":
             pass
@@ -502,7 +545,8 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             if not hasattr(self, "chirality"):  # Back compatibility
                 self.chirality = False
                 warn(
-                    "Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it"
+                    "Compatibility mode: The pipeline was created with an older "
+                    "version of DOPTools. Consider recreating it"
                 )
 
             if "useFeatures" in self.params and self.params["useFeatures"]:
@@ -518,13 +562,13 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             )
             ao = AllChem.AdditionalOutput()
             ao.CollectBitInfoMap()
-            desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
+            frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
             bmap = ao.GetBitInfoMap()
             for k, v in bmap.items():
                 for i in v:
                     if i[1] > 0:
                         env = Chem.FindAtomEnvironmentOfRadiusN(m, i[1], i[0])
-                        amap = {}
+                        amap: Dict[int, int] = {}
                         submol = Chem.PathToSubmol(m, env, atomMap=amap)
                         if output == "smiles":
                             features[k].append(Chem.MolToSmiles(submol, canonical=True))
@@ -550,7 +594,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
             )
             ao = AllChem.AdditionalOutput()
             ao.CollectBitPaths()
-            desc = frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
+            frg.GetFingerprintAsNumPy(m, additionalOutput=ao)
             bmap = ao.GetBitPaths()
             for k, v in bmap.items():
                 for i in v:
@@ -600,7 +644,11 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
     def get_feature_names(self) -> List[str]:
         return [str(i) for i in range(self.nBits)]
 
-    def transform(self, X, y=None):
+    def transform(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> DataFrame:
         """
         Transforms the given array of molecules to a data frame
         with features and their values.
@@ -628,7 +676,8 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 if not hasattr(self, "chirality"):  # Back compatibility
                     self.chirality = False
                     warn(
-                        "Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it"
+                        "Compatibility mode: The pipeline was created with an older "
+                        "version of DOPTools. Consider recreating it"
                     )
 
                 if self.fp_type == "atompairs":
@@ -666,34 +715,57 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
         return pd.DataFrame(np.array(res), columns=[str(i) for i in range(self.nBits)])
 
 
+class DescriptorLike(Protocol):
+    short_name: str
+
+    def fit(
+        self, X: Any, y: Optional[List[Any]] = None
+    ) -> "DescriptorLike":  # pragma: no cover - typing protocol
+        ...
+
+    def transform(self, X: Any, y: Optional[List[Any]] = None) -> DataFrame: ...
+
+    def get_feature_names(self) -> List[str]: ...
+
+
 class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
     """
-    ComplexFragmentor class is a scikit-learn compatible transformer that concatenates the features
-    according to specified associations. The most important argument is the "associator" - a list of tuples
-    that establishes the correspondence between a column in a data frame X and the transformer
-    that is trained on it (similarly to how sklearn Pipeline works).
+    ComplexFragmentor class is a scikit-learn compatible transformer that concatenates
+    the features according to specified associations. The most important argument is
+    the "associator" - a list of tuples that establishes the correspondence between a
+    column in a data frame X and the transformer that is trained on it (similarly to
+    how sklearn Pipeline works).
 
-    For example, say you have a data frame with molecules/CGRs in one column ("molecules"), and
-    solvents in another ("solvent"). You want to generate a feture table that includes both structural
-    and solvent descriptors. You would define a ComplexFragmentor class with associator as a list of tuples,
-    where each tuple is a pair of column names and the corresponding feature generators. In this case, e.g.,
+    For example, say you have a data frame with molecules/CGRs in one column
+    ("molecules"), and solvents in another ("solvent"). You want to generate a
+    feature table that includes both structural and solvent descriptors. You would
+    define a ComplexFragmentor class with associator as a list of tuples, where each
+    tuple is a pair of column names and the corresponding feature generators. In this
+    case, e.g.,
 
         associator = [("molecules", Augmentor(lower=a, upper=b)),
-                      ("solvent":SolventVectorizer())]  # see CIMTools library for solvent features
+                      ("solvent":SolventVectorizer())]  # see CIMTools for features
 
-    ComplexFragmentor assumes that one of the types of features will be structural, thus,
-    "structure_column" parameter defines the column of the data frame where structures are found.
+    ComplexFragmentor assumes that one of the types of features will be structural,
+    thus, "structure_column" parameter defines the column of the data frame where
+    structures are found.
     """
 
-    def __init__(self, associator: List[Tuple[str, object]], structure_columns=None):
-        self.structure_columns = [] if structure_columns is None else structure_columns
-        self.associator = associator
+    def __init__(
+        self,
+        associator: Sequence[Tuple[str, DescriptorLike]],
+        structure_columns: Optional[List[str]] = None,
+    ) -> None:
+        self.structure_columns: List[str] = (
+            [] if structure_columns is None else structure_columns
+        )
+        self.associator: List[Tuple[str, DescriptorLike]] = list(associator)
         # self.fragmentor = self.associator[self.structure_column]
-        self.feature_names = []
-        self._name = "ComplexFragmentor"
-        self._short_name = ".".join([c[1].short_name for c in associator])
+        self.feature_names: List[str] = []
+        self._name: str = "ComplexFragmentor"
+        self._short_name: str = ".".join([c[1].short_name for c in associator])
 
-    def fit(self, x: DataFrame, y: Optional[List] = None):
+    def fit(self, x: DataFrame, y: Optional[List[Any]] = None) -> "ComplexFragmentor":
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -715,7 +787,11 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
             self.feature_names += [k + "::" + f for f in v.get_feature_names()]
         return self
 
-    def transform(self, x: DataFrame, y: Optional[List] = None) -> DataFrame:
+    def transform(
+        self,
+        x: Union[DataFrame, Dict[str, Any], List[Any], pd.Series],
+        y: Optional[List[Any]] = None,
+    ) -> DataFrame:
         """
         Transforms the given data frame to a data frame of features
         with their values. Applies each feature generator
@@ -730,7 +806,7 @@ class ComplexFragmentor(DescriptorCalculator, BaseEstimator, TransformerMixin):
             doesn't change the function at all.
         :type y: None
         """
-        concat = []
+        concat: List[DataFrame] = []
         if not isinstance(x, DataFrame) and isinstance(x, (dict, list, pd.Series)):
             x = pd.DataFrame(x if isinstance(x, list) else [x])
         for k, v in self.associator:
@@ -805,22 +881,22 @@ class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
     ComplexFragmentor.
     """
 
-    def __init__(self, column_names: List[str]):
-        self.column_names = column_names
-        self.feature_names = self.column_names
-        self._name = "numerical"
-        self._short_name = "N"
-        self._size = ()
+    def __init__(self, column_names: List[str]) -> None:
+        self.column_names: List[str] = column_names
+        self.feature_names: List[str] = self.column_names
+        self._name: str = "numerical"
+        self._short_name: str = "N"
+        self._size: Tuple[int, ...] = ()
 
-    def fit(self, x: DataFrame, y=None):
+    def fit(self, x: DataFrame, y: Optional[List[Any]] = None) -> "PassThrough":
         """
         Fits the calculator. Parameters are not necessary.
         """
         return self
 
     def transform(
-        self, x: DataFrame, y: Optional[List] = None, check: Optional[bool] = True
-    ):
+        self, x: DataFrame, y: Optional[List[Any]] = None, check: bool = True
+    ) -> DataFrame:
         """
         Returns the column without any transformation.
 
@@ -839,7 +915,7 @@ class PassThrough(DescriptorCalculator, BaseEstimator, TransformerMixin):
             raise ValueError("Non numerical value(s) provided to PassThrough")
         return df
 
-    def get_feature_names(self):
+    def get_feature_names(self) -> List[str]:
         return self.feature_names
 
 
@@ -877,7 +953,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         upper: int = 0,
         only_dynamic: bool = False,
         fmt: str = "mol",
-    ):
+    ) -> None:
         """
         Circus descriptor calculator constructor.
 
@@ -890,19 +966,24 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         :param only_dynamic: toggle for calculating only fragments with dynamic items.
         :type only_dynamic: bool
 
-        param fmt: format of the molecules for input ('mol' for MoleculeContainers, 'smiles' for strings).
+        param fmt: format of the molecules for input ('mol' for MoleculeContainers,
+        'smiles' for strings).
         :type fmt: str
         """
-        self.feature_names = []
-        self.features = []
-        self.lower = lower
-        self.upper = upper
-        self.only_dynamic = only_dynamic
-        self.fmt = fmt
-        self._name = "linear"
-        self._size = (lower, upper)
+        self.feature_names: List[str] = []
+        self.features: List[Any] = []
+        self.lower: int = lower
+        self.upper: int = upper
+        self.only_dynamic: bool = only_dynamic
+        self.fmt: str = fmt
+        self._name: str = "linear"
+        self._size: Tuple[int, ...] = (lower, upper)
 
-    def fit(self, X: DataFrame, y: Optional[List] = None):
+    def fit(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> "ChythonCircusNonhash":
         """
         Fits the calculator - finds all possible substructures in the
         given array of molecules/CGRs.
@@ -920,6 +1001,7 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
             for length in range(self.lower, self.upper + 1):
                 for atom in mol.atoms():
                     # deep is the radius of the neighborhood sphere in bonds
@@ -932,7 +1014,11 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
                         self.features.append(sub)
         return self
 
-    def transform(self, X: DataFrame, y: Optional[List] = None) -> DataFrame:
+    def transform(
+        self,
+        X: Iterable[Union[MoleculeContainer, CGRContainer, ReactionContainer, str]],
+        y: Optional[List[Any]] = None,
+    ) -> DataFrame:
         """
         Transforms the given array of molecules/CGRs to a data frame
         with features and their values.
@@ -949,15 +1035,18 @@ class ChythonCircusNonhash(BaseEstimator, TransformerMixin):
         for i, mol in enumerate(X):
             if self.fmt == "smiles":
                 mol = smiles(mol)
+            mol = cast(Union[MoleculeContainer, CGRContainer, ReactionContainer], mol)
             table.loc[len(table)] = 0
             for sub in self.features:
-                # if CGRs are used, the transformation of the substructure to the CGRcontainer is needed
+                # If CGRs are used, transformation of the substructure to the
+                # CGR container is needed.
                 mapping = list(sub.get_mapping(mol))
-                # mapping is the list of all possible substructure mappings into the given molecule/CGR
+                # Mapping is the list of all possible substructure mappings into
+                # the given molecule/CGR.
                 table.loc[i, str(sub)] = len(mapping)
         return table
 
-    def get_feature_names(self):
+    def get_feature_names(self) -> List[str]:
         return self.feature_names
 
 

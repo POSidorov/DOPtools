@@ -1,7 +1,5 @@
 """Tests for optimizer module."""
 
-from __future__ import annotations
-
 import numpy as np
 import optuna
 import pandas as pd

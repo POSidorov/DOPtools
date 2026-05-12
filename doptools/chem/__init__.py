@@ -16,6 +16,6 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from .chem_features import *
-from .coloratom import *
-from .solvents import *
+from .chem_features import *  # noqa: F401,F403
+from .coloratom import *  # noqa: F401,F403
+from .solvents import *  # noqa: F401,F403

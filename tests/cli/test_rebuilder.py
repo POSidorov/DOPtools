@@ -1,7 +1,5 @@
 """Stub tests for rebuilder CLI."""
 
-from __future__ import annotations
-
 import pytest
 
 

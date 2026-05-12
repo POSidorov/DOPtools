@@ -1,8 +1,5 @@
 """Tests for ad_estimators module."""
 
-from __future__ import annotations
-
-import pandas as pd
 import pytest
 from sklearn.dummy import DummyRegressor
 from sklearn.pipeline import Pipeline

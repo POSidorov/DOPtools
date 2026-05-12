@@ -1,7 +1,7 @@
-from typing import Tuple
+from typing import Any, Iterable, List, Optional
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn import base
 from sklearn.base import BaseEstimator
 
@@ -9,12 +9,12 @@ from doptools.estimators.ad_estimators import PipelineWithAD
 
 
 class ConsensusModel(BaseEstimator):
-    def __init__(self, pipelines):
-        self.model_type = "R"
-        self.ad_type = None
-        if isinstance(pipelines[0], Tuple):
-            self.names = [p[0] for p in pipelines]
-            self.pipelines = [p[1] for p in pipelines]
+    def __init__(self, pipelines: List[Any]) -> None:
+        self.model_type: str = "R"
+        self.ad_type: Optional[str] = None
+        if isinstance(pipelines[0], tuple):
+            self.names: List[str] = [p[0] for p in pipelines]
+            self.pipelines: List[Any] = [p[1] for p in pipelines]
         else:
             self.names = ["model" + str(i + 1) for i in range(len(pipelines))]
             self.pipelines = pipelines
@@ -29,14 +29,19 @@ class ConsensusModel(BaseEstimator):
             if issubclass(self.pipelines[0][-1].__class__, base.ClassifierMixin):
                 self.model_type = "C"
 
-    def fit(self, X, y=None):
+    def fit(self, X: Any, y: Optional[Iterable[Any]] = None) -> "ConsensusModel":
         for p in self.pipelines:
             p.fit(X, y)
         self.is_fitted_ = True
         return self
 
-    def predict(self, X, y=None, output="all"):
-        preds = []
+    def predict(
+        self,
+        X: Any,
+        y: Optional[Iterable[Any]] = None,
+        output: str = "all",
+    ) -> pd.DataFrame:
+        preds: List[Any] = []
 
         if self.ad_type is None:
             preds = np.array([p.predict(X) for p in self.pipelines]).T
@@ -68,7 +73,9 @@ class ConsensusModel(BaseEstimator):
         elif output == "preds":
             return res[self.names]
 
-    def predict_within_AD(self, X, y=None, output="all"):
+    def predict_within_AD(
+        self, X: Any, y: Optional[Iterable[Any]] = None, output: str = "all"
+    ) -> pd.DataFrame:
         if self.ad_type is None:
             return self.predict(X, y, output)
         else:

@@ -80,7 +80,6 @@ def _pos_in_string_atom(cgr, cgr_string, number):
 
 
 def _add_stereo_substructure(substructure, reaction):
-    substructure_atoms = list(substructure._atoms)
     cts = _gather_ct_stereos(reaction)
     rss = _gather_rs_stereos(reaction)
     cgr_smiles = str(substructure)

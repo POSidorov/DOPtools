@@ -1,10 +1,7 @@
 """Tests for launch_optimizer CLI."""
 
-from __future__ import annotations
-
-import sys
-
 import importlib
+import sys
 
 import pandas as pd
 

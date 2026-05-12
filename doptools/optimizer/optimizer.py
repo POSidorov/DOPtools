@@ -23,12 +23,13 @@ import multiprocessing as mp
 import os
 import warnings
 from functools import partial
-from multiprocessing import Manager
+from typing import Any, Dict, MutableMapping, Optional, Tuple, Union
 
 import numpy as np
 import optuna
 import pandas as pd
 from optuna.study import StudyDirection
+from pandas import DataFrame
 from scipy.sparse import issparse
 from sklearn.datasets import load_svmlight_file
 from sklearn.feature_selection import VarianceThreshold
@@ -55,11 +56,11 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
 class TopNPatienceCallback:
-    def __init__(self, patience: int, leaders: int = 1):
-        self.patience = patience
-        self.leaders = leaders
-        self._leaders_unchanged_steps = 0
-        self._previous_leaders = ()
+    def __init__(self, patience: int, leaders: int = 1) -> None:
+        self.patience: int = patience
+        self.leaders: int = leaders
+        self._leaders_unchanged_steps: int = 0
+        self._previous_leaders: Tuple[int, ...] = ()
 
     def __call__(
         self, study: optuna.study.Study, trial: optuna.trial.FrozenTrial
@@ -92,19 +93,20 @@ class TopNPatienceCallback:
             study.stop()
 
 
-def collect_data(datadir, task, fmt="svm"):
-    desc_dict = {}
-    y = {}
+def collect_data(
+    datadir: str, task: str, fmt: str = "svm"
+) -> Tuple[Dict[str, Any], DataFrame]:
+    desc_dict: Dict[str, Any] = {}
+    y: Dict[str, Any] = {}
     for f in glob.glob(os.path.join(datadir, "*." + fmt)):
         propname = f.split(os.sep)[-1].split(".")[0]
         name = f.split(os.sep)[-1][len(propname) + 1 : -4]
-        fullname = f.split(os.sep)[-1]
         if fmt == "svm":
             desc_dict[name], y[propname] = load_svmlight_file(f)
         elif fmt == "csv":
             data = pd.read_table(f)
             y[propname] = data[propname]
-            col_idx = list(data.columns).index()
+            col_idx = list(data.columns).index(propname)
             desc_dict[name] = data.iloc[:, col_idx + 1 :]
     if task.endswith("C"):
         return desc_dict, pd.DataFrame(y, dtype=int)
@@ -112,8 +114,10 @@ def collect_data(datadir, task, fmt="svm"):
         return desc_dict, pd.DataFrame(y)
 
 
-def calculate_scores(task, obs, pred):
-    def create_row(task, stat_name, x, y):
+def calculate_scores(task: str, obs: DataFrame, pred: DataFrame) -> DataFrame:
+    def create_row(
+        task: str, stat_name: str, x: pd.Series, y: pd.Series
+    ) -> Dict[str, Union[str, float]]:
         if task == "R":
             return {
                 "stat": stat_name,
@@ -143,6 +147,7 @@ def calculate_scores(task, obs, pred):
                 "F1": f1_score(x, y, average="macro"),
                 "MCC": matthews_corrcoef(x, y),
             }
+        raise ValueError("Unknown task type")
 
     if task == "R":
         score_df = pd.DataFrame(columns=["stat", "R2", "RMSE", "MAE"])
@@ -173,21 +178,21 @@ def calculate_scores(task, obs, pred):
 
 
 def objective_study(
-    storage,
-    results_detailed,
-    trial,
-    x_dict,
-    y,
-    outdir,
-    method,
-    ntrials,
-    cv_splits,
-    cv_repeats,
-    jobs,
-    tmout,
-    earlystop,
+    storage: MutableMapping[int, Dict[str, Any]],
+    results_detailed: MutableMapping[int, Dict[str, Any]],
+    trial: optuna.trial.Trial,
+    x_dict: Dict[str, Any],
+    y: DataFrame,
+    outdir: str,
+    method: str,
+    ntrials: int,
+    cv_splits: int,
+    cv_repeats: int,
+    jobs: int,
+    tmout: int,
+    earlystop: Tuple[int, int],
     write_output: bool = True,
-):
+) -> float:
     n = trial.number
     if write_output and not os.path.exists(os.path.join(outdir, "trial." + str(n))):
         os.mkdir(os.path.join(outdir, "trial." + str(n)))
@@ -208,8 +213,6 @@ def objective_study(
     X = VarianceThreshold().fit_transform(X)
 
     params = suggest_params(trial, method)
-    # storage[n] = {"fit_score":fscore, 'desc': desc, 'scaling': scaling, 'method': method, **params}
-
     model = get_raw_model(method, params)
 
     Y = np.array(y[y.columns[0]])
@@ -248,7 +251,7 @@ def objective_study(
 
     score_df = calculate_scores(method[-1], y, res_pd)
 
-    fit_scores = {}
+    fit_scores: Dict[str, Union[str, float]] = {}
     model.fit(X, Y)
     fit_preds = model.predict(X)
     if method.endswith("R"):
@@ -329,21 +332,21 @@ def objective_study(
 
 
 def run_objective_study_with_timeout(
-    storage,
-    results_detailed,
-    x_dict,
-    y,
-    outdir,
-    method,
-    ntrials,
-    cv_splits,
-    cv_repeats,
-    jobs,
-    tmout,
-    earlystop,
-    write_output,
-    trial,
-):
+    storage: MutableMapping[int, Dict[str, Any]],
+    results_detailed: MutableMapping[int, Dict[str, Any]],
+    x_dict: Dict[str, Any],
+    y: DataFrame,
+    outdir: str,
+    method: str,
+    ntrials: int,
+    cv_splits: int,
+    cv_repeats: int,
+    jobs: int,
+    tmout: int,
+    earlystop: Tuple[int, int],
+    write_output: bool,
+    trial: optuna.trial.Trial,
+) -> float:
     timeouted_objective = timeout_decorator.timeout(
         tmout, timeout_exception=optuna.TrialPruned, use_signals=False
     )(objective_study)
@@ -366,22 +369,22 @@ def run_objective_study_with_timeout(
 
 
 def launch_study(
-    x_dict,
-    y,
-    outdir,
-    method,
-    ntrials,
-    cv_splits,
-    cv_repeats,
-    jobs,
-    tmout,
-    earlystop,
+    x_dict: Dict[str, Any],
+    y: DataFrame,
+    outdir: str,
+    method: str,
+    ntrials: int,
+    cv_splits: int,
+    cv_repeats: int,
+    jobs: int,
+    tmout: int,
+    earlystop: Tuple[int, int],
     write_output: bool = True,
-):
+) -> Optional[Tuple[DataFrame, Dict[int, Any]]]:
     ctx = mp.get_context()
     with ctx.Manager() as manager:
-        results_dict = manager.dict()
-        results_detailed = manager.dict()
+        results_dict: MutableMapping[int, Dict[str, Any]] = manager.dict()
+        results_detailed: MutableMapping[int, Dict[str, Any]] = manager.dict()
 
         study = optuna.create_study(
             direction="maximize", sampler=optuna.samplers.TPESampler()
@@ -414,25 +417,25 @@ def launch_study(
             **kwargs_opt
         )
 
-        results_dict = dict(results_dict)
-        results_detailed = dict(results_detailed)
+        results_dict_local = dict(results_dict)
+        results_detailed_local = dict(results_detailed)
 
-    hyperparam_names = list(results_dict[next(iter(results_dict))].keys())
+    hyperparam_names = list(results_dict_local[next(iter(results_dict_local))].keys())
 
     results_pd = pd.DataFrame(columns=["trial"] + hyperparam_names + ["score"])
     intermediate = study.trials_dataframe(attrs=("number", "value"))
 
     for i, row in intermediate.iterrows():
         number = int(row.number)
-        if number not in results_dict:
+        if number not in results_dict_local:
             continue
         added_row = {
             "trial": number,
             "score": row.value,
-            "fit_score": results_dict[number]["fit_score"],
+            "fit_score": results_dict_local[number]["fit_score"],
         }
         for hp in hyperparam_names:
-            added_row[hp] = results_dict[number][hp]
+            added_row[hp] = results_dict_local[number][hp]
 
         results_pd = pd.concat(
             [pd.DataFrame([added_row]), results_pd.loc[:]]
@@ -444,7 +447,8 @@ def launch_study(
             os.path.join(outdir, "trials.best"), sep=" ", index=False
         )
     else:
-        return results_pd, results_detailed
+        return results_pd, results_detailed_local
+    return None
 
 
 __all__ = ["calculate_scores", "collect_data", "launch_study"]
