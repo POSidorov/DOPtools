@@ -31,7 +31,8 @@ from io import StringIO
 from typing import List, Dict
 from pandas import DataFrame, Series
 import matplotlib.pyplot as plt
-import matplotlib as mpl
+from matplotlib.colors import Normalize
+from matplotlib.colorbar import ColorbarBase
 
 from doptools.chem.chem_features import ComplexFragmentor, ChythonCircusNonhash, ChythonCircus, ChythonLinear
 
@@ -387,20 +388,20 @@ class ColorAtom:
             ax = fig.add_axes((0.05, 0.50, 0.80, 0.45))
 
         if self.model_type=="C":
-            norm = mpl.colors.Normalize(vmin=min_value, vmax=max_value)
-            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=self.colormap,
-                                            norm=norm,
-                                            orientation=orient,
-                                            ticks=np.linspace(min_value, max_value, nticks))
+            norm = Normalize(vmin=min_value, vmax=max_value)
+            cb1 = ColorbarBase(ax, cmap=self.colormap,
+                               norm=norm,
+                               orientation=orient,
+                               ticks=np.linspace(min_value, max_value, nticks))
         else:
-            norm = mpl.colors.Normalize(vmin=-max(np.abs(min_value), np.abs(max_value)), 
-                                        vmax=max(np.abs(min_value), np.abs(max_value)))
-            cb1 = mpl.colorbar.ColorbarBase(ax, cmap=self.colormap,
-                                            norm=norm,
-                                            orientation=orient,
-                                            ticks=np.linspace(-max(np.abs(min_value), np.abs(max_value)),
-                                                              max(np.abs(min_value), np.abs(max_value)),
-                                                              nticks))
+            norm = Normalize(vmin=-max(np.abs(min_value), np.abs(max_value)),
+                             vmax=max(np.abs(min_value), np.abs(max_value)))
+            cb1 = ColorbarBase(ax, cmap=self.colormap,
+                               norm=norm,
+                               orientation=orient,
+                               ticks=np.linspace(-max(np.abs(min_value), np.abs(max_value)),
+                                                 max(np.abs(min_value), np.abs(max_value)),
+                                                 nticks))
             
         cb1.ax.tick_params(labelsize="small")
         fig.set_size_inches(width*cm, height*cm/2)
