@@ -21,7 +21,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 
-version = '1.3.9'
+version = '1.3.10'
 
 setup(
     name='doptools',

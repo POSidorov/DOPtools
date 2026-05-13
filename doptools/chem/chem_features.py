@@ -23,7 +23,7 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from chython import smiles, CGRContainer, MoleculeContainer, ReactionContainer
 from typing import Optional, List, Dict, Tuple, Iterable
 from rdkit import Chem
-from rdkit.Chem import AllChem, rdMolDescriptors
+from rdkit.Chem import AllChem, rdFingerprintGenerator
 from rdkit.Avalon import pyAvalonTools
 #from mordred import Calculator, descriptors
 from doptools.chem.utils import _add_stereo_substructure
@@ -437,11 +437,11 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                 warn('Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it')
 
             if "useFeatures" in self.params and self.params["useFeatures"]:
-                feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                feat_gen = rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
             else:
                 feat_gen = None
 
-            frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius,
+            frg = rdFingerprintGenerator.GetMorganGenerator(radius=self.radius,
                                                                 includeChirality=self.chirality,
                                                                 fpSize=self.nBits,
                                                                 atomInvariantsGenerator=feat_gen)
@@ -474,7 +474,7 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
 
                 features = bmap
         elif self.fp_type == "rdkfp":
-            frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius, 
+            frg = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius,
                                                                     useHs=False, 
                                                                     fpSize=self.nBits,
                                                                     **self.params)
@@ -529,23 +529,23 @@ class Fingerprinter(DescriptorCalculator, BaseEstimator, TransformerMixin):
                     warn('Compatibility mode: The pipeline was created with an older version of DOPTools. Consider recreating it')
 
                 if self.fp_type == "atompairs":
-                    frg = Chem.rdFingerprintGenerator.GetAtomPairGenerator(includeChirality=self.chirality,
+                    frg = rdFingerprintGenerator.GetAtomPairGenerator(includeChirality=self.chirality,
                                                                            fpSize=self.nBits)
                 elif self.fp_type == 'morgan':
                     if "useFeatures" in self.params and self.params["useFeatures"]:
-                        feat_gen = Chem.rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+                        feat_gen = rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
                     else:
                         feat_gen = None
 
-                    frg = Chem.rdFingerprintGenerator.GetMorganGenerator(radius=self.radius,
+                    frg = rdFingerprintGenerator.GetMorganGenerator(radius=self.radius,
                                                                          includeChirality=self.chirality,
                                                                          fpSize=self.nBits,
                                                                          atomInvariantsGenerator=feat_gen)
                 elif self.fp_type == 'torsion':
-                    frg = Chem.rdFingerprintGenerator.GetTopologicalTorsionGenerator(includeChirality=self.chirality,
+                    frg = rdFingerprintGenerator.GetTopologicalTorsionGenerator(includeChirality=self.chirality,
                                                                                      fpSize=self.nBits)
                 elif self.fp_type == 'rdkfp':
-                    frg = Chem.rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius,
+                    frg = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=self.radius,
                                                                           useHs=False,
                                                                           fpSize=self.nBits,
                                                                           **self.params)
