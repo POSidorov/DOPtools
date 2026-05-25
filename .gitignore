@@ -12,3 +12,6 @@ venv
 build
 dist
 MANIFEST
+# pixi environments
+.pixi/*
+!.pixi/config.toml
